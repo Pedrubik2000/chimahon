@@ -164,6 +164,14 @@ android {
         includeInBundle = Config.includeDependencyInfo
     }
 
+    testOptions {
+        unitTests {
+            // Unit tests exercise UniFile-backed cache files, whose raw-file
+            // implementation calls trivial framework statics (TextUtils, Log).
+            isReturnDefaultValues = true
+        }
+    }
+
     buildFeatures {
         viewBinding = true
         buildConfig = true

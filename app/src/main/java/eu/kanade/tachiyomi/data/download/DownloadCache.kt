@@ -268,6 +268,8 @@ class DownloadCache(
                 }
             }
         }
+
+        notifyChanges()
     }
 
     // SY <--

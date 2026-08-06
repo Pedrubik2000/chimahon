@@ -501,6 +501,12 @@ class OcrManager(
                     )
                 }
 
+                // One fresh disk read for the whole chapter replaces per-page
+                // cache probes. This must come from disk, not the reader-path
+                // memo: skipping a page marks it as done without a file backing
+                // it if the memo is stale (e.g. chapter deleted + re-downloaded).
+                val alreadyCachedPages = ocrCacheManager.getCachedPageIndexes(manga, chapter, source)
+
                 for (pageIndex in 0 until pageCount) {
                     if (stopRequested()) {
                         updateStoredTask(chapterId) { current ->
@@ -513,8 +519,7 @@ class OcrManager(
                         return OcrTaskResult.CANCELLED
                     }
 
-                    val existingBlocks = ocrCacheManager.loadOcrBlocks(manga, chapter, source, pageIndex)
-                    if (existingBlocks != null) {
+                    if (pageIndex in alreadyCachedPages) {
                         logcat { "OcrManager: page $pageIndex already cached for chapter ${chapter.name}" }
                         updateStoredTask(chapterId) {
                             it.copy(
@@ -667,13 +672,10 @@ class OcrManager(
         source: Source,
         pageCount: Int,
     ): Int {
-        var cachedPages = 0
-        for (pageIndex in 0 until pageCount) {
-            if (ocrCacheManager.loadOcrBlocks(manga, chapter, source, pageIndex) != null) {
-                cachedPages++
-            }
-        }
-        return cachedPages
+        // isOcrReady is a persisted claim that every page has OCR on disk, so
+        // this must be a fresh disk read, never a memoized one.
+        val cachedPages = ocrCacheManager.getCachedPageIndexes(manga, chapter, source)
+        return (0 until pageCount).count { it in cachedPages }
     }
 
     private fun getChapterImageProvider(
