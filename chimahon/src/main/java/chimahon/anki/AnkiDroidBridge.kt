@@ -26,17 +26,10 @@ class AnkiDroidBridge(private val context: Context) {
         private const val SYNC_COOLDOWN_MS = 120_000L
         private var lastSyncTimeMs = 0L
 
-        private const val ANKIDROID_PACKAGE = "com.ichi2.anki"
-        const val PERMISSION = "com.ichi2.anki.permission.READ_WRITE_DATABASE"
         const val PERMISSION_REQUEST_CODE = 2001
 
-        private const val AUTHORITY = "com.ichi2.anki.flashcards"
-        private val BASE_URI = Uri.parse("content://$AUTHORITY")
-        private val NOTES_URI = Uri.withAppendedPath(BASE_URI, "notes")
-        private val NOTES_V2_URI = Uri.withAppendedPath(BASE_URI, "notes_v2")
-        private val MODELS_URI = Uri.withAppendedPath(BASE_URI, "models")
-        private val DECKS_URI = Uri.withAppendedPath(BASE_URI, "decks")
-        private val MEDIA_URI = Uri.withAppendedPath(BASE_URI, "media")
+        /** AnkiDroid builds in order of preference: kuma3 Anki, its old test build, stock AnkiDroid. */
+        val PACKAGES = listOf("io.github.pedrubik2000.kuma3", "com.ichi2.anki.debug", "com.ichi2.anki")
 
         private const val NOTE_ID = "_id"
         private const val NOTE_MID = "mid"
@@ -65,6 +58,20 @@ class AnkiDroidBridge(private val context: Context) {
         private const val FIELD_SEPARATOR = "\u001f"
     }
 
+    /** The first installed AnkiDroid build; its provider authority and permission are named after its app id. */
+    val pkg: String by lazy {
+        PACKAGES.firstOrNull { context.packageManager.resolveContentProvider("$it.flashcards", 0) != null }
+            ?: PACKAGES.last()
+    }
+    val permission get() = "$pkg.permission.READ_WRITE_DATABASE"
+
+    private val BASE_URI by lazy { Uri.parse("content://$pkg.flashcards") }
+    private val NOTES_URI by lazy { Uri.withAppendedPath(BASE_URI, "notes") }
+    private val NOTES_V2_URI by lazy { Uri.withAppendedPath(BASE_URI, "notes_v2") }
+    private val MODELS_URI by lazy { Uri.withAppendedPath(BASE_URI, "models") }
+    private val DECKS_URI by lazy { Uri.withAppendedPath(BASE_URI, "decks") }
+    private val MEDIA_URI by lazy { Uri.withAppendedPath(BASE_URI, "media") }
+
     private data class ModelInfo(
         val name: String,
         val fields: List<String>,
@@ -76,7 +83,7 @@ class AnkiDroidBridge(private val context: Context) {
 
     suspend fun isAnkiDroidInstalled(): Boolean = withContext(Dispatchers.IO) {
         try {
-            context.packageManager.getPackageInfo("com.ichi2.anki", 0)
+            context.packageManager.getPackageInfo(pkg, 0)
             true
         } catch (_: Exception) {
             false
@@ -84,11 +91,11 @@ class AnkiDroidBridge(private val context: Context) {
     }
 
     fun hasPermission(): Boolean {
-        return context.checkSelfPermission(PERMISSION) == PackageManager.PERMISSION_GRANTED
+        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
     }
 
     fun requestPermission(activity: android.app.Activity) {
-        activity.requestPermissions(arrayOf(PERMISSION), PERMISSION_REQUEST_CODE)
+        activity.requestPermissions(arrayOf(permission), PERMISSION_REQUEST_CODE)
     }
 
     suspend fun deckNames(): List<String> = withContext(Dispatchers.IO) {
@@ -293,7 +300,7 @@ class AnkiDroidBridge(private val context: Context) {
         try {
             val uri = Uri.parse("anki://x-callback-url/browser?search=${Uri.encode(query)}")
             val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                setPackage("com.ichi2.anki")
+                setPackage(pkg)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_TASK_ON_HOME
@@ -379,10 +386,10 @@ class AnkiDroidBridge(private val context: Context) {
                 return
             }
 
-            context.packageManager.getPackageInfo("com.ichi2.anki", 0)
+            context.packageManager.getPackageInfo(pkg, 0)
 
             val intent = Intent("com.ichi2.anki.DO_SYNC").apply {
-                setPackage("com.ichi2.anki")
+                setPackage(pkg)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             context.startActivity(intent)
@@ -626,7 +633,7 @@ class AnkiDroidBridge(private val context: Context) {
         }
 
         context.grantUriPermission(
-            ANKIDROID_PACKAGE,
+            pkg,
             contentUri,
             Intent.FLAG_GRANT_READ_URI_PERMISSION,
         )
@@ -653,7 +660,7 @@ class AnkiDroidBridge(private val context: Context) {
         } finally {
             runCatching {
                 context.revokeUriPermission(
-                    ANKIDROID_PACKAGE,
+                    pkg,
                     contentUri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )

@@ -50,10 +50,20 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- AnkiDroid -->
+    <!-- kuma3 Anki first, then its old test build, then stock AnkiDroid (AnkiDroidBridge.PACKAGES) -->
+    <uses-permission android:name="io.github.pedrubik2000.kuma3.permission.READ_WRITE_DATABASE" />
+    <uses-permission android:name="com.ichi2.anki.debug.permission.READ_WRITE_DATABASE" />
     <uses-permission android:name="com.ichi2.anki.permission.READ_WRITE_DATABASE" />
+    <!-- kumapie's word colours on the manga OCR boxes (KumapieColours), release and debug build -->
+    <uses-permission android:name="io.github.pedrubik2000.kumapie.mobile.permission.READ_WORDS" />
+    <uses-permission android:name="io.github.pedrubik2000.kumapie.mobile.debug.permission.READ_WORDS" />
 
     <queries>
+        <package android:name="io.github.pedrubik2000.kuma3" />
+        <package android:name="com.ichi2.anki.debug" />
         <package android:name="com.ichi2.anki" />
+        <package android:name="io.github.pedrubik2000.kumapie.mobile" />
+        <package android:name="io.github.pedrubik2000.kumapie.mobile.debug" />
     </queries>
 
     <application

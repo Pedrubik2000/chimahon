@@ -14,6 +14,7 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import chimahon.ocr.KumapieColours
 import chimahon.ocr.OcrHitTester
 import chimahon.ocr.OcrNormalizedBounds
 import chimahon.ocr.OcrTextOverlayPainter
@@ -231,10 +232,13 @@ class OcrSubsamplingImageView(
             val geometries = block.lineGeometries
             if (geometries != null && geometries.size == block.lines.size) {
                 // Per-line rendering logic (matches reference userscript)
+                // kumapie's word colours for the whole block (words cross lines), sliced per line.
+                val colours = KumapieColours.of(context, block.fullText) { postInvalidate() }
                 var currentOffset = 0
                 for (i in block.lines.indices) {
                     val text = block.lines[i]
-                    drawLineOrientedText(canvas, text, currentOffset, geometries[i], block.vertical, host, highlightMatches)
+                    val lineColours = colours?.copyOfRange(currentOffset, currentOffset + text.length)
+                    drawLineOrientedText(canvas, text, currentOffset, geometries[i], block.vertical, host, highlightMatches, lineColours)
                     currentOffset += text.length
                 }
             } else {
@@ -277,6 +281,7 @@ class OcrSubsamplingImageView(
         isVertical: Boolean,
         host: ReaderPageImageView,
         highlightMatches: Boolean,
+        charColors: IntArray? = null,
     ) {
         if (text.isBlank()) return
 
@@ -298,6 +303,7 @@ class OcrSubsamplingImageView(
             highlightRange = if (highlightMatches && host.activeOcrMatchedCount > 0) matchedStart until matchedEnd else null,
             drawVerticalCharacter = ::drawVerticalChar,
             verticalCenter = ::verticalCenter,
+            charColors = charColors,
         )
     }
 
