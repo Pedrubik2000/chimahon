@@ -59,6 +59,7 @@ internal fun prepareDictionaryWebViewShell(
         addJavascriptInterface(state.readyBridge, "DictionaryReadyBridge")
         addJavascriptInterface(state.payloadBridge, "PayloadBridge")
         addJavascriptInterface(state.ankiJsBridge, "AnkiJsBridge")
+        addJavascriptInterface(state.kumapieBridge, "KumapieBridge")
 
         webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -128,6 +129,7 @@ internal class DictionaryWebViewState(
     val readyBridge: DictionaryReadyBridge = DictionaryReadyBridge(webViewProvider) { this }
     val payloadBridge: PayloadBridge = PayloadBridge()
     val ankiJsBridge: AnkiJsBridge = AnkiJsBridge(webViewProvider)
+    val kumapieBridge: KumapieJsBridge = KumapieJsBridge(context, webViewProvider)
     var pageReady: Boolean = false
     var fontSize: Int = 16
 

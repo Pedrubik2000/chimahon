@@ -105,6 +105,28 @@ internal class AnkiJsBridge(
 }
 
 /**
+ * `KumapieBridge.request(bodyJson, callbackId)`: kumapie's rating row ([chimahon.ocr.KumapieColours.call]), asked off
+ * the UI thread; the answer goes to `DictionaryRenderer.onKumapie(callbackId, answer)`.
+ */
+internal class KumapieJsBridge(
+    private val context: Context,
+    private val webViewProvider: () -> WebView?,
+) {
+    private val scope = CoroutineScope(Dispatchers.Main + Job())
+
+    @JavascriptInterface
+    fun request(bodyJson: String, callbackId: String) {
+        scope.launch {
+            val answer = withContext(Dispatchers.IO) { chimahon.ocr.KumapieColours.call(context, bodyJson) }
+            webViewProvider()?.evaluateJavascript(
+                "window.DictionaryRenderer && window.DictionaryRenderer.onKumapie(${org.json.JSONObject.quote(callbackId)}, $answer);",
+                null,
+            )
+        }
+    }
+}
+
+/**
  * JavaScript bridge for word audio playback.
  */
 internal class WordAudioBridge(

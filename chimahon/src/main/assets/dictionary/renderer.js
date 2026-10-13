@@ -2627,6 +2627,87 @@
     }
   }
 
+  // kumapie's rating row (its RatingRows, as in Hoshi's popup): Again / Hard / Good / Easy for a word with its own
+  // kuma3 card, then Undo. kumapie rates the word's cards (every one due today, else the first).
+  const kumapieRatingColors = ['#FF6B6B', '#8A8696', '#7CC47F', '#6FA8FF'];
+  const kumapieWaiting = {};
+  let kumapieNextId = 0;
+
+  function kumapieRequest(body) {
+    if (typeof KumapieBridge === 'undefined') return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const id = 'k' + (kumapieNextId++);
+      kumapieWaiting[id] = resolve;
+      KumapieBridge.request(JSON.stringify(body), id);
+    });
+  }
+
+  function kumapieButton(label, background) {
+    const button = document.createElement('button');
+    button.className = 'kumapie-rate';
+    button.textContent = label;
+    button.style.cssText = 'border:0;border-radius:6px;padding:6px 12px;margin:0 6px 0 0;color:#111;font-weight:600;' +
+      'background:' + background;
+    return button;
+  }
+
+  async function appendKumapieRatings(article, expression, reading) {
+    if (typeof KumapieBridge === 'undefined') return;
+    const word = { word: expression, reading: reading || '' };
+    const state = (await kumapieRequest({ action: 'state', ...word }))?.state;
+    article.querySelector('.kumapie-ratings')?.remove();
+    if (!state || state === 'u') return;
+    const row = document.createElement('div');
+    row.className = 'kumapie-ratings';
+    row.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:4px 0 8px;';
+    const head = article.querySelector('.entry-headword-row');
+    if (head) head.after(row); else article.prepend(row);
+    const opened = Date.now();
+    const note = (text) => {
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.cssText = 'opacity:.8;margin-right:8px;';
+      row.appendChild(span);
+    };
+    const buttons = () => {
+      row.replaceChildren();
+      ['Again', 'Hard', 'Good', 'Easy'].forEach((label, i) => {
+        const button = kumapieButton(label, kumapieRatingColors[i]);
+        button.addEventListener('click', async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          row.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+          const reply = await kumapieRequest({ action: 'rate', ...word, ease: i + 1, ms: Date.now() - opened });
+          if (reply?.rated) {
+            answered(label, reply.rated);
+          } else {
+            buttons();
+            note("kuma3 didn't take the rating.");
+          }
+        });
+        row.appendChild(button);
+      });
+    };
+    const answered = (label, rated) => {
+      row.replaceChildren();
+      note('Answered: ' + label);
+      const undo = kumapieButton('Undo', '#C8C4D0');
+      undo.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        undo.disabled = true;
+        if ((await kumapieRequest({ action: 'undo', ...word, rated }))?.undone) {
+          buttons();
+        } else {
+          undo.remove();
+          note("kuma3 didn't undo it (something else was done there since?).");
+        }
+      });
+      row.appendChild(undo);
+    };
+    buttons();
+  }
+
   function renderEntry(result, mediaMap, showFrequencyHarmonic, showFrequencyAverage, existingExpressions, ankiEnabled, showPitchDiagram, showPitchNumber, showPitchText, groupTerms, ankiDupAction, collapseConfig) {
     const existingSet = Array.isArray(existingExpressions) ? existingExpressions : [];
     const article = document.createElement('article');
@@ -2675,6 +2756,7 @@
       ankiBtn.style.display = shouldShowAdd ? '' : 'none';
       ankiBtn.setAttribute('data-index', String(result.index || 0));
       ankiBtn.setAttribute('data-expression', expression);
+      ankiBtn.setAttribute('data-reading', reading);
       ankiBtn.setAttribute('data-glossary', '-1');
       ankiBtn.addEventListener('pointerdown', capturePopupSelectionForButton);
 
@@ -2712,6 +2794,7 @@
 
     headSection.appendChild(iconGroup);
     body.appendChild(headSection);
+    appendKumapieRatings(article, expression, reading);
 
     const deinflection = createDeinflectionRow(result.process, result.term ? result.term.rules : '', result.term ? result.term.ruleTags : null);
     if (deinflection) {
@@ -3077,6 +3160,15 @@
           const isAdded = existingSet.has(expr);
           
           const shouldShowAdd = !isAdded || _lastAnkiDupAction !== 'prevent';
+          // Just mined here: kumapie reads the new card (the page turns it blue), then the word gets its rating row.
+          if (isAdded && btn.dataset.kumapieAdded === 'no') {
+            const article = btn.closest('.entry');
+            const reading = btn.getAttribute('data-reading') || '';
+            kumapieRequest({ action: 'reload', word: expr, reading }).then(() => {
+              if (article) appendKumapieRatings(article, expr, reading);
+            });
+          }
+          btn.dataset.kumapieAdded = isAdded ? 'yes' : 'no';
           btn.classList.toggle('anki-added', isAdded && shouldShowAdd);
           btn.innerHTML = isAdded && shouldShowAdd ? ICONS.check_circle : ICONS.add_circle;
           btn.title = isAdded ? 'Already in Anki' : 'Add to Anki';
@@ -3110,6 +3202,13 @@
     },
 
     onAudioResults: (id, results) => { /* overriden by UI */ },
+
+    /** KumapieBridge's answer to kumapieRequest. */
+    onKumapie(id, answer) {
+      const resolve = kumapieWaiting[id];
+      delete kumapieWaiting[id];
+      if (resolve) resolve(answer);
+    },
   };
 
   // Scroll state guards for programmatic jumps.
