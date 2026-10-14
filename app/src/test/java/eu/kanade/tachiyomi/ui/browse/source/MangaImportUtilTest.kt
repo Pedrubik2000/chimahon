@@ -45,4 +45,10 @@ class MangaImportUtilTest {
         MangaImportUtil.seriesKey("Tada de wa Dakaremasen") shouldBe
             MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle("Tadade wa daka remasen 01-09w6"))
     }
+
+    @Test
+    fun `trailing underscore after a range`() {
+        listOf("Ao_no_Hako_01b-10.rar", "Ao_no_Hako_11-19_.rar", "Ao_no_Hako_27.rar")
+            .map { MangaImportUtil.seriesTitle(it) }.distinct() shouldBe listOf("Ao no Hako")
+    }
 }

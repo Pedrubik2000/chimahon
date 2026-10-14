@@ -37,6 +37,7 @@ object MangaImportUtil {
     fun seriesTitle(name: String): String {
         val bare = archiveExt.replace(name, "")
         var s = tags.replace(bare, " ").replace('_', ' ').replace(Regex("""\s+"""), " ")
+            .trim(' ', '-', ',') // "Ao_no_Hako_11-19_.rar"
         val marked = volumeMarker.replace(s, "").let { japaneseVolume.replace(it, "") }
         if (marked != s) {
             s = marked

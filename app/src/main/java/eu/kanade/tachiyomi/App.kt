@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi
 
+import androidx.core.app.NotificationManagerCompat
 import android.annotation.SuppressLint
 import android.app.Application
 import android.app.PendingIntent
@@ -360,6 +361,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     private fun setupNotificationChannels() {
         try {
             Notifications.createChannels(this)
+            // A Real-Debrid progress notification left behind when the process was killed mid-import
+            // (no foreground service is running yet at process start)
+            NotificationManagerCompat.from(this).cancel(Notifications.ID_REAL_DEBRID_PROGRESS)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Failed to modify notification channels" }
         }
