@@ -42,6 +42,11 @@ object SettingsDownloadScreen : SearchableSettings {
         val parallelSourceLimit by downloadPreferences.parallelSourceLimit().collectAsState()
         val parallelPageLimit by downloadPreferences.parallelPageLimit().collectAsState()
         return listOf(
+            Preference.PreferenceItem.EditTextPreference(
+                preference = downloadPreferences.realDebridToken(),
+                title = "Real-Debrid API token",
+                subtitle = "From real-debrid.com/apitoken. Share a magnet or Real-Debrid link to the app to add it to local manga",
+            ),
             Preference.PreferenceItem.SwitchPreference(
                 preference = downloadPreferences.downloadOnlyOverWifi(),
                 title = stringResource(MR.strings.connected_to_wifi),

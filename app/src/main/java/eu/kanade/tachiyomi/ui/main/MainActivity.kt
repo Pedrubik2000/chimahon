@@ -82,6 +82,7 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.coil.MangaCoverMetadata
 import eu.kanade.tachiyomi.data.connections.discord.DiscordRPCService
 import eu.kanade.tachiyomi.data.download.DownloadCache
+import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.library.anime.AnimeLibraryUpdateJob
 import eu.kanade.tachiyomi.data.notification.NotificationReceiver
@@ -102,6 +103,7 @@ import eu.kanade.tachiyomi.ui.player.PlayerActivity
 import eu.kanade.tachiyomi.util.system.dpToPx
 import eu.kanade.tachiyomi.util.system.isDebugBuildType
 import eu.kanade.tachiyomi.util.system.isNavigationBarNeedsScrim
+import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.isPreviewBuildType
 import eu.kanade.tachiyomi.util.system.isReleaseBuildType
 import eu.kanade.tachiyomi.util.system.updaterEnabled
@@ -700,7 +702,10 @@ class MainActivity : BaseActivity() {
 
                 // Get the search query provided in extras, and if not null, perform a global search with it.
                 val query = intent.getStringExtra(SearchManager.QUERY) ?: intent.getStringExtra(Intent.EXTRA_TEXT)
-                if (!query.isNullOrEmpty()) {
+                if (query != null && RealDebridImportJob.isLink(query.trim())) {
+                    RealDebridImportJob.start(applicationContext, query.trim())
+                    toast("Real-Debrid: downloading to local manga")
+                } else if (!query.isNullOrEmpty()) {
                     navigator.popUntilRoot()
                     navigator.push(DeepLinkScreen(query))
                 }

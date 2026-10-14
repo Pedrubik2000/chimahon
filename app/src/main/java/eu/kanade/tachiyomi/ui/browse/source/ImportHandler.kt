@@ -70,6 +70,9 @@ object ImportHandler {
         addMangaToLibrary(safeFolderName, mangaRepository, libraryPreferences)
     }
 
+    suspend fun addMangaToLibrary(safeFolderName: String) =
+        addMangaToLibrary(safeFolderName, Injekt.get(), Injekt.get())
+
     private suspend fun addMangaToLibrary(
         safeFolderName: String,
         mangaRepository: MangaRepository,

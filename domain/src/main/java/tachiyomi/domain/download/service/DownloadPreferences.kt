@@ -11,6 +11,8 @@ class DownloadPreferences(
         true,
     )
 
+    fun realDebridToken() = preferenceStore.getString("real_debrid_token", "")
+
     fun saveChaptersAsCBZ() = preferenceStore.getBoolean("save_chapter_as_cbz", true)
 
     fun splitTallImages() = preferenceStore.getBoolean("split_tall_images", true)
