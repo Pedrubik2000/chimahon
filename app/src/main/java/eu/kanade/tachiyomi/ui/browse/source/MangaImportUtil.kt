@@ -22,6 +22,32 @@ object MangaImportUtil {
             .trim()
     }
 
+    private val archiveExt = Regex("""\.(cbz|cbr|cb7|zip|rar|7z|epub|pdf)$""", RegexOption.IGNORE_CASE)
+    private val tags = Regex("""[\[({【][^\])}】]*[\])}】]""")
+    private val volumeMarker = Regex("""(?:^|[\s\-])(?:v|vol\.?|volume|tome|ch\.?|chapter|c)\s*\d.*$""", RegexOption.IGNORE_CASE)
+    private val japaneseVolume = Regex("""\s*第?\s*\d+\s*[巻話冊].*$""")
+    private val trailingNumbers = Regex("""[\s\-]+\d+[a-z]?(?:\s*-\s*\d+[a-z]?)?$""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Series name of a download, without volume ranges, version letters, groups or tags, so separate downloads
+     * of one manga share a folder: "[Grp] Yotsuba&! v01-03 (Digital).rar" and "Yotsuba&! 2w.cbz" -> "Yotsuba&!".
+     */
+    // ponytail: with no "v01" marker a title ending in a number ("Kaiji 2") loses it; downloads still agree
+    fun seriesTitle(name: String): String {
+        val bare = archiveExt.replace(name, "")
+        var s = tags.replace(bare, " ").replace('_', ' ').replace(Regex("""\s+"""), " ")
+        val marked = volumeMarker.replace(s, "").let { japaneseVolume.replace(it, "") }
+        if (marked != s) {
+            s = marked
+        } else {
+            while (trailingNumbers.containsMatchIn(s)) s = trailingNumbers.replace(s, "")
+        }
+        return s.trim(' ', '-', '_', ',').ifBlank { bare.trim() }
+    }
+
+    /** Compares series names ignoring case, spaces and punctuation. */
+    fun seriesKey(title: String) = title.lowercase().replace(Regex("""[^\p{L}\p{N}]"""), "")
+
     /**
      * Replaces illegal characters with underscores and trims the result.
      */

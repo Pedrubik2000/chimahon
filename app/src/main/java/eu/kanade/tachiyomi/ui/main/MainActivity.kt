@@ -702,12 +702,16 @@ class MainActivity : BaseActivity() {
 
                 // Get the search query provided in extras, and if not null, perform a global search with it.
                 val query = intent.getStringExtra(SearchManager.QUERY) ?: intent.getStringExtra(Intent.EXTRA_TEXT)
-                if (query != null && RealDebridImportJob.isLink(query.trim())) {
-                    RealDebridImportJob.start(applicationContext, query.trim())
-                    toast("Real-Debrid: downloading to local manga")
-                } else if (!query.isNullOrEmpty()) {
-                    navigator.popUntilRoot()
-                    navigator.push(DeepLinkScreen(query))
+                if (!query.isNullOrEmpty()) {
+                    lifecycleScope.launch {
+                        if (RealDebridImportJob.isLink(query.trim())) {
+                            RealDebridImportJob.start(applicationContext, query.trim())
+                            toast("Real-Debrid: downloading to local manga")
+                        } else {
+                            navigator.popUntilRoot()
+                            navigator.push(DeepLinkScreen(query))
+                        }
+                    }
                 }
                 null
             }

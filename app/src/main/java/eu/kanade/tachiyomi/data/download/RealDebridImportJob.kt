@@ -16,9 +16,14 @@ import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import eu.kanade.tachiyomi.ui.browse.source.MangaImportUtil
 import eu.kanade.tachiyomi.util.system.notificationBuilder
 import eu.kanade.tachiyomi.util.system.notify
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import logcat.LogPriority
+import mihon.core.archive.ArchiveInputStream
+import mihon.core.archive.archiveReader
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -29,9 +34,9 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 /**
- * A magnet or real-debrid.com link shared to the app -> Real-Debrid -> a folder in local manga, added to the library.
- * Archives (cbz/zip/rar/epub...) become chapters in the series folder; loose images become one chapter
- * folder per parent folder of the torrent.
+ * A magnet, real-debrid.com or hoster link shared to the app -> Real-Debrid -> the series' folder in local manga
+ * (an existing one when the series matches), added to the library. cbz/cbr/epub/pdf become chapters; rar/7z/zip
+ * bundles are unpacked into their volumes; loose images become one chapter folder per parent folder.
  */
 class RealDebridImportJob(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -74,11 +79,23 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val (name, files) = if (link.startsWith("magnet:")) torrentFiles(link) else linkFiles(link)
             val localDir = Injekt.get<StorageManager>().getLocalSourceDirectory()
                 ?: error("No local source folder (Settings > Data and storage)")
-            val folder = MangaImportUtil.getSafeFolderName(name.substringBeforeLast('.').ifBlank { name })
-            val mangaDir = localDir.createDirectory(folder) ?: error("Can't create $folder")
+            // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w)
+            val title = MangaImportUtil.getSafeFolderName(MangaImportUtil.seriesTitle(name))
+            val key = MangaImportUtil.seriesKey(title)
+            val existing = localDir.listFiles()?.firstOrNull {
+                it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) == key
+            }
+            val mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
+            val folder = mangaDir.name ?: title
             files.forEachIndexed { i, (path, url) ->
-                status("${i + 1}/${files.size} ${path.substringAfterLast('/')}")
-                download(url, target(mangaDir, path))
+                val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
+                status(label)
+                val (dir, fileName) = target(mangaDir, path, title) ?: return@forEachIndexed
+                val file = download(url, dir, fileName) ?: return@forEachIndexed
+                if (fileName.substringAfterLast('.').lowercase() in BUNDLES) {
+                    status("$label: unpacking")
+                    unpack(file, mangaDir)
+                }
             }
             ImportHandler.addMangaToLibrary(folder)
             done("Added $folder (${files.size} files)")
@@ -137,24 +154,50 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         }
     }
 
-    /** Series folder for archives, a chapter folder (named after the image's parent folder) for loose images. */
-    private fun target(mangaDir: UniFile, path: String): Pair<UniFile, String> {
+    /**
+     * Series folder for chapter files (cbz, rar, epub...), a chapter folder (the image's parent folder, else
+     * [defaultChapter]) for loose images, null for anything else (nfo, txt...).
+     */
+    private fun target(mangaDir: UniFile, path: String, defaultChapter: String): Pair<UniFile, String>? {
         val parts = path.trim('/').split('/')
         val name = MangaImportUtil.getSafeFolderName(parts.last())
-        if (name.substringAfterLast('.').lowercase() !in IMAGES) return mangaDir to name
-        val chapter = MangaImportUtil.getSafeFolderName(parts.getOrNull(parts.size - 2) ?: "Chapter 1")
-        return (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
+        return when (name.substringAfterLast('.').lowercase()) {
+            in CHAPTERS, in BUNDLES -> mangaDir to name
+            in IMAGES -> {
+                val chapter = MangaImportUtil.getSafeFolderName(parts.getOrNull(parts.size - 2) ?: defaultChapter)
+                (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
+            }
+            else -> null
+        }
     }
 
-    private fun download(url: String, target: Pair<UniFile, String>) {
-        val (dir, name) = target
-        if (dir.findFile(name) != null) return // already there from an earlier run
+    /** The new file, or null when it's already there from an earlier run. */
+    private fun download(url: String, dir: UniFile, name: String): UniFile? {
+        if (dir.findFile(name) != null) return null
         val part = dir.createFile("$name.part") ?: error("Can't create $name")
         client.newCall(Request.Builder().url(url).build()).execute().use { r ->
             if (!r.isSuccessful) error("Download $name: HTTP ${r.code}")
             part.openOutputStream().use { out -> r.body.byteStream().copyTo(out) }
         }
         if (!part.renameTo(name)) error("Can't rename $name")
+        return part
+    }
+
+    /** A rar/7z/zip of volumes (or of one volume's images) -> its volumes / chapter folders in the series folder. */
+    // ponytail: multi-part RARs (.part1.rar...) aren't joined; libarchive reads one file
+    private fun unpack(bundle: UniFile, mangaDir: UniFile) {
+        val stem = bundle.name.orEmpty().substringBeforeLast('.')
+        bundle.archiveReader(applicationContext).use { reader ->
+            ArchiveInputStream(reader.address, reader.size, reader.encrypted).use { stream ->
+                generateSequence { stream.getNextEntry() }.filter { it.isFile }.forEach { entry ->
+                    val (dir, name) = target(mangaDir, entry.name, stem) ?: return@forEach
+                    if (dir.findFile(name) != null) return@forEach
+                    val file = dir.createFile(name) ?: error("Can't create $name")
+                    file.openOutputStream().use { stream.copyTo(it) }
+                }
+            }
+        }
+        bundle.delete()
     }
 
     private fun JSONArray.objects() = List(length()) { getJSONObject(it) }
@@ -163,8 +206,26 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         private const val API = "https://api.real-debrid.com/rest/1.0"
         private const val KEY_LINK = "link"
         private val IMAGES = setOf("jpg", "jpeg", "png", "webp", "avif", "gif", "jxl", "heif")
+        private val CHAPTERS = setOf("cbz", "cbr", "cb7", "epub", "pdf")
+        private val BUNDLES = setOf("zip", "rar", "7z")
 
-        fun isLink(text: String) = text.startsWith("magnet:") || text.contains("real-debrid.com/")
+        private var hosts: Set<String>? = null
+
+        /** Magnets, real-debrid.com links, and links to hosters Real-Debrid supports (once a token is set). */
+        suspend fun isLink(text: String): Boolean {
+            if (text.startsWith("magnet:") || text.contains("real-debrid.com/")) return true
+            if (Injekt.get<DownloadPreferences>().realDebridToken().get().isBlank()) return false
+            val host = text.toHttpUrlOrNull()?.host ?: return false
+            val domains = hosts ?: withContext(Dispatchers.IO) {
+                runCatching {
+                    val req = Request.Builder().url("$API/hosts/domains").build()
+                    Injekt.get<NetworkHelper>().client.newCall(req).execute().use { r ->
+                        JSONArray(r.body.string()).let { a -> List(a.length()) { a.getString(it) }.toSet() }
+                    }
+                }.getOrNull()
+            }?.also { hosts = it } ?: return false
+            return domains.any { host == it || host.endsWith(".$it") }
+        }
 
         fun start(context: Context, link: String) {
             WorkManager.getInstance(context).enqueue(
