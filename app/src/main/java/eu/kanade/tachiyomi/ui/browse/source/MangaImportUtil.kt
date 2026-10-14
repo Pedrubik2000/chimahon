@@ -26,7 +26,8 @@ object MangaImportUtil {
     private val tags = Regex("""[\[({【][^\])}】]*[\])}】]""")
     private val volumeMarker = Regex("""(?:^|[\s\-])(?:v|vol\.?|volume|tome|ch\.?|chapter|c)\s*\d.*$""", RegexOption.IGNORE_CASE)
     private val japaneseVolume = Regex("""\s*第?\s*\d+\s*[巻話冊].*$""")
-    private val trailingNumbers = Regex("""[\s\-]+\d+[a-z]?(?:\s*-\s*\d+[a-z]?)?$""", RegexOption.IGNORE_CASE)
+    // "2", "2w", "01-03", "01-09w6"
+    private val trailingNumbers = Regex("""[\s\-]+\d+[a-z]*\d*(?:\s*-\s*\d+[a-z]*\d*)?$""", RegexOption.IGNORE_CASE)
 
     /**
      * Series name of a download, without volume ranges, version letters, groups or tags, so separate downloads

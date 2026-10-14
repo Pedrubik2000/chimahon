@@ -705,6 +705,8 @@ class MainActivity : BaseActivity() {
                 if (!query.isNullOrEmpty()) {
                     lifecycleScope.launch {
                         if (RealDebridImportJob.isLink(query.trim())) {
+                            // Reopening from recents replays the share: don't download it again
+                            if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return@launch
                             RealDebridImportJob.start(applicationContext, query.trim())
                             toast("Real-Debrid: downloading to local manga")
                         } else {

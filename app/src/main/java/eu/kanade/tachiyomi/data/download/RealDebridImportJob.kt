@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -49,6 +50,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
     private val client = Injekt.get<NetworkHelper>().client
     private val token = Injekt.get<DownloadPreferences>().realDebridToken().get().trim()
+
+    /** Original names of the volumes saved, for the AniList fallback. */
+    private val originals = mutableListOf<String>()
 
     override suspend fun getForegroundInfo() = foreground("Real-Debrid")
 
@@ -99,7 +103,6 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             }
             val mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
             val folder = mangaDir.name ?: title
-            media?.let { runCatching { writeMetadata(mangaDir, it) } }
             files.forEachIndexed { i, (path, url) ->
                 val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
                 status(label)
@@ -110,6 +113,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     unpack(file, mangaDir)
                 }
             }
+            // The link's name can be a romanization AniList doesn't know; the volumes inside usually carry the
+            // original title ("[檜原フキ] タダでは抱かれません 第01巻.rar")
+            val found = media ?: originals.map { MangaImportUtil.seriesTitle(it) }.distinct().take(2)
+                .firstNotNullOfOrNull { runCatching { aniList(it) }.getOrNull() }
+            found?.let { runCatching { writeMetadata(mangaDir, it) } }
             ImportHandler.addMangaToLibrary(folder)
             done("Added $folder (${files.size} files)")
             Result.success()
@@ -171,17 +179,27 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
      * Series folder for chapter files (cbz, rar, epub...), a chapter folder (the image's parent folder, else
      * [defaultChapter]) for loose images, null for anything else (nfo, txt...).
      */
-    private fun target(mangaDir: UniFile, path: String, defaultChapter: String): Pair<UniFile, String>? {
+    private fun target(
+        mangaDir: UniFile,
+        path: String,
+        defaultChapter: String,
+        inBundle: Boolean = false,
+    ): Pair<UniFile, String>? {
         val parts = path.trim('/').split('/')
         val name = MangaImportUtil.getSafeFolderName(parts.last())
         val ext = name.substringAfterLast('.').lowercase()
-        return when (ext) {
-            in BUNDLES -> mangaDir to name
-            in CHAPTERS -> mangaDir to "${MangaImportUtil.volumeName(name)}.$ext"
-            in IMAGES -> {
-                val chapter = MangaImportUtil.getSafeFolderName(
-                    MangaImportUtil.volumeName(parts.getOrNull(parts.size - 2) ?: defaultChapter),
-                )
+        // a rar/zip inside a bundle is one volume, not another bundle
+        val isVolume = ext in CHAPTERS || (inBundle && ext in BUNDLES)
+        return when {
+            isVolume -> {
+                originals += name
+                mangaDir to "${MangaImportUtil.volumeName(name)}.$ext"
+            }
+            ext in BUNDLES -> mangaDir to name
+            ext in IMAGES -> {
+                val original = parts.getOrNull(parts.size - 2) ?: defaultChapter
+                if (originals.lastOrNull() != original) originals += original
+                val chapter = MangaImportUtil.getSafeFolderName(MangaImportUtil.volumeName(original))
                 (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
             }
             else -> null
@@ -207,7 +225,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         bundle.archiveReader(applicationContext).use { reader ->
             ArchiveInputStream(reader.address, reader.size, reader.encrypted).use { stream ->
                 generateSequence { stream.getNextEntry() }.filter { it.isFile }.forEach { entry ->
-                    val (dir, name) = target(mangaDir, entry.name, stem) ?: return@forEach
+                    val (dir, name) = target(mangaDir, entry.name, stem, inBundle = true) ?: return@forEach
                     if (dir.findFile(name) != null) return@forEach
                     val file = dir.createFile(name) ?: error("Can't create $name")
                     file.openOutputStream().use { stream.copyTo(it) }
@@ -299,7 +317,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         }
 
         fun start(context: Context, link: String) {
-            WorkManager.getInstance(context).enqueue(
+            // One at a time: links shared together often hold the same series (or the same file from two hosters)
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "RealDebridImport",
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 OneTimeWorkRequestBuilder<RealDebridImportJob>().setInputData(workDataOf(KEY_LINK to link)).build(),
             )
         }

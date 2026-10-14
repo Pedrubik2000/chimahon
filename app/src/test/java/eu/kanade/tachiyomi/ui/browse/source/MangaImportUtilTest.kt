@@ -15,6 +15,8 @@ class MangaImportUtilTest {
             "Yotsuba&! 2w.cbz",
             "Yotsuba&! 01-03",
             "Yotsuba&!_v10",
+            "Yotsuba&! 01-09w6.rar",
+            "Yotsuba&! 10w.rar",
         )
         names.map { MangaImportUtil.seriesTitle(it) }.distinct() shouldBe listOf("Yotsuba&!")
     }
@@ -40,5 +42,7 @@ class MangaImportUtilTest {
     @Test
     fun `key ignores case and punctuation`() {
         MangaImportUtil.seriesKey("Dr. Stone") shouldBe MangaImportUtil.seriesKey("dr stone")
+        MangaImportUtil.seriesKey("Tada de wa Dakaremasen") shouldBe
+            MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle("Tadade wa daka remasen 01-09w6"))
     }
 }
