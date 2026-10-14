@@ -23,7 +23,14 @@ import logcat.LogPriority
 import mihon.core.archive.ArchiveInputStream
 import mihon.core.archive.archiveReader
 import okhttp3.FormBody
+import eu.kanade.tachiyomi.source.model.SManga
+import nl.adaptivity.xmlutil.serialization.XML
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import tachiyomi.core.metadata.comicinfo.COMIC_INFO_FILE
+import tachiyomi.core.metadata.comicinfo.ComicInfo
+import tachiyomi.core.metadata.comicinfo.getComicInfo
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -79,14 +86,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val (name, files) = if (link.startsWith("magnet:")) torrentFiles(link) else linkFiles(link)
             val localDir = Injekt.get<StorageManager>().getLocalSourceDirectory()
                 ?: error("No local source folder (Settings > Data and storage)")
-            // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w)
-            val title = MangaImportUtil.getSafeFolderName(MangaImportUtil.seriesTitle(name))
-            val key = MangaImportUtil.seriesKey(title)
+            // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
+            // named after AniList's romaji title when AniList knows it
+            val guess = MangaImportUtil.seriesTitle(name)
+            status("AniList: $guess")
+            val media = runCatching { aniList(guess) }
+                .onFailure { logcat(LogPriority.WARN, it) { "AniList lookup failed: $guess" } }.getOrNull()
+            val title = MangaImportUtil.getSafeFolderName(media?.getJSONObject("title")?.str("romaji") ?: guess)
+            val keys = setOf(MangaImportUtil.seriesKey(title), MangaImportUtil.seriesKey(guess))
             val existing = localDir.listFiles()?.firstOrNull {
-                it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) == key
+                it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) in keys
             }
             val mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
             val folder = mangaDir.name ?: title
+            media?.let { runCatching { writeMetadata(mangaDir, it) } }
             files.forEachIndexed { i, (path, url) ->
                 val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
                 status(label)
@@ -161,10 +174,14 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private fun target(mangaDir: UniFile, path: String, defaultChapter: String): Pair<UniFile, String>? {
         val parts = path.trim('/').split('/')
         val name = MangaImportUtil.getSafeFolderName(parts.last())
-        return when (name.substringAfterLast('.').lowercase()) {
-            in CHAPTERS, in BUNDLES -> mangaDir to name
+        val ext = name.substringAfterLast('.').lowercase()
+        return when (ext) {
+            in BUNDLES -> mangaDir to name
+            in CHAPTERS -> mangaDir to "${MangaImportUtil.volumeName(name)}.$ext"
             in IMAGES -> {
-                val chapter = MangaImportUtil.getSafeFolderName(parts.getOrNull(parts.size - 2) ?: defaultChapter)
+                val chapter = MangaImportUtil.getSafeFolderName(
+                    MangaImportUtil.volumeName(parts.getOrNull(parts.size - 2) ?: defaultChapter),
+                )
                 (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
             }
             else -> null
@@ -200,7 +217,61 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         bundle.delete()
     }
 
+    /** AniList's best match for a manga title, or null. */
+    private fun aniList(title: String): JSONObject? {
+        val query = """query(${'$'}q: String) { Media(search: ${'$'}q, type: MANGA) {
+            title { romaji native english } description(asHtml: false) status genres
+            staff(perPage: 6) { edges { role node { name { full } } } } coverImage { extraLarge } } }"""
+        val body = JSONObject().put("query", query).put("variables", JSONObject().put("q", title)).toString()
+        val req = Request.Builder().url("https://graphql.anilist.co")
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .header("Accept", "application/json")
+            .build()
+        client.newCall(req).execute().use { r ->
+            if (r.code == 404) return null // no match
+            if (!r.isSuccessful) error("AniList: HTTP ${r.code}")
+            return JSONObject(r.body.string()).getJSONObject("data").optJSONObject("Media")
+        }
+    }
+
+    /** ComicInfo.xml (title, authors, description, genres, status) and cover.jpg, unless the folder has them. */
+    private fun writeMetadata(mangaDir: UniFile, media: JSONObject) {
+        if (mangaDir.findFile(COMIC_INFO_FILE) == null) {
+            val titles = media.getJSONObject("title")
+            val staff = media.getJSONObject("staff").getJSONArray("edges").objects()
+            fun people(role: String) = staff.filter { it.getString("role").contains(role, ignoreCase = true) }
+                .joinToString { it.getJSONObject("node").getJSONObject("name").getString("full") }.ifBlank { null }
+            val manga = SManga.create().apply {
+                title = titles.str("romaji").orEmpty()
+                author = people("Story")
+                artist = people("Art")
+                description = listOfNotNull(
+                    titles.str("native"),
+                    titles.str("english"),
+                    media.str("description")?.replace(Regex("<[^>]+>"), "")?.trim(),
+                ).joinToString("\n\n")
+                genre = media.getJSONArray("genres").let { a -> List(a.length()) { a.getString(it) } }.joinToString()
+                status = when (media.str("status")) {
+                    "RELEASING" -> SManga.ONGOING
+                    "FINISHED" -> SManga.COMPLETED
+                    "CANCELLED" -> SManga.CANCELLED
+                    "HIATUS" -> SManga.ON_HIATUS
+                    else -> SManga.UNKNOWN
+                }
+            }
+            val xml = Injekt.get<XML>().encodeToString(ComicInfo.serializer(), manga.getComicInfo())
+            mangaDir.createFile(COMIC_INFO_FILE)?.openOutputStream()?.use { it.write(xml.toByteArray()) }
+        }
+        val cover = media.optJSONObject("coverImage")?.str("extraLarge").orEmpty()
+        if (cover.isNotBlank() && mangaDir.findFile("cover.jpg") == null) {
+            download(cover, mangaDir, "cover.jpg")
+        }
+    }
+
     private fun JSONArray.objects() = List(length()) { getJSONObject(it) }
+
+    /** null for missing, JSON null or blank (optString gives "null" for JSON null). */
+    private fun JSONObject.str(key: String) = if (isNull(key)) null else optString(key).ifBlank { null }
 
     companion object {
         private const val API = "https://api.real-debrid.com/rest/1.0"

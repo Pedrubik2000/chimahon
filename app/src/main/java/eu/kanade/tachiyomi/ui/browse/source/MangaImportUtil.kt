@@ -45,6 +45,27 @@ object MangaImportUtil {
         return s.trim(' ', '-', '_', ',').ifBlank { bare.trim() }
     }
 
+    private val jpVolume = Regex("""第?\s*(\d+)\s*巻\s*([a-z])?(?![a-z])""", RegexOption.IGNORE_CASE)
+    private val volume = Regex("""(?:^|[\s\-_])(?:v|vol\.?|volume|tome)\s*(\d+)([a-z])?(?![a-z0-9])""", RegexOption.IGNORE_CASE)
+    private val lastNumber = Regex("""(?:^|[\s\-_])(\d+)([a-z])?$""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Chapter name of a volume file or folder: "[十五夜] Title 第02巻s.zip" -> "第02巻 s", "Title v03.cbz" -> "Vol. 03",
+     * "Title 2w" -> "Vol. 02 w" (the version letter stays, so both versions of a volume are kept).
+     * Names without a volume number keep their name, minus extension and [group]/(tag) parts.
+     */
+    fun volumeName(name: String): String {
+        val bare = tags.replace(archiveExt.replace(name, ""), " ").replace(Regex("""\s+"""), " ").trim()
+        jpVolume.find(bare)?.let { m -> return label("第%02d巻", m) }
+        (volume.find(bare) ?: lastNumber.find(bare))?.let { m -> return label("Vol. %02d", m) }
+        return bare.ifBlank { archiveExt.replace(name, "") }
+    }
+
+    private fun label(format: String, m: MatchResult): String {
+        val letter = m.groupValues[2].lowercase()
+        return format.format(m.groupValues[1].toInt()) + if (letter.isEmpty()) "" else " $letter"
+    }
+
     /** Compares series names ignoring case, spaces and punctuation. */
     fun seriesKey(title: String) = title.lowercase().replace(Regex("""[^\p{L}\p{N}]"""), "")
 

@@ -27,6 +27,17 @@ class MangaImportUtilTest {
     }
 
     @Test
+    fun `volume names`() {
+        MangaImportUtil.volumeName("[十五夜] バツイチで泣き虫なおとなりさん 第02巻s.zip") shouldBe "第02巻 s"
+        MangaImportUtil.volumeName("よつばと! 第1巻.cbz") shouldBe "第01巻"
+        MangaImportUtil.volumeName("[Group] Yotsuba&! v03 (Digital).cbz") shouldBe "Vol. 03"
+        MangaImportUtil.volumeName("Yotsuba&! Vol. 12.cbz") shouldBe "Vol. 12"
+        MangaImportUtil.volumeName("Yotsuba&! 2w.cbz") shouldBe "Vol. 02 w"
+        MangaImportUtil.volumeName("Mob Psycho 100 v01.cbz") shouldBe "Vol. 01"
+        MangaImportUtil.volumeName("Extras (Digital).cbz") shouldBe "Extras"
+    }
+
+    @Test
     fun `key ignores case and punctuation`() {
         MangaImportUtil.seriesKey("Dr. Stone") shouldBe MangaImportUtil.seriesKey("dr stone")
     }
