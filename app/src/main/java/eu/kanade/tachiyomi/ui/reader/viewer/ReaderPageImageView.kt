@@ -756,11 +756,14 @@ open class ReaderPageImageView @JvmOverloads constructor(
                 "OCR tap: activate block vertical=${block.vertical} chars=${block.fullText.length} x=$viewX y=$viewY"
             }
             activeOcrBlock = block
-            activeOcrCharOffset = 0
+            activeOcrCharOffset = -1 // nothing looked up yet, so the next tap on any character looks it up
             activeOcrMatchedCount = 0
             ocrLayoutCache = null
             ocrPopupLookupString = null
             (pageView as? SubsamplingScaleImageView)?.invalidate()
+            // Two taps: the first only reveals the box's text, the next one inside it looks up a word.
+            if (wasActive != null) onDismissOcrPopup?.invoke()
+            return true
         }
 
         // Immediately trigger dictionary popup at the tapped character position
