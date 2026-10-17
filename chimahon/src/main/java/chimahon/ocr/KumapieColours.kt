@@ -49,8 +49,9 @@ object KumapieColours {
     fun clear() = cache.evictAll()
 
     /**
-     * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?}` goes to its
-     * provider's `call` ("state", "rate", "undo", "reload"); answers `{state?, rated?: {notes, cards, undo}, undone?}`,
+     * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?, known?, text?}` goes to
+     * its provider's `call` ("state", "mark", "rate", "undo", "reload"); answers
+     * `{state?, marked?, rated?: {notes, cards, undo}, undone?}`,
      * or "null" when kumapie can't (not installed, no permission). Rating and Undo need kuma3's permission, which
      * chimahon holds for mining. Blocking: call it off the UI thread.
      */
@@ -63,6 +64,8 @@ object KumapieColours {
             putString("reading", body.optString("reading"))
             putInt("ease", body.optInt("ease"))
             putLong("ms", body.optLong("ms"))
+            putBoolean("known", body.optBoolean("known"))
+            putString("text", body.optString("text"))
             body.optJSONObject("rated")?.let { r ->
                 val notes = r.getJSONArray("notes")
                 putLongArray("notes", LongArray(notes.length()) { notes.getLong(it) })
@@ -75,6 +78,7 @@ object KumapieColours {
         if (action != "state") clear()
         JSONObject().apply {
             out.getString("state")?.let { put("state", it) }
+            if (out.containsKey("marked")) put("marked", out.getBoolean("marked"))
             out.getLongArray("notes")?.let { notes ->
                 put("rated", JSONObject().put("notes", JSONArray(notes.toList())).put("cards", out.getInt("cards")).put("undo", out.getString("undo")))
             }

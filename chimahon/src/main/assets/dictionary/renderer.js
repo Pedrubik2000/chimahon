@@ -2651,6 +2651,34 @@
     return button;
   }
 
+  // kumapie's "marked known" (as in its own popup): "Mark known" on any word, "Known ✓" unmarks it. The word's
+  // colour on the page follows on the next draw. [matched] (the page's text, e.g. となり for 隣) goes along: kumapie
+  // colours by the word as it splits the page, so it marks that one too.
+  async function appendKumapieMark(iconGroup, expression, reading, matched) {
+    if (typeof KumapieBridge === 'undefined') return;
+    const word = { word: expression, reading: reading || '', text: matched || '' };
+    const reply = await kumapieRequest({ action: 'state', ...word });
+    if (!reply || typeof reply.marked !== 'boolean') return; // a kumapie without marking
+    const button = document.createElement('button');
+    button.className = 'kumapie-mark';
+    const show = (marked) => {
+      button.dataset.marked = marked ? 'yes' : 'no';
+      button.textContent = marked ? 'Known ✓' : 'Mark known';
+      button.style.cssText = 'border:0;border-radius:6px;padding:4px 10px;margin-right:6px;font-weight:600;color:#111;' +
+        'background:' + (marked ? '#7CC47F' : '#C8C4D0');
+    };
+    show(reply.marked);
+    button.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.disabled = true;
+      const answer = await kumapieRequest({ action: 'mark', ...word, known: button.dataset.marked !== 'yes' });
+      if (answer && typeof answer.marked === 'boolean') show(answer.marked);
+      button.disabled = false;
+    });
+    iconGroup.prepend(button);
+  }
+
   async function appendKumapieRatings(article, expression, reading) {
     if (typeof KumapieBridge === 'undefined') return;
     const word = { word: expression, reading: reading || '' };
@@ -2792,6 +2820,7 @@
       iconGroup.appendChild(bookBtn);
     }
 
+    appendKumapieMark(iconGroup, expression, reading, result.matched);
     headSection.appendChild(iconGroup);
     body.appendChild(headSection);
     appendKumapieRatings(article, expression, reading);
