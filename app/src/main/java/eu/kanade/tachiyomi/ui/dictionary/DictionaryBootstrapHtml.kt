@@ -7,10 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.canopus.chimareader.data.FontManager
 import com.materialkolor.PaletteStyle
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.theme.colorscheme.CustomColorScheme
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 internal fun getDictionaryBootstrapHtml(
     context: Context,
@@ -165,17 +162,20 @@ private val dictionaryBaseCss = java.util.concurrent.ConcurrentHashMap<Unit, Str
 private val dictionaryRendererJs = java.util.concurrent.ConcurrentHashMap<Unit, String>()
 private val dictionaryKanjiRendererJs = java.util.concurrent.ConcurrentHashMap<Unit, String>()
 
+// Generating the schemes from the seed took ~105 ms on the main thread when a popup opened, and the popup does it
+// again every time it opens; the result only depends on these three values.
+private val dictionaryColorSchemes = java.util.concurrent.ConcurrentHashMap<Triple<Boolean, Boolean, Int>, ColorScheme>()
+
 fun getDictionaryColorScheme(
     isDark: Boolean,
     isAmoled: Boolean,
     seedColor: Int,
-): ColorScheme {
-    val uiPreferences = Injekt.get<UiPreferences>()
+): ColorScheme = dictionaryColorSchemes.getOrPut(Triple(isDark, isAmoled, seedColor)) {
     val baseScheme = CustomColorScheme(
         seed = Color(seedColor),
         style = PaletteStyle.TonalSpot,
     )
-    return baseScheme.getColorScheme(isDark, isAmoled, false)
+    baseScheme.getColorScheme(isDark, isAmoled, false)
 }
 
 internal fun stopDictionaryAudio(webView: WebView) {

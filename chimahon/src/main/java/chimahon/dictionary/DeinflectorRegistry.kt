@@ -15,19 +15,18 @@ import chimahon.dictionary.ru.RussianDeinflector
  */
 object DeinflectorRegistry {
 
-    private val registry = mapOf(
-        "ar" to ArabicDeinflector,
-        "ko" to KoreanDeinflector,
-        "en" to EnglishDeinflector,
-        "zh" to ChineseDeinflector,
-        "de" to GermanDeinflector,
-        "fr" to FrenchDeinflector,
-        "ru" to RussianDeinflector,
-        "es" to SpanishDeinflector,
-        "it" to ItalianDeinflector,
-    )
-
-    fun get(languageCode: String): Deinflector? {
-        return registry[languageCode]
+    // A `when`, not a map: each deinflector builds its rules on first use (Arabic's regexes, Korean's and French's
+    // tables took ~210 ms together on the Tab S7+), so only the asked language's is built. Japanese uses none.
+    fun get(languageCode: String): Deinflector? = when (languageCode) {
+        "ar" -> ArabicDeinflector
+        "ko" -> KoreanDeinflector
+        "en" -> EnglishDeinflector
+        "zh" -> ChineseDeinflector
+        "de" -> GermanDeinflector
+        "fr" -> FrenchDeinflector
+        "ru" -> RussianDeinflector
+        "es" -> SpanishDeinflector
+        "it" -> ItalianDeinflector
+        else -> null
     }
 }
