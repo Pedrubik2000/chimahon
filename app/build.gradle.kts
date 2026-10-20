@@ -40,6 +40,10 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-${getCommitCount()}"
             isPseudoLocalesEnabled = true
+            // Chimahon Dev is the build Pedro reads with: not debuggable, so ART compiles it (a debuggable app runs
+            // without ART's optimisations); profileable, so simpleperf still works. Same id and key: installs over it.
+            isDebuggable = false
+            isProfileable = true
             buildConfigField("boolean", "UPDATER_ENABLED", "false")
         }
         val release by getting {

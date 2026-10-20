@@ -15,6 +15,14 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
+
+        externalNativeBuild {
+            cmake {
+                // Release's optimised native flags in debug builds too: at Debug's -O0 every dictionary lookup
+                // (hoshidicts, zstd, glaze) ran ~6x slower in Chimahon Dev, the build Pedro reads with.
+                arguments += "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+            }
+        }
     }
 
     externalNativeBuild {
