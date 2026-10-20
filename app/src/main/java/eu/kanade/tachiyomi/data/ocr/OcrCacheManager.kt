@@ -42,15 +42,6 @@ class OcrCacheManager(
 ) {
     private val mutex = Mutex()
 
-    /**
-     * Parsed internal cache files, so a chapter's JSON (~0.5 MB for a volume) is parsed once instead of once per
-     * page: the reader's OCR scan reads every page of the chapter. Only this class writes those app-private
-     * files, so the memo can't go stale. Guarded by [mutex].
-     */
-    private val internalMemo = object : LinkedHashMap<java.io.File, OcrChapterData>(4, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<java.io.File, OcrChapterData>) = size > 4
-    }
-
     companion object {
         private const val OCR_CACHE_FILE = ".ocr_cache.json"
         private const val OCR_SIDECAR_SUFFIX = ".ocr.json"
@@ -151,12 +142,10 @@ class OcrCacheManager(
         pageIndex: Int,
     ): List<OcrTextBlock>? = withContext(Dispatchers.IO) {
         mutex.withLock {
-            // The in-memory check first: resolving the location costs SAF round trips on every page,
-            // and it only matters for downloaded chapters (not local or online ones).
+            val chapterLocation = findChapterLocation(manga, chapter, source)
             val isDownloaded = isChapterDownloaded(manga, chapter, source)
-            val chapterLocation = if (isDownloaded) findChapterLocation(manga, chapter, source) else null
 
-            val downloadBlocks = if (chapterLocation != null) {
+            val downloadBlocks = if (chapterLocation != null && isDownloaded) {
                 when (chapterLocation) {
                     is ChapterLocation.Directory -> loadFromDirectory(chapterLocation.dir, pageIndex)
                     is ChapterLocation.Cbz -> loadFromCbz(chapterLocation.file, pageIndex)
@@ -225,9 +214,7 @@ class OcrCacheManager(
                 }
             }
 
-            val internalFile = getInternalCacheFile(manga, chapter, source)
-            internalMemo.remove(internalFile)
-            internalFile.delete()
+            getInternalCacheFile(manga, chapter, source).delete()
         }
     }
 
@@ -253,7 +240,6 @@ class OcrCacheManager(
 
             val internalDir = java.io.File(getInternalOcrDir(), source.id.toString())
             val mangaCacheDir = java.io.File(internalDir, manga.id.toString())
-            internalMemo.clear()
             mangaCacheDir.deleteRecursively()
         }
     }
@@ -279,7 +265,6 @@ class OcrCacheManager(
      */
     suspend fun clear() = withContext(Dispatchers.IO) {
         mutex.withLock {
-            internalMemo.clear()
             getInternalOcrDir().deleteRecursively()
         }
     }
@@ -459,7 +444,7 @@ class OcrCacheManager(
     ) {
         val cacheFile = getInternalCacheFile(manga, chapter, source)
 
-        val chapterData = internalMemo[cacheFile] ?: if (cacheFile.exists()) {
+        val chapterData = if (cacheFile.exists()) {
             readOcrData(com.hippo.unifile.UniFile.fromFile(cacheFile) ?: return) ?: return
         } else {
             OcrChapterData(pages = emptyMap(), version = CURRENT_VERSION)
@@ -475,9 +460,7 @@ class OcrCacheManager(
         val newData = chapterData.copy(pages = updatedPages)
         try {
             cacheFile.writeText(json.encodeToString(newData))
-            internalMemo[cacheFile] = newData
         } catch (e: Exception) {
-            internalMemo.remove(cacheFile) // the file may be half written: read it again next time
             logcat(LogPriority.ERROR, e) { "OcrCache: Failed to save to internal storage" }
         }
     }
@@ -492,21 +475,22 @@ class OcrCacheManager(
         pageIndex: Int,
     ): List<OcrTextBlock>? {
         val cacheFile = getInternalCacheFile(manga, chapter, source)
-        val chapterData = internalMemo[cacheFile] ?: run {
-            if (!cacheFile.exists()) return null
-            try {
-                val content = cacheFile.readText()
-                if (content.isBlank()) {
-                    logcat(LogPriority.WARN) { "OcrCache: Internal cache file is empty" }
-                    return null
-                }
-                json.decodeFromString<OcrChapterData>(content).also { internalMemo[cacheFile] = it }
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e) { "OcrCache: Failed to load from internal storage" }
+        if (!cacheFile.exists()) {
+            return null
+        }
+
+        return try {
+            val content = cacheFile.readText()
+            if (content.isBlank()) {
+                logcat(LogPriority.WARN) { "OcrCache: Internal cache file is empty" }
                 return null
             }
+            val chapterData = json.decodeFromString<OcrChapterData>(content)
+            chapterData.pages[pageIndex]?.blocks?.map { it.toTextBlock() }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e) { "OcrCache: Failed to load from internal storage" }
+            null
         }
-        return chapterData.pages[pageIndex]?.blocks?.map { it.toTextBlock() }
     }
 
     private fun OcrTextBlock.toBlockData() = OcrBlockData(
