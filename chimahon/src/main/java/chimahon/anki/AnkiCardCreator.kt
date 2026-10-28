@@ -892,7 +892,8 @@ object AnkiCardCreator {
         Marker.READING -> escapeHtml(result.term.reading)
         Marker.FURIGANA -> buildFuriganaHtml(result.term.expression, result.term.reading)
         Marker.FURIGANA_PLAIN -> buildFuriganaPlain(result.term.expression, result.term.reading)
-        Marker.AUDIO -> wordAudioFilename?.let { "[sound:$it]" } ?: ""
+        // [audio:], as kumapie: kuma3 turns [sound:] into its own play buttons, so the 🐻 templates (tap to replay, Skins L1) never see it
+        Marker.AUDIO -> wordAudioFilename?.let { "[audio:$it]" } ?: ""
         Marker.GLOSSARY -> buildGlossary(
             if (glossaryIndex != null && glossaryIndex >= 0) arrayOf(result.term.glossaries.getOrElse(glossaryIndex) { result.term.glossaries.first() }) else result.term.glossaries,
             brief = false,
@@ -986,8 +987,8 @@ object AnkiCardCreator {
         Marker.PITCH_ACCENT_POSITIONS -> buildPitchAccentPositions(result.term.pitches)
         Marker.PITCH_ACCENT_CATEGORIES -> buildPitchCategories(result.term.reading, result.term.rules, result.term.pitches)
         Marker.PITCH_ACCENT_COMPOSITE -> buildPitchAccents(result.term.reading, result.term.pitches, format = PitchFormat.COMPOSITE)
-        Marker.WORD_AUDIO -> wordAudioFilename?.let { "[sound:$it]" } ?: ""
-        Marker.SENTENCE_AUDIO -> sentenceAudioFilename?.let { "[sound:$it]" } ?: ""
+        Marker.WORD_AUDIO -> wordAudioFilename?.let { "[audio:$it]" } ?: ""
+        Marker.SENTENCE_AUDIO -> sentenceAudioFilename?.let { "[audio:$it]" } ?: ""
         Marker.MORAE -> buildMorae(result.term.reading)
         Marker.PITCH_ACCENT_GRAPHS, Marker.PITCH_ACCENT_GRAPHS_JJ -> buildPitchAccentGraphs(result.term.reading, result.term.pitches)
         Marker.SCREENSHOT -> screenshotFilename?.let { "<img src=\"$it\">" } ?: ""
