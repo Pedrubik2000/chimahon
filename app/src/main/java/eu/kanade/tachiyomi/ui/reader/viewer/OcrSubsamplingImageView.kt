@@ -202,6 +202,8 @@ class OcrSubsamplingImageView(
         }
     }
 
+    private val facePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG or android.graphics.Paint.FILTER_BITMAP_FLAG)
+
     /**
      * Draw OCR text with caller-provided background and text opacity.
      */
@@ -240,6 +242,27 @@ class OcrSubsamplingImageView(
                     val lineColours = colours?.copyOfRange(currentOffset, currentOffset + text.length)
                     drawLineOrientedText(canvas, text, currentOffset, geometries[i], block.vertical, host, highlightMatches, lineColours)
                     currentOffset += text.length
+                }
+                // A character's face at the corner of their name's first letter, as kumapie's subtitles show it.
+                // ponytail: the line's rotation is ignored; a tilted line gets its face a little off.
+                KumapieColours.faces(context, block.fullText) { postInvalidate() }?.forEach { face ->
+                    var offset = 0
+                    for (i in block.lines.indices) {
+                        val text = block.lines[i]
+                        val at = face.start - offset
+                        offset += text.length
+                        if (at !in text.indices) continue
+                        val geo = geometries[i]
+                        val vertical = block.vertical || (geo.ymax - geo.ymin) / (geo.xmax - geo.xmin) > 1.2f
+                        val letter = getLineSubstringRect(text, geo, at, at + 1, host.ocrBoxScaleX, host.ocrBoxScaleY, vertical) ?: break
+                        val size = 0.6f * if (vertical) letter.width() else letter.height()
+                        // Vertical: the top right corner (where furigana go); horizontal: above the letter.
+                        val left = if (vertical) letter.right - size * 0.3f else letter.left - size * 0.3f
+                        val top = if (vertical) letter.top - size * 0.3f else letter.top - size * 0.8f
+                        facePaint.alpha = textAlpha
+                        canvas.drawBitmap(face.picture, null, RectF(left, top, left + size, top + size), facePaint)
+                        break
+                    }
                 }
             } else {
                 // Fallback: block-level rendering

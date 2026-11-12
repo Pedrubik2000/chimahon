@@ -45,6 +45,56 @@ object KumapieColours {
         return hit?.colours
     }
 
+    /** A character's name in a text: where it starts and the character's picture, cut to a circle. */
+    class Face(val start: Int, val picture: android.graphics.Bitmap)
+    private val faceCache = LruCache<String, List<Face>>(500)
+    private val pictures = ConcurrentHashMap<String, android.graphics.Bitmap>()
+
+    /**
+     * The characters' names in [text] with a picture in kumapie's character dictionary (its provider's `faces`), as its
+     * subtitles show them; null until kumapie answered ([ready] is called then, when there are any).
+     */
+    fun faces(context: Context, text: String, ready: () -> Unit): List<Face>? {
+        faceCache.get(text)?.let { return it }
+        if (asking.add("faces:$text")) {
+            worker.execute {
+                val faces = runCatching { askFaces(context.applicationContext, text) }
+                    .onFailure { Log.w("KumapieColours", "kumapie faces: $it") }.getOrNull().orEmpty()
+                faceCache.put(text, faces)
+                asking.remove("faces:$text")
+                if (faces.isNotEmpty()) ready()
+            }
+        }
+        return null
+    }
+
+    private fun askFaces(context: Context, text: String): List<Face> {
+        val authority = authority(context) ?: return emptyList()
+        val out = ArrayList<Face>()
+        context.contentResolver.query(Uri.parse("content://$authority/faces"), null, null, arrayOf(text), null)?.use { c ->
+            while (c.moveToNext()) {
+                val name = c.getString(2)
+                val picture = pictures[name] ?: context.contentResolver
+                    .openInputStream(Uri.parse("content://$authority/face?name=" + Uri.encode(name)))
+                    ?.use { android.graphics.BitmapFactory.decodeStream(it) }?.let(::circle)?.also { pictures[name] = it } ?: continue
+                out += Face(c.getInt(0), picture)
+            }
+        }
+        return out
+    }
+
+    /** The top square of a portrait (the face), as a circle. */
+    private fun circle(src: android.graphics.Bitmap): android.graphics.Bitmap {
+        val size = minOf(src.width, src.height)
+        val out = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val shader = android.graphics.BitmapShader(src, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+        shader.setLocalMatrix(android.graphics.Matrix().apply { setTranslate(-(src.width - size) / 2f, 0f) })
+        paint.shader = shader
+        android.graphics.Canvas(out).drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        return out
+    }
+
     /** Forgets every text's colours: after a rating, Undo or a new card the next draw asks kumapie again. */
     fun clear() = cache.evictAll()
 
