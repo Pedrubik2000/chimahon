@@ -55,31 +55,74 @@ object KumapieColours {
      * subtitles show them; null until kumapie answered ([ready] is called then, when there are any).
      */
     fun faces(context: Context, text: String, ready: () -> Unit): List<Face>? {
-        faceCache.get(text)?.let { return it }
-        if (asking.add("faces:$text")) {
+        val work = work
+        val key = "${work.orEmpty()}\n$text"
+        faceCache.get(key)?.let { return it }
+        if (asking.add("faces:$key")) {
             worker.execute {
-                val faces = runCatching { askFaces(context.applicationContext, text) }
+                val faces = runCatching { askFaces(context.applicationContext, text, work) }
                     .onFailure { Log.w("KumapieColours", "kumapie faces: $it") }.getOrNull().orEmpty()
-                faceCache.put(text, faces)
-                asking.remove("faces:$text")
+                faceCache.put(key, faces)
+                asking.remove("faces:$key")
                 if (faces.isNotEmpty()) ready()
             }
         }
         return null
     }
 
-    private fun askFaces(context: Context, text: String): List<Face> {
+    /** The Japanese title of the manga being read: kumapie gives faces only to its characters (null: any of that name). */
+    @Volatile private var work: String? = null
+    private val works = ConcurrentHashMap<String, String>()
+    private val JAPANESE = Regex("[\\u3040-\\u30ff\\u4e00-\\u9fff]")
+
+    /**
+     * The reader opened [title]. Its Japanese title: the description's first line when that is one (the Real-Debrid
+     * import puts AniList's there), the title itself when Japanese, else AniList's best match, asked once per run.
+     */
+    fun reading(title: String, description: String?) {
+        val first = description?.lineSequence()?.firstOrNull()?.trim()
+        work = listOfNotNull(first, title).firstOrNull { it.length <= 60 && '。' !in it && JAPANESE.containsMatchIn(it) }
+            ?: works[title]
+        Log.i("KumapieColours", "reading $title: work $work")
+        if (work != null || title.isBlank()) return
+        worker.execute {
+            runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }.getOrNull()
+                ?.let { works[title] = it; work = it; Log.i("KumapieColours", "reading $title: AniList says $it") }
+        }
+    }
+
+    private fun aniListNative(title: String): String? {
+        val query = "query(\$q: String) { Media(search: \$q, type: MANGA) { title { native } } }"
+        val body = JSONObject().put("query", query).put("variables", JSONObject().put("q", title)).toString()
+        val c = java.net.URL("https://graphql.anilist.co").openConnection() as java.net.HttpURLConnection
+        c.requestMethod = "POST"
+        c.doOutput = true
+        c.connectTimeout = 10_000
+        c.readTimeout = 10_000
+        c.setRequestProperty("Content-Type", "application/json")
+        c.setRequestProperty("Accept", "application/json")
+        c.outputStream.use { it.write(body.toByteArray()) }
+        if (c.responseCode == 404) return null // no match
+        val json = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
+        return json.getJSONObject("data").optJSONObject("Media")?.optJSONObject("title")?.optString("native")?.takeIf { it.isNotBlank() }
+    }
+
+    private fun askFaces(context: Context, text: String, work: String?): List<Face> {
         val authority = authority(context) ?: return emptyList()
         val out = ArrayList<Face>()
-        context.contentResolver.query(Uri.parse("content://$authority/faces"), null, null, arrayOf(text), null)?.use { c ->
+        val args = if (work == null) arrayOf(text) else arrayOf(text, work)
+        context.contentResolver.query(Uri.parse("content://$authority/faces"), null, null, args, null)?.use { c ->
             while (c.moveToNext()) {
                 val name = c.getString(2)
-                val picture = pictures[name] ?: context.contentResolver
-                    .openInputStream(Uri.parse("content://$authority/face?name=" + Uri.encode(name)))
-                    ?.use { android.graphics.BitmapFactory.decodeStream(it) }?.let(::circle)?.also { pictures[name] = it } ?: continue
+                val picture = pictures["${work.orEmpty()}\n$name"] ?: context.contentResolver
+                    .openInputStream(Uri.parse("content://$authority/face?name=" + Uri.encode(name) +
+                        (work?.let { "&work=" + Uri.encode(it) } ?: "")))
+                    ?.use { android.graphics.BitmapFactory.decodeStream(it) }?.let(::circle)
+                    ?.also { pictures["${work.orEmpty()}\n$name"] = it } ?: continue
                 out += Face(c.getInt(0), picture)
             }
         }
+        if (out.isNotEmpty()) Log.d("KumapieColours", "faces: ${out.size} in ${text.length} chars, work $work")
         return out
     }
 

@@ -437,7 +437,11 @@ class ReaderActivity : BaseActivity() {
             .map { it.manga }
             .distinctUntilChanged()
             .filterNotNull()
-            .onEach { updateViewer() }
+            .onEach {
+                // kumapie's faces on the OCR text: only this manga's characters.
+                chimahon.ocr.KumapieColours.reading(it.title, it.description)
+                updateViewer()
+            }
             .launchIn(lifecycleScope)
 
         viewModel.state
