@@ -35,7 +35,8 @@ internal class DictionaryReadyBridge(
         // @JavascriptInterface methods run on the JavaBridge thread.
         webView.post {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                webView.postVisualStateCallback(
+                // Back during a lookup destroys the WebView before this runs: it throws then, and nobody waits any more.
+                try { webView.postVisualStateCallback(
                     requestId,
                     object : android.webkit.WebView.VisualStateCallback() {
                         override fun onComplete(requestId: Long) {
@@ -47,7 +48,7 @@ internal class DictionaryReadyBridge(
                             stateProvider()?.onContentReady?.invoke()
                         }
                     },
-                )
+                ) } catch (_: IllegalStateException) {}
             } else {
                 stateProvider()?.onContentReady?.invoke()
             }
