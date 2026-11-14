@@ -1067,7 +1067,7 @@
       if (window.getSelection().toString().trim().length > 0) return;
 
       // Skip interactive controls — buttons, dict tags, inflection toggles, etc.
-      if (target.closest('button, .anki-add-btn, .lookup-tab, .entry-deinflection-row, .tag, .dictionary-header, details, summary, a, .gloss-link, .gloss-sc-a')) return;
+      if (target.closest('button, .anki-add-btn, .top-picture, .lookup-tab, .entry-deinflection-row, .tag, .dictionary-header, details, summary, a, .gloss-link, .gloss-sc-a')) return;
 
       const word = extractTextAtPoint(e.clientX, e.clientY);
       if (!word) return;
@@ -2053,8 +2053,48 @@
     return open;
   }
 
+  // ponytail: picture dictionaries by title; make it a setting if more come.
+  const PICTURE_DICTIONARY = /素材辞典|TMW Club|ビジュアル大辞典/;
+
+  // First real picture (not an em-sized EPWING gaiji letter) of a picture dictionary, shown over the definitions;
+  // tap = whole size. Dictionary order and the mined card stay as they are.
+  function createTopPicture(glossaries, mediaMap) {
+    const find = (node, dictName) => {
+      if (Array.isArray(node)) {
+        for (const n of node) { const f = find(n, dictName); if (f) return f; }
+        return null;
+      }
+      if (!node || typeof node !== 'object') return null;
+      if (node.tag === 'img' || node.type === 'image') {
+        const path = typeof node.path === 'string' ? node.path : (typeof node.src === 'string' ? node.src : '');
+        const units = node.sizeUnits || (node.data && node.data.sizeUnits);
+        if (path && units !== 'em') return path;
+      }
+      return find(node.content, dictName);
+    };
+    for (const g of glossaries) {
+      const dictName = g.dictName || '';
+      if (!PICTURE_DICTIONARY.test(dictName)) continue;
+      const path = find(parseMaybeJson(String(g.glossary || '')), dictName);
+      if (!path) continue;
+      // The media map arrives after the first render (updateMediaDataUris), so the src may be filled in later.
+      const img = document.createElement('img');
+      img.className = 'top-picture';
+      img.dataset.path = path;
+      img.dataset.dictName = dictName;
+      const src = resolveMediaSrc(mediaMap, dictName, path) || (path.startsWith('data:') ? path : '');
+      if (src) img.src = src; else img.hidden = true;
+      img.addEventListener('click', (e) => { e.stopPropagation(); img.classList.toggle('whole'); });
+      return img;
+    }
+    return null;
+  }
+
   function appendDefinitionsSection(body, glossaries, mediaMap, group, collapseConfig) {
     if (!glossaries || glossaries.length === 0) return;
+
+    const topPicture = createTopPicture(glossaries, mediaMap);
+    if (topPicture) body.appendChild(topPicture);
 
     const groups = new Map();
     glossaries.forEach((gloss) => {
@@ -3221,6 +3261,10 @@
     updateMediaDataUris(mediaMap) {
       try {
         const map = mediaMap || {};
+        document.querySelectorAll('img.top-picture[hidden]').forEach(img => {
+          const src = resolveMediaSrc(map, img.dataset.dictName, img.dataset.path);
+          if (src) { img.src = src; img.hidden = false; }
+        });
         document.querySelectorAll('.gloss-image-link[data-image-load-state="unloaded"]').forEach(link => {
           applyMediaToImageLink(link, map);
         });
