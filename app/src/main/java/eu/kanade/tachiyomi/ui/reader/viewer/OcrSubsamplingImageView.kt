@@ -255,7 +255,7 @@ class OcrSubsamplingImageView(
                         val geo = geometries[i]
                         val vertical = block.vertical || (geo.ymax - geo.ymin) / (geo.xmax - geo.xmin) > 1.2f
                         val letter = getLineSubstringRect(text, geo, at, at + 1, host.ocrBoxScaleX, host.ocrBoxScaleY, vertical) ?: break
-                        val size = 0.6f * if (vertical) letter.width() else letter.height()
+                        val size = 0.9f * if (vertical) letter.width() else letter.height() // 0.6 was too small (user, 2026-11-14)
                         // Vertical: the top right corner (where furigana go); horizontal: above the letter.
                         val left = if (vertical) letter.right - size * 0.3f else letter.left - size * 0.3f
                         val top = if (vertical) letter.top - size * 0.3f else letter.top - size * 0.8f
