@@ -243,7 +243,8 @@ class OcrSubsamplingImageView(
                     drawLineOrientedText(canvas, text, currentOffset, geometries[i], block.vertical, host, highlightMatches, lineColours)
                     currentOffset += text.length
                 }
-                // A character's face at the corner of their name's first letter, as kumapie's subtitles show it.
+                // A character's face just before their name's first letter, in its line (user, 2026-11-14): above it
+                // when the line is vertical, left of it when horizontal. It covers what the page has there.
                 // ponytail: the line's rotation is ignored; a tilted line gets its face a little off.
                 KumapieColours.faces(context, block.fullText) { postInvalidate() }?.forEach { face ->
                     var offset = 0
@@ -256,9 +257,8 @@ class OcrSubsamplingImageView(
                         val vertical = block.vertical || (geo.ymax - geo.ymin) / (geo.xmax - geo.xmin) > 1.2f
                         val letter = getLineSubstringRect(text, geo, at, at + 1, host.ocrBoxScaleX, host.ocrBoxScaleY, vertical) ?: break
                         val size = 0.9f * if (vertical) letter.width() else letter.height() // 0.6 was too small (user, 2026-11-14)
-                        // Vertical: the top right corner (where furigana go); horizontal: above the letter.
-                        val left = if (vertical) letter.right - size * 0.3f else letter.left - size * 0.3f
-                        val top = if (vertical) letter.top - size * 0.3f else letter.top - size * 0.8f
+                        val left = if (vertical) letter.centerX() - size / 2 else letter.left - size
+                        val top = if (vertical) letter.top - size else letter.centerY() - size / 2
                         facePaint.alpha = textAlpha
                         canvas.drawBitmap(face.picture, null, RectF(left, top, left + size, top + size), facePaint)
                         break
