@@ -1067,7 +1067,7 @@
       if (window.getSelection().toString().trim().length > 0) return;
 
       // Skip interactive controls — buttons, dict tags, inflection toggles, etc.
-      if (target.closest('button, .anki-add-btn, .top-picture, .lookup-tab, .entry-deinflection-row, .tag, .dictionary-header, details, summary, a, .gloss-link, .gloss-sc-a')) return;
+      if (target.closest('button, .anki-add-btn, .top-picture, .ai-sense, .lookup-tab, .entry-deinflection-row, .tag, .dictionary-header, details, summary, a, .gloss-link, .gloss-sc-a')) return;
 
       const word = extractTextAtPoint(e.clientX, e.clientY);
       if (!word) return;
@@ -2090,6 +2090,29 @@
     return null;
   }
 
+  // kumapie's "AI sense" box (same look as its own): check first, box with a placeholder, then the vote.
+  async function appendAiSense(body, word, reading, firstDefinition) {
+    const check = await kumapieRequest({ action: 'sense', word, reading, check: true });
+    if (!check || check.error || !check.pick || !body.isConnected) return;
+    const box = document.createElement('div');
+    box.className = 'ai-sense';
+    box.style.cssText = 'border-left:3px solid #7bc47f;background:rgba(123,196,127,.10);border-radius:6px;padding:6px 10px;margin:0 0 10px';
+    const dim = (text) => { const s = document.createElement('span'); s.style.opacity = '.7'; s.textContent = text; return s; };
+    box.appendChild(dim('AI: picking the meaning in this line…'));
+    body.insertBefore(box, firstDefinition());
+    const r = await kumapieRequest({ action: 'sense', word, reading, check: false });
+    if (!box.isConnected) return;
+    box.textContent = '';
+    if (!r || r.error) { box.appendChild(dim("AI: couldn't ask the PC.")); return; }
+    if (!r.sense) { box.appendChild(dim('AI: no clear meaning in this line.')); return; }
+    const b = document.createElement('b'); b.textContent = '✓';
+    box.append(b, ' ' + (r.sense.es || ''), document.createElement('br'), r.sense.ja || '');
+    (r.sense.ex || []).slice(0, 2).forEach((ex) => {
+      box.appendChild(document.createElement('br'));
+      box.appendChild(dim(ex));
+    });
+  }
+
   function appendDefinitionsSection(body, glossaries, mediaMap, group, collapseConfig) {
     if (!glossaries || glossaries.length === 0) return;
 
@@ -2885,7 +2908,10 @@
     appendPitchesSection(body, pitches, reading, showPitchDiagram, showPitchNumber, showPitchText);
 
     const glossaries = (result.term && Array.isArray(result.term.glossaries)) ? result.term.glossaries : [];
+    const defsStart = body.childNodes.length;
     appendDefinitionsSection(body, glossaries, mediaMap, groupTerms, collapseConfig);
+    // First entry only; the box goes in front of the definitions (and the top picture) when kumapie says yes.
+    if (!result.index) appendAiSense(body, expression, reading, () => body.childNodes[defsStart] || null);
 
     return article;
   }

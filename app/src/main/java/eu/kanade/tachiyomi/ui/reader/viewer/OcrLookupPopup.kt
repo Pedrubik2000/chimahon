@@ -183,6 +183,7 @@ fun OcrLookupPopup(
     val mediaDataUris = currentFrame?.mediaDataUris ?: emptyMap()
     val existingExpressions = currentFrame?.existingExpressions ?: emptySet()
     val entryJsons = currentFrame?.entryJsons
+    chimahon.ocr.KumapieColours.sentence = currentFrame?.sentence ?: fullText
     var childPopupRequest by remember { mutableStateOf<RecursivePopupRequest?>(null) }
     val childPopupWebView = remember(context) { WebView(context) }
     var contentReady by remember(visible) { mutableStateOf(false) }

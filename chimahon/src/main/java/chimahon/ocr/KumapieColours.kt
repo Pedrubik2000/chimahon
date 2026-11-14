@@ -148,10 +148,24 @@ object KumapieColours {
      * or "null" when kumapie can't (not installed, no permission). Rating and Undo need kuma3's permission, which
      * chimahon holds for mining. Blocking: call it off the UI thread.
      */
+    /** The sentence (OCR text block) of the popup's current lookup, set by the popup; sent along with "sense". */
+    @Volatile var sentence: String = ""
+
     fun call(context: Context, bodyJson: String): String = runCatching {
         val authority = authority(context) ?: return@runCatching "null"
         val body = JSONObject(bodyJson)
         val action = body.getString("action")
+        if (action == "sense") {
+            // The AI sense box: kumapie's "sense" (check = does this word get a box, else the vote); its JSON as is.
+            val ask = Bundle().apply {
+                putString("word", body.optString("word"))
+                putString("reading", body.optString("reading"))
+                putString("sentence", sentence)
+                putBoolean("check", body.optBoolean("check"))
+            }
+            return@runCatching context.contentResolver.call(Uri.parse("content://$authority"), "sense", null, ask)
+                ?.getString("json") ?: "null"
+        }
         val extras = Bundle().apply {
             putString("word", body.optString("word"))
             putString("reading", body.optString("reading"))
