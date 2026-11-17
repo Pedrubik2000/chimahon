@@ -193,6 +193,32 @@ object KumapieColours {
         }.toString()
     }.onFailure { Log.w("KumapieColours", "kumapie call failed: $it") }.getOrDefault("null")
 
+    /**
+     * A card for [deck] goes to kumapie first: kumapie keeps the Mined decks' cards of a person it has them for (its
+     * own Anki, text only). Its note id, or null: not kumapie's (another deck, kumapie absent or not set up for it),
+     * so the caller adds it to Anki as before. Blocking.
+     */
+    fun mine(context: Context, deck: String, fields: Map<String, String>, tags: List<String>): Long? = runCatching {
+        val authority = authority(context) ?: return@runCatching null
+        val extras = Bundle().apply {
+            putString("deck", deck)
+            putString("fields", JSONObject(fields).toString())
+            putString("tags", tags.joinToString(" "))
+        }
+        context.contentResolver.call(Uri.parse("content://$authority"), "mine", null, extras)?.takeIf { it.containsKey("note") }?.getLong("note")
+    }.onFailure { Log.w("KumapieColours", "kumapie mine: $it") }.getOrNull()
+
+    /** An overwrite of note [note] in [deck] done in kumapie's store; false: not kumapie's card, Anki does it. Blocking. */
+    fun update(context: Context, deck: String, note: Long, fields: Map<String, String>): Boolean = runCatching {
+        val authority = authority(context) ?: return@runCatching false
+        val extras = Bundle().apply {
+            putString("deck", deck)
+            putLong("note", note)
+            putString("fields", JSONObject(fields).toString())
+        }
+        context.contentResolver.call(Uri.parse("content://$authority"), "update", null, extras)?.getBoolean("updated") == true
+    }.onFailure { Log.w("KumapieColours", "kumapie update: $it") }.getOrDefault(false)
+
     private fun authority(context: Context): String? =
         PACKAGES.firstOrNull { context.packageManager.resolveContentProvider("$it.words", 0) != null }?.let { "$it.words" }
 

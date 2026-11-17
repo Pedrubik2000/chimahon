@@ -499,11 +499,14 @@ object AnkiCardCreator {
                         .mapNotNull(::normalizeAnkiTag)
                     android.util.Log.d(TAG, "addToAnki: built fields=$fields")
 
+                    // kumapie keeps the Mined decks' cards of its person (kumapie's own Anki): there first, else Anki as before.
                     val noteId = if (overwriteNoteId != null) {
-                        bridge.updateNoteFields(overwriteNoteId, fields)
+                        if (!chimahon.ocr.KumapieColours.update(context, effectiveDeck, overwriteNoteId, fields)) {
+                            bridge.updateNoteFields(overwriteNoteId, fields)
+                        }
                         overwriteNoteId
                     } else {
-                        bridge.addNote(
+                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList) ?: bridge.addNote(
                             deckName = effectiveDeck,
                             modelName = effectiveModel,
                             fields = fields,
