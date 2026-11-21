@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,9 +43,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,6 +59,9 @@ import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary.Entry
+import eu.kanade.tachiyomi.ui.glass.FilterGroup
+import eu.kanade.tachiyomi.ui.glass.GlassFilterScaffold
+import eu.kanade.tachiyomi.ui.glass.GlassSearchField
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.openTitle
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
@@ -522,15 +522,19 @@ private fun BrowseTab(model: GlassDiscoverModel, open: (Entry) -> Unit) {
             .map { it.key to it.value }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Sidebar(model, hints, Modifier.padding(start = 100.dp).width(264.dp).fillMaxHeight())
+    GlassFilterScaffold(
+        panel = { BrowseGroups(model, hints) },
+        headerAction = {
+            if (!f.isEmpty) Pill(stringResource(MR.strings.glass_discover_clear), onClick = { model.filters = BrowseFilters() }, small = true)
+        },
+    ) { filters ->
         Column(
-            Modifier.fillMaxSize().padding(start = 396.dp, top = 24.dp, end = 32.dp),
+            Modifier.fillMaxSize().padding(top = 24.dp, end = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Tabs(model)
-                SearchField(
+                GlassSearchField(
                     f.search,
                     { model.filters = model.filters.copy(search = it) },
                     stringResource(MR.strings.glass_discover_search),
@@ -539,6 +543,7 @@ private fun BrowseTab(model: GlassDiscoverModel, open: (Entry) -> Unit) {
             }
             Text(summary(b, f), color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
             ErrorLine(model)
+            filters()
             if (b.entries.isEmpty() && !b.loading && b.page > 0 && model.error == null) {
                 Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_discover_no_results), fontSize = Glass.label)
@@ -590,75 +595,46 @@ private fun myListLabel(m: MyList) = when (m) {
     MyList.ONLY_PLANNING -> MR.strings.glass_discover_only_planning
 }
 
+/** The Browse panel groups; the "Filters" heading and Clear come from [GlassFilterScaffold]. */
 @Composable
-private fun Sidebar(model: GlassDiscoverModel, hints: List<Pair<String, Int>>, modifier: Modifier) {
+private fun BrowseGroups(model: GlassDiscoverModel, hints: List<Pair<String, Int>>) {
     val f = model.filters
     val set: (BrowseFilters) -> Unit = { model.filters = it }
-    Row(modifier) {
-        Column(
-            Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .background(Glass.panel)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(MR.strings.glass_discover_filters),
-                    fontSize = Glass.heading,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                if (!f.isEmpty) Pill(stringResource(MR.strings.glass_discover_clear), onClick = { set(BrowseFilters()) }, small = true)
-            }
-            Group(stringResource(MR.strings.glass_discover_genres)) {
-                BrowseFilters.GENRES.forEach { g ->
-                    GlassChip(g, selected = g in f.genres, onClick = {
-                        set(f.copy(genres = if (g in f.genres) f.genres - g else f.genres + g))
-                    })
-                }
-            }
-            Group(stringResource(MR.strings.glass_discover_status)) {
-                listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
-                    .forEach { (s, label) ->
-                        GlassChip(stringResource(label), selected = f.status == s, onClick = {
-                            set(f.copy(status = if (f.status == s) null else s))
-                        })
-                    }
-            }
-            Group(stringResource(MR.strings.glass_discover_length)) {
-                Length.entries.forEach { l ->
-                    GlassChip(stringResource(lengthLabel(l)), selected = f.length == l, onClick = {
-                        set(f.copy(length = if (f.length == l) null else l))
-                    })
-                }
-            }
-            Group(stringResource(MR.strings.glass_discover_my_list)) {
-                MyList.entries.forEach { m ->
-                    GlassChip(stringResource(myListLabel(m)), selected = f.myList == m, onClick = {
-                        set(f.copy(myList = if (f.myList == m) null else m))
-                    })
-                }
-            }
-            Group(stringResource(MR.strings.glass_discover_tags)) {
-                f.tagsIn.forEach { TagChip(it, TagState.IN, null) { set(f.cycleTag(it)) } }
-                f.tagsOut.forEach { TagChip(it, TagState.OUT, null) { set(f.cycleTag(it)) } }
-                hints.forEach { (name, count) -> TagChip(name, TagState.OFF, count) { set(f.cycleTag(name)) } }
-            }
-            Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
+    FilterGroup(stringResource(MR.strings.glass_discover_genres)) {
+        BrowseFilters.GENRES.forEach { g ->
+            GlassChip(g, selected = g in f.genres, onClick = {
+                set(f.copy(genres = if (g in f.genres) f.genres - g else f.genres + g))
+            })
         }
-        Box(Modifier.width(1.dp).fillMaxHeight().background(Glass.line))
     }
-}
-
-@Composable
-private fun Group(name: String, chips: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(name, color = Glass.secondary, fontSize = Glass.caption, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
+    FilterGroup(stringResource(MR.strings.glass_discover_status)) {
+        listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
+            .forEach { (s, label) ->
+                GlassChip(stringResource(label), selected = f.status == s, onClick = {
+                    set(f.copy(status = if (f.status == s) null else s))
+                })
+            }
     }
+    FilterGroup(stringResource(MR.strings.glass_discover_length)) {
+        Length.entries.forEach { l ->
+            GlassChip(stringResource(lengthLabel(l)), selected = f.length == l, onClick = {
+                set(f.copy(length = if (f.length == l) null else l))
+            })
+        }
+    }
+    FilterGroup(stringResource(MR.strings.glass_discover_my_list)) {
+        MyList.entries.forEach { m ->
+            GlassChip(stringResource(myListLabel(m)), selected = f.myList == m, onClick = {
+                set(f.copy(myList = if (f.myList == m) null else m))
+            })
+        }
+    }
+    FilterGroup(stringResource(MR.strings.glass_discover_tags)) {
+        f.tagsIn.forEach { TagChip(it, TagState.IN, null) { set(f.cycleTag(it)) } }
+        f.tagsOut.forEach { TagChip(it, TagState.OUT, null) { set(f.cycleTag(it)) } }
+        hints.forEach { (name, count) -> TagChip(name, TagState.OFF, count) { set(f.cycleTag(name)) } }
+    }
+    Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
 }
 
 private enum class TagState { OFF, IN, OUT }
@@ -702,36 +678,6 @@ private fun TagChip(name: String, state: TagState, count: Int?, onClick: () -> U
             maxLines = 1,
         )
         count?.let { Text(it.toString(), color = Glass.secondary, fontSize = Glass.body) }
-    }
-}
-
-@Composable
-private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier) {
-    Row(
-        modifier
-            .height(Glass.button)
-            .clip(CircleShape)
-            .background(Glass.panel)
-            .border(1.dp, Glass.line, CircleShape)
-            .padding(horizontal = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        GlassIcon("search", size = 18.dp, tint = Glass.secondary)
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (value.isEmpty()) Text(placeholder, color = Glass.secondary, fontSize = Glass.label, maxLines = 1)
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = Glass.label),
-                cursorBrush = SolidColor(Color.White),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (value.isNotEmpty()) {
-            GlassIcon("close", size = 18.dp, modifier = Modifier.clip(CircleShape).clickable { onValueChange("") })
-        }
     }
 }
 

@@ -1018,6 +1018,7 @@
     <string name="glass_sort_last_read">Last read</string>
     <string name="glass_sort_title">Title</string>
     <string name="glass_sort_volumes_here">Volumes here</string>
+    <string name="glass_sort">SORT</string>
     <string name="glass_back">Back</string>
     <string name="track_activity_name">Tracker login</string>
 
