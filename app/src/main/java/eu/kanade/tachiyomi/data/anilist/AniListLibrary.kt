@@ -76,7 +76,7 @@ class AniListLibrary(private val app: Application) {
     private val saved by lazy {
         runCatching { json.decodeFromString<Saved>(file.readText()) }.getOrDefault(Saved())
     }
-    private val _entries by lazy { MutableStateFlow(saved.entries) }
+    private val _entries by lazy { MutableStateFlow(saved.entries.filterNot { it.format == NOVEL }) } // lists saved before
     private val _refreshedAt by lazy { MutableStateFlow(saved.refreshedAt) }
     private val _error = MutableStateFlow<String?>(null)
 
@@ -183,11 +183,15 @@ class AniListLibrary(private val app: Application) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
-        /** Entries of a `MediaListCollection` response; custom lists are skipped (they repeat entries). */
+        /** AniList keeps light novels in the manga list; the manga screens leave them out everywhere. */
+        const val NOVEL = "NOVEL"
+
+        /** Entries of a `MediaListCollection` response; custom lists are skipped (they repeat entries), novels too. */
         fun parseList(body: String): List<Entry> =
             json.decodeFromString<ListResponse>(body).data.collection.lists
                 .filterNot { it.isCustomList }
                 .flatMap { it.entries }
+                .filterNot { it.media.format == NOVEL }
                 .distinctBy { it.media.id }
                 .map { e ->
                     val m = e.media
