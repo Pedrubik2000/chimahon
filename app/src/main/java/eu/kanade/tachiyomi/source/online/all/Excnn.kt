@@ -90,9 +90,9 @@ class Excnn : HttpSource() {
         throw Exception("Excnn volumes are imported through Real-Debrid: tap the volume")
 
     companion object {
-        /** Opening or downloading Excnn volumes = Real-Debrid imports into local manga; false for other sources. */
+        /** Opening or downloading Excnn/X3DL volumes = Real-Debrid imports into local manga; false for others. */
         fun importIfExcnn(context: Context, source: Source?, manga: Manga?, chapters: List<Chapter>): Boolean {
-            if (source !is Excnn || manga == null) return false
+            if ((source !is Excnn && source !is X3dl) || manga == null) return false
             chapters.forEach { RealDebridImportJob.start(context, it.url, manga.title) }
             context.toast("Real-Debrid: downloading to local manga")
             return true

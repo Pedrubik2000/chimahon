@@ -14,6 +14,7 @@ import eu.kanade.tachiyomi.source.online.all.MangaDex
 import eu.kanade.tachiyomi.source.online.all.MergedSource
 import eu.kanade.tachiyomi.source.online.all.NHentai
 import eu.kanade.tachiyomi.source.online.all.Pururin
+import eu.kanade.tachiyomi.source.online.all.X3dl
 import eu.kanade.tachiyomi.source.online.english.EightMuses
 import exh.log.xLogD
 import exh.source.BlacklistedSources
@@ -117,6 +118,7 @@ class AndroidSourceManager(
                         put(MERGED_SOURCE_ID, MergedSource())
                         // SY <--
                         Excnn().let { put(it.id, it) }
+                        X3dl().let { put(it.id, it) }
                     }
                     extensions.forEach { extension ->
                         extension.sources.mapNotNull { it.toInternalSource(/* KMK --> */isHentaiEnabled/* KMK <-- */) }.forEach {
