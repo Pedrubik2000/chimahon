@@ -64,8 +64,8 @@ import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.getNameForMangaInfo
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.MetadataSource
-import eu.kanade.tachiyomi.source.online.all.Excnn
 import eu.kanade.tachiyomi.source.online.all.MergedSource
+import eu.kanade.tachiyomi.source.online.all.RealDebridSource
 import eu.kanade.tachiyomi.ui.manga.RelatedManga.Companion.isLoading
 import eu.kanade.tachiyomi.ui.manga.RelatedManga.Companion.removeDuplicates
 import eu.kanade.tachiyomi.ui.manga.RelatedManga.Companion.sorted
@@ -1364,7 +1364,7 @@ class MangaScreenModel(
         startNow: Boolean,
     ) {
         val successState = successState ?: return
-        if (Excnn.importIfExcnn(context, successState.source, successState.manga, chapters)) return
+        if (RealDebridSource.importIfAny(context, successState.source, successState.manga, chapters)) return
 
         screenModelScope.launchNonCancellable {
             if (startNow) {

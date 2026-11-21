@@ -66,7 +66,7 @@ import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.isLocalOrStub
 import eu.kanade.tachiyomi.source.online.HttpSource
-import eu.kanade.tachiyomi.source.online.all.Excnn
+import eu.kanade.tachiyomi.source.online.all.RealDebridSource
 import eu.kanade.tachiyomi.ui.browse.BulkFavoriteScreenModel
 import eu.kanade.tachiyomi.ui.browse.extension.ExtensionsScreen
 import eu.kanade.tachiyomi.ui.browse.extension.details.SourcePreferencesScreen
@@ -281,7 +281,7 @@ class MangaScreen(
             chapterSwipeEndAction = screenModel.chapterSwipeEndAction,
             navigateUp = navigator::pop,
             onChapterClicked = {
-                if (!Excnn.importIfExcnn(context, successState.source, successState.manga, listOf(it))) {
+                if (!RealDebridSource.importIfAny(context, successState.source, successState.manga, listOf(it))) {
                     openChapter(context, it)
                 }
             },

@@ -14,7 +14,7 @@ import okhttp3.Response
  * x3dl.net manga, built in: a volume is an Uploady link, imported through Real-Debrid like [Excnn]'s.
  * Posts, page 2+ and search sit behind Cloudflare: the app's usual WebView step gets through, nothing here.
  */
-class X3dl : HttpSource() {
+class X3dl : HttpSource(), RealDebridSource {
     override val name = "X3DL"
     override val lang = "ja"
     override val baseUrl = X3dlParser.BASE
