@@ -2,6 +2,8 @@ package eu.kanade.tachiyomi.data.download
 
 import eu.kanade.domain.chapter.interactor.SyncChaptersWithSource
 import eu.kanade.domain.manga.model.toSManga
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import logcat.LogPriority
@@ -11,6 +13,7 @@ import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.manga.interactor.GetFavorites
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.source.service.SourceManager
+import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -54,9 +57,24 @@ object LocalSeriesSync {
         }
     }
 
-    /** Every local series in the library, once per app run (listing opens each archive for its ComicInfo). */
+    /**
+     * The series folders are the truth: every folder of the local source is put (back) in the library, linked to its
+     * AniList title when its name matches one on the list, and its volumes re-read. So a series removed from the
+     * classic library, or one whose import never finished its bookkeeping, still shows as on the tablet.
+     * Once per app run (listing opens each archive for its ComicInfo).
+     */
     suspend fun syncAll() {
         if (!allDone.compareAndSet(false, true)) return
+        withIOContext {
+            runCatching {
+                val folders = Injekt.get<StorageManager>().getLocalSourceDirectory()?.listFiles().orEmpty()
+                    .filter { it.isDirectory && it.name?.startsWith(".") == false }
+                    .mapNotNull { it.name }
+                folders.forEach { ImportHandler.addMangaToLibrary(it) }
+                val library = Injekt.get<AniListLibrary>()
+                library.applyLinks(library.proposeLinks().matches.map { it.mangaId to it.entry.mediaId })
+            }.onFailure { logcat(LogPriority.WARN, it) { "Local series adopt failed" } }
+        }
         val local = withIOContext {
             runCatching { Injekt.get<GetFavorites>().await().filter { it.source == LocalSource.ID } }
                 .onFailure { logcat(LogPriority.WARN, it) { "Local series sync: library read failed" } }
