@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,10 +42,15 @@ import eu.kanade.tachiyomi.ui.glass.GlassFilterScaffold
 import eu.kanade.tachiyomi.ui.glass.GlassSearchField
 import eu.kanade.tachiyomi.ui.glass.GlassSort
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
-import eu.kanade.tachiyomi.ui.glass.GlassTitles
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.Here
+import eu.kanade.tachiyomi.ui.glass.LibraryView
 import eu.kanade.tachiyomi.ui.glass.ListFilter
+import eu.kanade.tachiyomi.ui.glass.TagChip
+import eu.kanade.tachiyomi.ui.glass.TagState
+import eu.kanade.tachiyomi.ui.glass.TitleFilters
+import eu.kanade.tachiyomi.ui.glass.discover.Length
+import eu.kanade.tachiyomi.ui.glass.lengthLabel
 import eu.kanade.tachiyomi.ui.glass.openTitle
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import tachiyomi.i18n.MR
@@ -61,29 +65,22 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
     val titles by model.titles.collectAsStateWithLifecycle()
     val all = titles.orEmpty()
     val query = model.query
-    val status = model.status
-    val here = model.here
+    val f = model.filters
     val sort = model.sort
-
-    // counts: each group counts within the filters above it (search → AniList → tablet)
-    val searched = remember(all, query) { all.filter { GlassTitles.matchesQuery(it, query) } }
-    val statusCounts = remember(searched) { ListFilter.entries.associateWith { f -> searched.count { f.matches(it) } } }
-    val hereCounts = remember(searched, status) {
-        searched.filter { status.matches(it) }.groupingBy { GlassTitles.here(it) }.eachCount()
-    }
-    val shown = remember(all, query, status, here, sort) {
-        GlassTitles.sort(GlassTitles.filter(all, query, status, here), sort)
-    }
+    // shown + faceted counts come from the model (off the main thread)
+    val v = model.library.collectAsStateWithLifecycle().value ?: LibraryView()
+    val shown = v.shown
+    val set: (TitleFilters) -> Unit = { model.filters = it }
 
     GlassFilterScaffold(
         panel = {
             FilterGroup(stringResource(MR.strings.glass_anilist)) {
-                ListFilter.entries.forEach { f ->
+                ListFilter.entries.forEach { s ->
                     GlassChip(
-                        filterLabel(f),
-                        selected = status == f,
-                        onClick = { model.status = f },
-                        count = (statusCounts[f] ?: 0).toString(),
+                        filterLabel(s),
+                        selected = f.status == s,
+                        onClick = { set(f.copy(status = s)) },
+                        count = (v.statusCounts[s] ?: 0).toString(),
                     )
                 }
             }
@@ -91,9 +88,9 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                 Here.entries.forEach { h ->
                     GlassChip(
                         hereLabel(h),
-                        selected = here == h,
-                        onClick = { model.here = if (here == h) null else h },
-                        count = (hereCounts[h] ?: 0).toString(),
+                        selected = f.here == h,
+                        onClick = { set(f.copy(here = if (f.here == h) null else h)) },
+                        count = (v.hereCounts[h] ?: 0).toString(),
                     )
                 }
             }
@@ -102,7 +99,51 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     GlassChip(sortLabel(s), selected = sort == s, onClick = { model.sort = s })
                 }
             }
-            if (status != ListFilter.ALL || here != null || sort != GlassSort.LAST_READ) {
+            if (v.genres.isNotEmpty()) {
+                FilterGroup(stringResource(MR.strings.glass_discover_genres)) {
+                    v.genres.forEach { (g, n) ->
+                        GlassChip(g, selected = g in f.genres, onClick = { set(f.toggleGenre(g)) }, count = n.toString())
+                    }
+                }
+            }
+            FilterGroup(stringResource(MR.strings.glass_discover_status)) {
+                listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
+                    .forEach { (s, label) ->
+                        GlassChip(
+                            stringResource(label),
+                            selected = f.published == s,
+                            onClick = { set(f.copy(published = if (f.published == s) null else s)) },
+                            count = (v.publishedCounts[s] ?: 0).toString(),
+                        )
+                    }
+            }
+            FilterGroup(stringResource(MR.strings.glass_discover_length)) {
+                Length.entries.forEach { l ->
+                    GlassChip(
+                        stringResource(lengthLabel(l)),
+                        selected = f.length == l,
+                        onClick = { set(f.copy(length = if (f.length == l) null else l)) },
+                        count = (v.lengthCounts[l] ?: 0).toString(),
+                    )
+                }
+            }
+            if (v.tags.isNotEmpty()) {
+                FilterGroup(stringResource(MR.strings.glass_discover_tags)) {
+                    v.tags.forEach { (name, n) ->
+                        val state = when (name) {
+                            in f.tagsIn -> TagState.IN
+                            in f.tagsOut -> TagState.OUT
+                            else -> TagState.OFF
+                        }
+                        TagChip(name, state, n) { set(f.cycleTag(name)) }
+                    }
+                }
+                Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
+            }
+        },
+        // next to the "Filters" heading: the panel is long now
+        headerAction = {
+            if (f != TitleFilters() || sort != GlassSort.LAST_READ) {
                 Text(
                     stringResource(MR.strings.glass_discover_clear),
                     color = Glass.ice,
@@ -111,8 +152,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     modifier = Modifier
                         .clip(CircleShape)
                         .clickable {
-                            model.status = ListFilter.ALL
-                            model.here = null
+                            model.filters = TitleFilters()
                             model.sort = GlassSort.LAST_READ
                         }
                         .padding(horizontal = 4.dp, vertical = 10.dp),

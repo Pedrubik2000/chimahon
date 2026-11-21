@@ -34,11 +34,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
+import eu.kanade.tachiyomi.ui.glass.discover.Length
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
@@ -126,6 +128,58 @@ fun FilterGroup(name: String, chips: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(name, color = Glass.secondary, fontSize = Glass.caption, fontWeight = FontWeight.SemiBold, letterSpacing = 2.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { chips() }
+    }
+}
+
+/** LENGTH chip labels (Browse and Library). */
+fun lengthLabel(l: Length) = when (l) {
+    Length.SHORT -> MR.strings.glass_discover_len_short
+    Length.MEDIUM -> MR.strings.glass_discover_len_medium
+    Length.LONG -> MR.strings.glass_discover_len_long
+    Length.VERY_LONG -> MR.strings.glass_discover_len_very_long
+}
+
+enum class TagState { OFF, IN, OUT }
+
+/** TAGS chip (Browse and Library). off: outline + plus + count; included: white; left out: struck through with a minus. */
+@Composable
+fun TagChip(name: String, state: TagState, count: Int?, onClick: () -> Unit) {
+    val on = state == TagState.IN
+    val ink = if (on) Color.Black else Color.White
+    Row(
+        Modifier
+            .height(36.dp)
+            .clip(CircleShape)
+            .then(
+                if (on) {
+                    Modifier.background(Color.White)
+                } else {
+                    Modifier.border(1.dp, if (state == TagState.OUT) Color.White.copy(alpha = 0.7f) else Glass.line, CircleShape)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        GlassIcon(
+            when (state) {
+                TagState.OFF -> "plus"
+                TagState.IN -> "check"
+                TagState.OUT -> "minus"
+            },
+            size = 14.dp,
+            tint = ink,
+        )
+        Text(
+            name,
+            color = ink,
+            fontSize = Glass.body,
+            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+            textDecoration = if (state == TagState.OUT) TextDecoration.LineThrough else null,
+            maxLines = 1,
+        )
+        count?.let { Text(it.toString(), color = if (on) Color.Black.copy(alpha = 0.62f) else Glass.secondary, fontSize = Glass.body) }
     }
 }
 

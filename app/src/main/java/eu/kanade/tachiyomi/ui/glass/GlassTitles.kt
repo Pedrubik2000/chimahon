@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.ui.glass
 
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.ui.glass.discover.BrowseFilters
+import eu.kanade.tachiyomi.ui.glass.discover.Length
 
 /** The next volume to read of a title on the tablet (a local-source chapter). */
 data class NextVolume(val chapterId: Long, val name: String, val number: Double, val lastPageRead: Long)
@@ -53,6 +55,43 @@ enum class Here { EVERY, SOME, NOTHING }
 
 enum class GlassSort { LAST_READ, TITLE, VOLUMES_HERE }
 
+/**
+ * The Library panel past search and sort. [published] = AniList MediaStatus (FINISHED / RELEASING). Genres and
+ * included tags are "has every one", like Browse's AniList `genre_in` / `tag_in`.
+ */
+data class TitleFilters(
+    val status: ListFilter = ListFilter.ALL,
+    val here: Here? = null,
+    val genres: Set<String> = emptySet(),
+    val published: String? = null,
+    val length: Length? = null,
+    val tagsIn: Set<String> = emptySet(),
+    val tagsOut: Set<String> = emptySet(),
+) {
+    /** Tag chip cycle: off → include → exclude → off (as [BrowseFilters.cycleTag]). */
+    fun cycleTag(tag: String): TitleFilters = when (tag) {
+        in tagsIn -> copy(tagsIn = tagsIn - tag, tagsOut = tagsOut + tag)
+        in tagsOut -> copy(tagsOut = tagsOut - tag)
+        else -> copy(tagsIn = tagsIn + tag)
+    }
+
+    fun toggleGenre(g: String) = copy(genres = if (g in genres) genres - g else genres + g)
+}
+
+/** A Library filter group; a group's counts apply every group but its own. */
+enum class Facet { STATUS, HERE, GENRES, PUBLISHED, LENGTH, TAGS }
+
+/** Everything the Library page shows; chip lists are in display order, name to count. */
+data class LibraryView(
+    val shown: List<GlassTitle> = emptyList(),
+    val statusCounts: Map<ListFilter, Int> = emptyMap(),
+    val hereCounts: Map<Here, Int> = emptyMap(),
+    val genres: List<Pair<String, Int>> = emptyList(),
+    val publishedCounts: Map<String?, Int> = emptyMap(),
+    val lengthCounts: Map<Length, Int> = emptyMap(),
+    val tags: List<Pair<String, Int>> = emptyList(),
+)
+
 /** The Home hero: [resume] = the reader can open [GlassTitle.next]; else only "Volumes". */
 data class Hero(val title: GlassTitle, val resume: Boolean)
 
@@ -73,7 +112,60 @@ object GlassTitles {
     }
 
     fun filter(list: List<GlassTitle>, query: String, status: ListFilter, here: Here?): List<GlassTitle> =
-        list.filter { matchesQuery(it, query) && status.matches(it) && (here == null || here(it) == here) }
+        filter(list, query, TitleFilters(status = status, here = here))
+
+    fun filter(list: List<GlassTitle>, query: String, f: TitleFilters): List<GlassTitle> =
+        list.filter { matchesQuery(it, query) && matches(it, f) }
+
+    /** The tags chips offer and filters use: rank 60+, not a spoiler (title page / Discover rule). */
+    fun tagNames(t: GlassTitle): Set<String> =
+        t.entry.tags.filter { it.rank >= 60 && !it.spoiler }.mapTo(HashSet()) { it.name }
+
+    /** Browse's LENGTH ranges over AniList volumes (exclusive bounds); unknown volumes match no bucket. */
+    fun inLength(volumes: Int?, l: Length): Boolean =
+        volumes != null && volumes > 0 && (l.gt == null || volumes > l.gt) && (l.lt == null || volumes < l.lt)
+
+    /** [skip] = leave that group out (its own counts). */
+    fun matches(t: GlassTitle, f: TitleFilters, skip: Facet? = null): Boolean {
+        val e = t.entry
+        return (skip == Facet.STATUS || f.status.matches(t)) &&
+            (skip == Facet.HERE || f.here == null || here(t) == f.here) &&
+            (skip == Facet.GENRES || e.genres.containsAll(f.genres)) &&
+            (skip == Facet.PUBLISHED || f.published == null || e.mediaStatus == f.published) &&
+            (skip == Facet.LENGTH || f.length == null || inLength(e.volumes, f.length)) &&
+            (skip == Facet.TAGS || (f.tagsIn.isEmpty() && f.tagsOut.isEmpty()) ||
+                tagNames(t).let { n -> n.containsAll(f.tagsIn) && f.tagsOut.none { it in n } })
+    }
+
+    /**
+     * The Library page: [LibraryView.shown] = search + every group, sorted; each group's counts = search + every other
+     * group. Genre chips = the list's genres (Browse's order first, the rest A–Z); tag chips = selected ones, then the
+     * [topTags] most frequent of the rest.
+     */
+    fun view(all: List<GlassTitle>, query: String, f: TitleFilters, sort: GlassSort, topTags: Int = 12): LibraryView {
+        val searched = all.filter { matchesQuery(it, query) }
+        fun without(x: Facet) = searched.filter { matches(it, f, skip = x) }
+        val genreCounts = without(Facet.GENRES).flatMap { it.entry.genres }.groupingBy { it }.eachCount()
+        val genres = (all.flatMapTo(HashSet()) { it.entry.genres } + f.genres).sortedWith(
+            compareBy<String> { BrowseFilters.GENRES.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }.thenBy { it },
+        )
+        val tagCounts = without(Facet.TAGS).flatMap { tagNames(it) }.groupingBy { it }.eachCount()
+        val chosen = f.tagsIn + f.tagsOut
+        val top = tagCounts.entries.filter { it.key !in chosen }
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .take(topTags)
+        val byStatus = without(Facet.STATUS)
+        val byLength = without(Facet.LENGTH)
+        return LibraryView(
+            shown = sort(searched.filter { matches(it, f) }, sort),
+            statusCounts = ListFilter.entries.associateWith { s -> byStatus.count { s.matches(it) } },
+            hereCounts = without(Facet.HERE).groupingBy { here(it) }.eachCount(),
+            genres = genres.map { it to (genreCounts[it] ?: 0) },
+            publishedCounts = without(Facet.PUBLISHED).groupingBy { it.entry.mediaStatus }.eachCount(),
+            lengthCounts = Length.entries.associateWith { l -> byLength.count { inLength(it.entry.volumes, l) } },
+            tags = chosen.map { it to (tagCounts[it] ?: 0) } + top.map { it.key to it.value },
+        )
+    }
 
     fun sort(list: List<GlassTitle>, sort: GlassSort): List<GlassTitle> = when (sort) {
         GlassSort.LAST_READ -> list.sortedByDescending { it.lastTouched }

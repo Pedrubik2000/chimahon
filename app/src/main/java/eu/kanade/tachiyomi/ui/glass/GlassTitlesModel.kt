@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.ui.glass
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -60,9 +62,16 @@ class GlassTitlesModel(
 
     // Library page state
     var query by mutableStateOf("")
-    var status by mutableStateOf(ListFilter.ALL)
-    var here by mutableStateOf<Here?>(null)
+    var filters by mutableStateOf(TitleFilters())
     var sort by mutableStateOf(GlassSort.LAST_READ)
+
+    /** The Library grid and its chip counts, off the main thread; null until the first load. */
+    val library: StateFlow<LibraryView?> = combine(
+        titles.filterNotNull(),
+        snapshotFlow { Triple(query, filters, sort) },
+    ) { all, (q, f, s) -> GlassTitles.view(all, q, f, s) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(screenModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private suspend fun load(
         entries: List<AniListLibrary.Entry>,
