@@ -154,7 +154,7 @@ private fun RowLabel(text: String) {
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 2.sp,
         maxLines = 1,
-        modifier = Modifier.width(116.dp),
+        modifier = Modifier.width(150.dp),
     )
 }
 

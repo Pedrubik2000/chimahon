@@ -169,6 +169,7 @@ internal fun glossaryText(raw: String): String {
         .filter { it.isNotEmpty() }
         .joinToString("; ")
         .replace(Regex("\\s+"), " ")
+        .replace(Regex("^\\S*【[^】]*】\\s*"), "") // a dictionary's own headword line ("まちじかん[3]【待ち時間】")
 }
 
 /** Opens the normal lookup popup for [word] as a tap on it would (highlight + popup with the rating buttons). */
