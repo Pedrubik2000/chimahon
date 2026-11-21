@@ -31,6 +31,11 @@ import eu.kanade.tachiyomi.ui.glass.library.GlassLibraryPage
 import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 
+// The rail's page. Top level, not rememberSaveable (rotating the tablet sent the shell back to Home) and not a
+// field of the screen object (Voyager serializes screens).
+// ponytail: lost when Android kills the process; a preference if that ever matters
+private val glassPage = mutableStateOf("home")
+
 /** The new root on tablets (pref glassUi). Discover and Downloads are placeholders until phase 5. */
 object GlassHomeScreen : Screen() {
     private fun readResolve(): Any = GlassHomeScreen
@@ -39,7 +44,7 @@ object GlassHomeScreen : Screen() {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel { GlassTitlesModel() }
-        var page by rememberSaveable { mutableStateOf("home") }
+        var page by glassPage
         BackHandler(enabled = page != "home") { page = "home" }
 
         GlassPage {
