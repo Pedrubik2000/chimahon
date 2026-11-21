@@ -13,6 +13,7 @@ import eu.kanade.tachiyomi.source.online.all.Lanraragi
 import eu.kanade.tachiyomi.source.online.all.MangaDex
 import eu.kanade.tachiyomi.source.online.all.MergedSource
 import eu.kanade.tachiyomi.source.online.all.NHentai
+import eu.kanade.tachiyomi.source.online.all.Nyaa
 import eu.kanade.tachiyomi.source.online.all.Pururin
 import eu.kanade.tachiyomi.source.online.all.WpRaw
 import eu.kanade.tachiyomi.source.online.all.X3dl
@@ -121,6 +122,7 @@ class AndroidSourceManager(
                         Excnn().let { put(it.id, it) }
                         X3dl().let { put(it.id, it) }
                         WpRaw.all().forEach { put(it.id, it) }
+                        Nyaa().let { put(it.id, it) }
                     }
                     extensions.forEach { extension ->
                         extension.sources.mapNotNull { it.toInternalSource(/* KMK --> */isHentaiEnabled/* KMK <-- */) }.forEach {
