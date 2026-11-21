@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.reader.components.ChapterNavigator
+import eu.kanade.presentation.reader.glass.GlassReaderAppBars
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOcrSource
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
@@ -110,7 +111,36 @@ fun ReaderAppBars(
     onToggleOcr: (() -> Unit)? = null,
     onSelectOcrSource: (ReaderOcrSource) -> Unit = {},
     // Chimahon <--
+    // Chimahon glass (pref glassUi): the A3 controls instead; with it off nothing below changes.
+    glass: Boolean = false,
+    ocrProgress: String? = null,
+    pagePanel: (@Composable () -> Unit)? = null,
 ) {
+    if (glass) {
+        GlassReaderAppBars(
+            visible = visible, mangaTitle = mangaTitle, chapterTitle = chapterTitle, navigateUp = navigateUp,
+            onClickTopAppBar = onClickTopAppBar, bookmarked = bookmarked, onToggleBookmarked = onToggleBookmarked,
+            onOpenInWebView = onOpenInWebView, onOpenInBrowser = onOpenInBrowser, onShare = onShare,
+            viewer = viewer, onNextChapter = onNextChapter, enabledNext = enabledNext,
+            onPreviousChapter = onPreviousChapter, enabledPrevious = enabledPrevious, currentPage = currentPage,
+            totalPages = totalPages, onPageIndexChange = onPageIndexChange, readingMode = readingMode,
+            onClickReadingMode = onClickReadingMode, orientation = orientation, onClickOrientation = onClickOrientation,
+            cropEnabled = cropEnabled, onClickCropBorder = onClickCropBorder, onClickSettings = onClickSettings,
+            onClickMangaStats = onClickMangaStats, isExhToolsVisible = isExhToolsVisible,
+            onSetExhUtilsVisibility = onSetExhUtilsVisibility, isAutoScroll = isAutoScroll,
+            isAutoScrollEnabled = isAutoScrollEnabled, onToggleAutoscroll = onToggleAutoscroll,
+            autoScrollFrequency = autoScrollFrequency, onSetAutoScrollFrequency = onSetAutoScrollFrequency,
+            onClickAutoScrollHelp = onClickAutoScrollHelp, onClickRetryAll = onClickRetryAll,
+            onClickRetryAllHelp = onClickRetryAllHelp, onClickBoostPage = onClickBoostPage,
+            onClickBoostPageHelp = onClickBoostPageHelp, navBarType = navBarType, currentPageText = currentPageText,
+            currentReadingMode = currentReadingMode, dualPageSplitEnabled = dualPageSplitEnabled,
+            doublePages = doublePages, onClickChapterList = onClickChapterList, onClickPageLayout = onClickPageLayout,
+            onClickShiftPage = onClickShiftPage, ocrEnabled = ocrEnabled, ocrLoading = ocrLoading,
+            ocrSource = ocrSource, mokuroAvailable = mokuroAvailable, onToggleOcr = onToggleOcr,
+            onSelectOcrSource = onSelectOcrSource, ocrProgress = ocrProgress, pagePanel = pagePanel,
+        )
+        return
+    }
     val isRtl = viewer is R2LPagerViewer
     val backgroundColor = MaterialTheme.colorScheme
         .surfaceColorAtElevation(3.dp)

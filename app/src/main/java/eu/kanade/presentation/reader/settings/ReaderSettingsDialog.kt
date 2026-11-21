@@ -25,6 +25,7 @@ fun ReaderSettingsDialog(
     onShowMenus: () -> Unit,
     onHideMenus: () -> Unit,
     screenModel: ReaderSettingsScreenModel,
+    modifier: Modifier = Modifier,
 ) {
     val tabTitles = persistentListOf(
         stringResource(MR.strings.pref_category_reading_mode),
@@ -35,7 +36,7 @@ fun ReaderSettingsDialog(
 
     BoxWithConstraints {
         TabbedDialog(
-            modifier = Modifier.heightIn(max = maxHeight * 0.75f),
+            modifier = Modifier.heightIn(max = maxHeight * 0.75f).then(modifier),
             onDismissRequest = {
                 onDismissRequest()
                 onShowMenus()

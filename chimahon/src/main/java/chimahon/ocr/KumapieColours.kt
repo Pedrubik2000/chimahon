@@ -222,6 +222,19 @@ object KumapieColours {
     private fun authority(context: Context): String? =
         PACKAGES.firstOrNull { context.packageManager.resolveContentProvider("$it.words", 0) != null }?.let { "$it.words" }
 
+    /**
+     * kumapie's words in [text] as its colours rows (start, length, status u/d/b), for the reader's page-words list;
+     * null when kumapie can't answer. Blocking: call it off the UI thread.
+     */
+    fun words(context: Context, text: String): List<Triple<Int, Int, String>>? = runCatching<List<Triple<Int, Int, String>>?> {
+        val authority = authority(context) ?: return@runCatching null
+        buildList<Triple<Int, Int, String>> {
+            context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
+                while (c.moveToNext()) add(Triple(c.getInt(0), c.getInt(1), c.getString(2)))
+            }
+        }
+    }.onFailure { Log.w("KumapieColours", "kumapie words: $it") }.getOrNull()
+
     private fun ask(context: Context, text: String): IntArray? {
         val authority = authority(context) ?: return null
         val out = IntArray(text.length)

@@ -103,6 +103,11 @@ import eu.kanade.presentation.reader.ReaderPageIndicator
 import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
+import eu.kanade.presentation.reader.glass.GlassPageIndicator
+import eu.kanade.presentation.reader.glass.GlassPageWords
+import eu.kanade.presentation.reader.glass.GlassReaderTheme
+import eu.kanade.presentation.reader.glass.GlassSheetBorder
+import eu.kanade.presentation.reader.glass.openLookup
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.reader.stats.MangaStatsSheet
 import eu.kanade.presentation.theme.TachiyomiTheme
@@ -487,6 +492,7 @@ class ReaderActivity : BaseActivity() {
     }
 
     private fun ReaderActivityBinding.setComposeOverlay(): Unit = composeOverlay.setComposeContent {
+        val glassUi by remember { Injekt.get<UiPreferences>().glassUi() }.collectAsState()
         // KMK -->
         TachiyomiTheme(
             seedColor = seedColorState().takeIf { themeCoverBased },
@@ -507,7 +513,16 @@ class ReaderActivity : BaseActivity() {
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                if (!state.menuVisible && showPageNumber) {
+                if (!state.menuVisible && showPageNumber && glassUi) {
+                    GlassPageIndicator(
+                        currentPage = state.currentPageText,
+                        totalPages = state.totalPages,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 8.dp),
+                    )
+                } else if (!state.menuVisible && showPageNumber) {
                     ReaderPageIndicator(
                         // SY -->
                         currentPage = state.currentPageText,
@@ -524,7 +539,7 @@ class ReaderActivity : BaseActivity() {
                 AppBars(state = state)
 
                 OcrProgressHud(
-                    visible = state.menuVisible,
+                    visible = state.menuVisible && !glassUi, // glass: the badge is in the A3 header
                     progress = state.ocrScanProgress,
                 )
 
@@ -584,12 +599,15 @@ class ReaderActivity : BaseActivity() {
                 }
 
                 is ReaderViewModel.Dialog.Settings -> {
-                    ReaderSettingsDialog(
-                        onDismissRequest = onDismissRequest,
-                        onShowMenus = { setMenuVisibility(true) },
-                        onHideMenus = { setMenuVisibility(false) },
-                        screenModel = settingsScreenModel,
-                    )
+                    GlassReaderTheme(glassUi) {
+                        ReaderSettingsDialog(
+                            onDismissRequest = onDismissRequest,
+                            onShowMenus = { setMenuVisibility(true) },
+                            onHideMenus = { setMenuVisibility(false) },
+                            screenModel = settingsScreenModel,
+                            modifier = if (glassUi) GlassSheetBorder else Modifier,
+                        )
+                    }
                 }
 
                 is ReaderViewModel.Dialog.ReadingModeSelect -> {
@@ -824,6 +842,7 @@ class ReaderActivity : BaseActivity() {
                     }
                 },
                 titleId = viewModel.state.value.manga?.id?.toString(),
+                glass = glassUi,
             )
         }
 
@@ -1461,6 +1480,7 @@ class ReaderActivity : BaseActivity() {
         // Chimahon: OCR overlay preference
         val ocrOverlayEnabled by readerPreferences.ocrOverlayEnabled().collectAsState()
         val ocrEnabled = ocrOverlayEnabled && viewModel.isOcrAllowedForCurrentManga()
+        val glassUi by remember { Injekt.get<UiPreferences>().glassUi() }.collectAsState()
 
         ReaderAppBars(
             visible = state.menuVisible,
@@ -1543,6 +1563,30 @@ class ReaderActivity : BaseActivity() {
             },
             onClickShiftPage = ::shiftDoublePages,
             // SY <--
+            glass = glassUi,
+            ocrProgress = state.ocrScanProgress?.let { "OCR ${it.completedPages}/${it.totalPages}" },
+            pagePanel = if (glassUi) {
+                {
+                    GlassPageWords(
+                        viewer = state.viewer,
+                        pageKey = state.currentPage to state.ocrScanProgress?.completedPages,
+                        repository = dictionaryRepository,
+                        lookupPaths = ::getOrRefreshLookupPaths,
+                        mediaInfo = state.manga?.let { m ->
+                            state.currentChapter?.let { chimahon.MediaInfo(m.title, it.chapter.name) }
+                        },
+                        titleId = state.manga?.id?.toString(),
+                        screenshot = { viewModel.getCurrentPageBitmap() },
+                        onReview = {
+                            setMenuVisibility(false)
+                            it.openLookup()
+                        },
+                        onRunOcr = ::toggleOcrFromReader.takeIf { !ocrEnabled },
+                    )
+                }
+            } else {
+                null
+            },
         )
     }
 

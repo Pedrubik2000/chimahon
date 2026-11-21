@@ -158,6 +158,8 @@ fun OcrLookupPopup(
     isRecursiveChild: Boolean = false,
     modifier: Modifier = Modifier,
     titleId: String? = null,
+    // Chimahon glass (pref glassUi): always beside the word, on the side with more room; glass frame.
+    glass: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -719,14 +721,14 @@ fun OcrLookupPopup(
     val layoutResult = remember(
         anchorX, anchorY, anchorWidth, anchorHeight,
         screenWidthPx, screenHeightPx, popupWidthPx, popupHeightPx, isVertical, popupModePref,
-        isRecursiveChild,
+        isRecursiveChild, glass,
     ) {
         val w: Float
         val h: Float
         val bestX: Float
         val bestY: Float
 
-        when (if (isRecursiveChild) "floating" else popupModePref) {
+        when (if (isRecursiveChild || glass) "floating" else popupModePref) {
             "full_width" -> {
                 w = screenWidthPx
                 h = minOf(popupHeightPx, screenHeightPx)
@@ -775,6 +777,10 @@ fun OcrLookupPopup(
                 // Priority order: 0=Right, 1=Left, 2=Below, 3=Above
                 val order = if (isRecursiveChild) {
                     if (acy < screenHeightPx / 2f) listOf(2, 3, 0, 1) else listOf(3, 2, 0, 1)
+                } else if (glass && isVertical) {
+                    if (screenWidthPx - (ax + expW) >= ax) listOf(0, 1, 2, 3) else listOf(1, 0, 2, 3)
+                } else if (glass) {
+                    if (screenHeightPx - (ay + expH) >= ay) listOf(2, 3, 0, 1) else listOf(3, 2, 0, 1)
                 } else if (isVertical) {
                     if (acx < screenWidthPx / 2f) listOf(0, 1, 2, 3) else listOf(1, 0, 2, 3)
                 } else {
@@ -1183,10 +1189,11 @@ fun OcrLookupPopup(
                 ) {
                     // Consume taps on the popup itself to prevent them from falling through to the reader
                 },
-            shape = RoundedCornerShape(if (eInkMode) 0.dp else 8.dp),
-            color = bgColor,
+            shape = RoundedCornerShape(if (glass) 16.dp else if (eInkMode) 0.dp else 8.dp),
+            color = if (glass) eu.kanade.presentation.glass.Glass.panel else bgColor,
             tonalElevation = 0.dp,
             shadowElevation = if (eInkMode) 0.dp else 6.dp,
+            border = if (glass) androidx.compose.foundation.BorderStroke(1.dp, eu.kanade.presentation.glass.Glass.line) else null,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 RecursiveLookupChrome()
@@ -1356,6 +1363,7 @@ fun OcrLookupPopup(
             initialEntryJsons = request.entryJsons,
             isRecursiveChild = true,
             titleId = titleId,
+            glass = glass,
         )
     }
 }
