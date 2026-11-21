@@ -10,6 +10,7 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.Coverage
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.database.models.Track
+import eu.kanade.tachiyomi.data.download.LocalSeriesSync
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.track.TrackerManager
@@ -44,6 +45,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
+import tachiyomi.domain.manga.interactor.GetFavorites
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.manga.model.Manga
 import tachiyomi.domain.track.interactor.InsertTrack
@@ -69,6 +71,7 @@ class GlassTitleScreenModel(
     private val trackRepository: TrackRepository = Injekt.get(),
     private val chapterRepository: ChapterRepository = Injekt.get(),
     private val getManga: GetManga = Injekt.get(),
+    private val getFavorites: GetFavorites = Injekt.get(),
     private val setReadStatus: SetReadStatus = Injekt.get(),
     private val insertTrack: InsertTrack = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
@@ -76,8 +79,8 @@ class GlassTitleScreenModel(
     val downloadPreferences: DownloadPreferences = Injekt.get(),
 ) : ScreenModel {
 
-    /** The local-source series of this title, its AniList track row and its volumes. */
-    data class Local(val manga: Manga, val track: DomainTrack, val chapters: List<Chapter>, val volumes: List<LocalVolume>)
+    /** The local-source series of this title, its AniList track row (null: matched by name, logged out) and its volumes. */
+    data class Local(val manga: Manga, val track: DomainTrack?, val chapters: List<Chapter>, val volumes: List<LocalVolume>)
 
     /** An edit shown before AniList answers; dropped on failure (the control reverts). */
     private val pending = MutableStateFlow<AniListLibrary.Entry?>(null)
@@ -93,13 +96,17 @@ class GlassTitleScreenModel(
     /** On Pedro's AniList list (the cache), not only visited from Discover. */
     val onList: Boolean get() = library.entries.value.any { it.mediaId == mediaId }
 
-    private val localFlow = trackRepository.getTracksAsFlow()
-        .map { tracks -> tracks.filter { it.trackerId == TrackerManager.ANILIST && it.remoteId == mediaId } }
+    /** The fallback link ([resolveLocal]) is written once per open. */
+    private var linkTried = false
+
+    private val localFlow = combine(
+        trackRepository.getTracksAsFlow()
+            .map { tracks -> tracks.filter { it.trackerId == TrackerManager.ANILIST } }
+            .distinctUntilChanged(),
+        entry.distinctUntilChangedBy { it?.titles },
+    ) { tracks, e -> tracks to e }
+        .map { (tracks, e) -> resolveLocal(tracks, e) }
         .distinctUntilChanged()
-        .map { tracks ->
-            // ponytail: the first local series bound to the media; several local copies of one title are not merged
-            tracks.firstNotNullOfOrNull { t -> getManga.await(t.mangaId)?.takeIf { it.source == LocalSource.ID }?.let { it to t } }
-        }
         .flatMapLatest { pair ->
             if (pair == null) {
                 flowOf<Local?>(null)
@@ -155,6 +162,10 @@ class GlassTitleScreenModel(
                     .mapKeys { it.key.toInt() }
             }
         }
+        // chapter rows = the folder, once per open (a fetch that landed while the page was closed, files copied in)
+        screenModelScope.launch(Dispatchers.IO) {
+            LocalSeriesSync.sync(local.filterNotNull().first().manga.id)
+        }
         // again only when the set of volume files changes, not when one is read
         screenModelScope.launch {
             local.filterNotNull()
@@ -169,6 +180,34 @@ class GlassTitleScreenModel(
                     LocalVolumeCovers.load(mangaId, chapters) { n, file -> _localCovers.update { it + (n to file) } }
                 }
         }
+    }
+
+    /**
+     * The local series of this title: the one with its AniList track (several: the one with most volumes); else a
+     * local library series with no AniList track whose title or folder matches the entry's names
+     * ([AniListLibrary.match]), linked to it when logged in so the next open (and the library) finds it by track.
+     */
+    private suspend fun resolveLocal(aniListTracks: List<DomainTrack>, e: AniListLibrary.Entry?): Pair<Manga, DomainTrack?>? {
+        val linked = aniListTracks.filter { it.remoteId == mediaId }
+            .mapNotNull { t -> getManga.await(t.mangaId)?.takeIf { it.source == LocalSource.ID }?.let { it to t } }
+        if (linked.size > 1) {
+            return linked.map { it to chapterRepository.getChapterByMangaId(it.first.id).size }.maxBy { it.second }.first
+        }
+        linked.firstOrNull()?.let { return it }
+        if (e == null) return null
+        val tracked = aniListTracks.mapTo(mutableSetOf()) { it.mangaId }
+        val manga = getFavorites.await()
+            .filter { it.source == LocalSource.ID && it.id !in tracked }
+            .firstOrNull { m -> AniListLibrary.match(listOf(m.title, m.url), listOf(e)) != null }
+            ?: return null
+        if (!linkTried) {
+            linkTried = true
+            screenModelScope.launch(Dispatchers.IO) {
+                runCatching { library.link(manga.id, mediaId, e.romaji ?: e.titles.first(), (e.chapters ?: 0).toLong()) }
+                    .onFailure { logcat(LogPriority.WARN, it) { "AniList link failed: ${manga.id} -> $mediaId" } }
+            }
+        }
+        return manga to null
     }
 
     /**

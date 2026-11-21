@@ -14,6 +14,7 @@ import androidx.work.workDataOf
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
@@ -40,9 +41,11 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.storage.service.StorageManager
+import tachiyomi.domain.track.repository.TrackRepository
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -63,6 +66,32 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** "<source id>|<reason>" per dead link tried, for the output data. */
     private val failures = mutableListOf<String>()
     private var servedBy = NO_SOURCE
+
+    // chimahon --> the series folder as this job found it (see doWork)
+    /** The series folder's name: the title [MangaImportUtil.volumeNumber] removes, as the local source does. */
+    private var seriesTitle = ""
+
+    /** New volume names: "第NN巻" (true) or "Vol. NN", the folder's majority style. */
+    private var japanese = true
+
+    /** Volume numbers the folder held before this job (empty on a rerun). */
+    private val present = mutableSetOf<Int>()
+
+    /** Volume number -> the chapter name this job wrote it under. */
+    private val written = mutableMapOf<Int, String>()
+
+    /** Numbered volumes met so far (stored or skipped): did a pack hold any ([unpack]'s junk rule). */
+    private var numberedSeen = 0
+
+    /** Volumes not stored because they were already here, for the output note. */
+    private val skipped = sortedSetOf<Int>()
+
+    /** (folder, "<name>.part") of every download this job starts: deleted when it fails or is cancelled. */
+    private val partFiles = mutableListOf<Pair<UniFile, String>>()
+
+    /** Started again by WorkManager after a killed run. */
+    private val isRerun get() = runAttemptCount > 0
+    // chimahon <--
 
     override suspend fun getForegroundInfo() = foreground("Real-Debrid")
 
@@ -85,10 +114,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         setProgressAsync(workDataOf(KEY_STEP to step, KEY_BYTES to bytes, KEY_TOTAL to total, KEY_SPEED to speed))
     }
 
-    private fun output(error: String? = null) = workDataOf(
+    private fun output(error: String? = null, note: String? = null) = workDataOf(
         KEY_SERVED_BY to servedBy,
         KEY_FAILURES to failures.toTypedArray(),
         KEY_ERROR to error,
+        KEY_NOTE to note,
     )
 
     private fun done(text: String) = applicationContext.notify(
@@ -122,23 +152,63 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 return Result.success()
             }
             progress(STEP_WAITING)
-            status("Adding link")
-            val (name, files) = resolve(link)
             val localDir = Injekt.get<StorageManager>().getLocalSourceDirectory()
                 ?: error("No local source folder (Settings > Data and storage)")
+            val mediaId = inputData.getLong(KEY_MEDIA_ID, 0)
+            // chimahon --> a title page job (AniList media id): its folder before anything is downloaded
+            val hint = inputData.getString(KEY_NAME)
+            var media: JSONObject? = null
+            var titleDir: UniFile? = null
+            if (mediaId > 0) {
+                status("AniList: ${hint ?: mediaId}")
+                media = runCatching { aniList(hint.orEmpty(), mediaId) }
+                    .onFailure { logcat(LogPriority.WARN, it) { "AniList lookup failed: $mediaId" } }.getOrNull()
+                titleDir = titleFolder(localDir, mediaId, titleNames(media, mediaId) + listOfNotNull(hint))
+                val wanted = inputData.getIntArray(KEY_VOLUMES)?.toList().orEmpty()
+                // never store a volume twice: every volume this link holds is in the folder already
+                if (titleDir != null && wanted.isNotEmpty() && !isRerun &&
+                    volumesIn(titleDir).containsAll(wanted)
+                ) {
+                    titleDir.name?.let { syncSeries(it) }
+                    done("${titleDir.name}: already on the tablet")
+                    return Result.success(output(note = NOTE_ALREADY_HERE))
+                }
+            }
+            // chimahon <--
+            status("Adding link")
+            val (name, files) = resolve(link)
             // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
             // named after AniList's romaji title when AniList knows it
-            val guess = MangaImportUtil.seriesTitle(inputData.getString(KEY_NAME) ?: name)
-            status("AniList: $guess")
-            val media = runCatching { aniList(guess, inputData.getLong(KEY_MEDIA_ID, 0)) }
-                .onFailure { logcat(LogPriority.WARN, it) { "AniList lookup failed: $guess" } }.getOrNull()
-            val title = MangaImportUtil.getSafeFolderName(media?.getJSONObject("title")?.str("romaji") ?: guess)
-            val keys = setOf(MangaImportUtil.seriesKey(title), MangaImportUtil.seriesKey(guess))
-            val existing = localDir.listFiles()?.firstOrNull {
-                it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) in keys
+            val guess = MangaImportUtil.seriesTitle(hint ?: name)
+            val mangaDir: UniFile
+            val title: String
+            if (mediaId > 0) {
+                // chimahon: linked series' folder > a folder named like any of the title's names > a new one (romaji)
+                title = MangaImportUtil.getSafeFolderName(
+                    media?.getJSONObject("title")?.str("romaji") ?: Injekt.get<AniListLibrary>().get(mediaId)?.romaji ?: guess,
+                )
+                mangaDir = titleDir
+                    ?: titleFolder(localDir, mediaId, titleNames(media, mediaId) + listOfNotNull(hint, guess, title))
+                    ?: localDir.createDirectory(title) ?: error("Can't create $title")
+            } else {
+                status("AniList: $guess")
+                media = runCatching { aniList(guess) }
+                    .onFailure { logcat(LogPriority.WARN, it) { "AniList lookup failed: $guess" } }.getOrNull()
+                title = MangaImportUtil.getSafeFolderName(media?.getJSONObject("title")?.str("romaji") ?: guess)
+                val keys = setOf(MangaImportUtil.seriesKey(title), MangaImportUtil.seriesKey(guess))
+                val existing = localDir.listFiles()?.firstOrNull {
+                    it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) in keys
+                }
+                mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
             }
-            val mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
             val folder = mangaDir.name ?: title
+            // chimahon --> what the folder holds before this job: volumes already here are skipped, new names follow
+            // the folder's style. A rerun (killed run) skips nothing: what it finds may be its own half-written volume.
+            seriesTitle = folder
+            val names = chapterNames(mangaDir)
+            japanese = MangaImportUtil.japaneseStyle(names)
+            if (!isRerun) present += MangaImportUtil.volumeNumbers(folder, names)
+            // chimahon <--
             files.forEachIndexed { i, (path, url) ->
                 checkCancelled()
                 val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
@@ -146,6 +216,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 progress(STEP_DOWNLOADING)
                 val (dir, fileName) = target(mangaDir, path, title) ?: return@forEachIndexed
                 val bundle = fileName.substringAfterLast('.').lowercase() in BUNDLES
+                partFiles += dir to "$fileName.part"
                 val file = download(url, dir, fileName, report = true)
                     // a bundle still there: a run killed while unpacking it (unpacking deletes it when done)
                     ?: dir.findFile(fileName)?.takeIf { bundle }
@@ -164,15 +235,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             found?.let { runCatching { writeMetadata(mangaDir, it) } }
             ImportHandler.addMangaToLibrary(folder)
             found?.let { bindAniList(folder, it) }
-            done("Added $folder (${files.size} files)")
-            Result.success(output())
+            syncSeries(folder) // chimahon: the title page shows the new volumes without a classic refresh
+            // chimahon: volumes skipped because they were already here are named in the notification
+            val note = if (skipped.isEmpty()) null else "$NOTE_ALREADY_HERE: vol. ${skipped.joinToString()}"
+            done("Added $folder (${files.size} files)" + note?.let { "; $it" }.orEmpty())
+            Result.success(output(note = note))
         } catch (e: CancelledException) {
             logcat(LogPriority.INFO) { "Real-Debrid import cancelled: ${inputData.getString(KEY_NAME) ?: id}" }
+            deleteParts() // chimahon
             Result.success(output(RealDebridQueue.CANCELLED))
         } catch (e: CancellationException) {
             throw e // WorkManager stopped the worker ("Cancel all", system): no failed notification
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
+            deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one
             done("Failed: ${e.message}")
             Result.success(output(e.message ?: e.javaClass.simpleName))
         }
@@ -275,18 +351,90 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         return when {
             isVolume -> {
                 originals += name
-                mangaDir to "${MangaImportUtil.volumeName(name)}.$ext"
+                val volume = MangaImportUtil.restyle(MangaImportUtil.volumeName(name), japanese)
+                if (alreadyHere(volume)) null else mangaDir to "$volume.$ext"
             }
             ext in BUNDLES -> mangaDir to name
             ext in IMAGES -> {
                 val original = parts.getOrNull(parts.size - 2) ?: defaultChapter
                 if (originals.lastOrNull() != original) originals += original
-                val chapter = MangaImportUtil.getSafeFolderName(MangaImportUtil.volumeName(original))
+                val chapter = MangaImportUtil.getSafeFolderName(
+                    MangaImportUtil.restyle(MangaImportUtil.volumeName(original), japanese),
+                )
+                if (alreadyHere(chapter)) return null // before createDirectory: no empty chapter folder
                 (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
             }
             else -> null
         }
     }
+
+    // chimahon --> never store a volume twice
+    /**
+     * True when [chapter] (a volume file name without extension, or a chapter folder name) is a volume the folder
+     * held before this job, or one this job already wrote under another name ("第04巻" then "第04巻 w" in one pack).
+     */
+    private fun alreadyHere(chapter: String): Boolean {
+        val n = MangaImportUtil.volumeNumber(seriesTitle, chapter) ?: return false
+        numberedSeen++
+        val skip = n in present || written[n].let { it != null && it != chapter }
+        if (skip) {
+            logcat(LogPriority.INFO) { "Real-Debrid: vol. $n already in $seriesTitle, $chapter skipped" }
+            skipped += n
+        } else {
+            written[n] = chapter
+        }
+        return skip
+    }
+
+    /** Names of what the local source reads as chapters in [dir]: folders and archives, no .part or cover. */
+    private fun chapterNames(dir: UniFile): List<String> = dir.listFiles().orEmpty()
+        .filter { f ->
+            val n = f.name.orEmpty()
+            !n.startsWith('.') && (f.isDirectory || n.substringAfterLast('.').lowercase() in CHAPTERS + BUNDLES)
+        }
+        .mapNotNull { it.name }
+
+    private fun volumesIn(dir: UniFile) = MangaImportUtil.volumeNumbers(dir.name.orEmpty(), chapterNames(dir))
+
+    /** native, romaji, english of [media] (this job's AniList answer) and of the cached list entry. */
+    private fun titleNames(media: JSONObject?, mediaId: Long): List<String> {
+        val t = media?.optJSONObject("title")
+        return listOfNotNull(t?.str("native"), t?.str("romaji"), t?.str("english")) +
+            Injekt.get<AniListLibrary>().get(mediaId)?.titles.orEmpty()
+    }
+
+    /**
+     * The folder of AniList title [mediaId]: the one of a local series with its AniList track (the one with most
+     * chapters first), else an existing folder named like one of [names]; null = none yet.
+     */
+    private suspend fun titleFolder(localDir: UniFile, mediaId: Long, names: List<String>): UniFile? {
+        val folders = localDir.listFiles().orEmpty().filter { it.isDirectory }
+        val linked = runCatching {
+            val getManga = Injekt.get<GetManga>()
+            val chapters = Injekt.get<ChapterRepository>()
+            Injekt.get<TrackRepository>().getTracks()
+                .filter { it.trackerId == TrackerManager.ANILIST && it.remoteId == mediaId }
+                .mapNotNull { t -> getManga.await(t.mangaId)?.takeIf { it.source == LocalSource.ID } }
+                .map { it.url to chapters.getChapterByMangaId(it.id).size }
+                .sortedByDescending { it.second }
+                .map { it.first }
+        }.onFailure { logcat(LogPriority.WARN, it) { "Linked series lookup failed: $mediaId" } }.getOrDefault(emptyList())
+        val name = MangaImportUtil.chooseFolder(linked, folders.mapNotNull { it.name }, names) ?: return null
+        return folders.firstOrNull { it.name == name }
+    }
+
+    /** Chapter rows of the local series in [folder] = its files (the new screens read rows, not the folder). */
+    private suspend fun syncSeries(folder: String) {
+        runCatching { Injekt.get<GetManga>().await(folder, LocalSource.ID) }
+            .onFailure { logcat(LogPriority.WARN, it) { "Local series lookup failed: $folder" } }
+            .getOrNull()?.let { LocalSeriesSync.sync(it.id) }
+    }
+
+    /** A failed or cancelled job's own .part files (also one a killed earlier run left under the same name). */
+    private fun deleteParts() {
+        partFiles.forEach { (dir, name) -> runCatching { dir.findFile(name)?.delete() } }
+    }
+    // chimahon <--
 
     /** The new file, or null when it's already there from an earlier run. [report]: bytes go to the job's progress. */
     private fun download(url: String, dir: UniFile, name: String, report: Boolean = false): UniFile? {
@@ -333,19 +481,36 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     // ponytail: multi-part RARs (.part1.rar...) aren't joined; libarchive reads one file
     private fun unpack(bundle: UniFile, mangaDir: UniFile) {
         val stem = bundle.name.orEmpty().substringBeforeLast('.')
+        val seenBefore = numberedSeen // chimahon: numbered volumes in this pack = seen since here (kept or skipped)
+        val unnumbered = mutableListOf<String>() // chimahon: volume files without one this unpack wrote
         bundle.archiveReader(applicationContext).use { reader ->
             ArchiveInputStream(reader.address, reader.size, reader.encrypted).use { stream ->
                 generateSequence { stream.getNextEntry() }.filter { it.isFile }.forEach { entry ->
+                    // target skips volumes already in the folder (chimahon)
                     val (dir, name) = target(mangaDir, entry.name, stem, inBundle = true) ?: return@forEach
+                    val volumeFile = dir === mangaDir
+                    val hasNumber = MangaImportUtil.volumeNumber(seriesTitle, name) != null
                     if (dir.findFile(name) != null) return@forEach
                     // via .part: a run killed mid-entry must not leave a half volume that looks done
                     dir.findFile("$name.part")?.delete()
+                    partFiles += dir to "$name.part"
                     val file = dir.createFile("$name.part") ?: error("Can't create $name")
                     file.openOutputStream().use { stream.copyTo(it) }
                     if (!file.renameTo(name)) error("Can't rename $name")
+                    if (volumeFile && !hasNumber) unnumbered += name
                 }
             }
         }
+        // chimahon --> a small archive with no volume number next to numbered volumes is no volume (a group's ad)
+        val numbered = numberedSeen > seenBefore
+        unnumbered.forEach { name ->
+            val file = mangaDir.findFile(name) ?: return@forEach
+            if (MangaImportUtil.isJunk(hasNumber = false, packHasNumbered = numbered, bytes = file.length())) {
+                logcat(LogPriority.INFO) { "Real-Debrid: $name (${file.length()} B) is no volume, not kept" }
+                file.delete()
+            }
+        }
+        // chimahon <--
         bundle.delete()
     }
 
@@ -464,6 +629,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         const val KEY_SERVED_BY = "served_by"
         const val KEY_FAILURES = "failures"
         const val KEY_ERROR = "error"
+
+        /** chimahon: done, but some or all of the link's volumes were not stored again ([NOTE_ALREADY_HERE]). */
+        const val KEY_NOTE = "note"
+        const val NOTE_ALREADY_HERE = "already on the tablet"
 
         /** RD error bodies that mean "this link, not the account": file gone, hoster unsupported / down / not free. */
         private fun isDeadLink(body: String): Boolean {

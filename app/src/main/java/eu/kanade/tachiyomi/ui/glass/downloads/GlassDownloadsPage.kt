@@ -186,6 +186,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                     // not cancelWorkById: that also cancels every job queued behind this one
                     onCancel = { row -> queue.cancel(row.workId) },
                     onTryAgain = { tryAgain(g) },
+                    onOpen = { t -> openTitle(navigator, t) },
                 )
             }
             if (ocrQueue.isNotEmpty()) {
@@ -250,6 +251,7 @@ private fun TitleCard(
     onToggle: () -> Unit,
     onCancel: (RealDebridQueue.Row) -> Unit,
     onTryAgain: () -> Unit,
+    onOpen: (GlassTitle) -> Unit,
 ) {
     val shape = RoundedCornerShape(if (expanded) Glass.r16 else Glass.r12)
     val failed = group.failed
@@ -275,7 +277,9 @@ private fun TitleCard(
                 model = title?.entry?.cover,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(coverW, coverW * 1.5f).clip(RoundedCornerShape(Glass.r8)).background(Glass.page),
+                modifier = Modifier.size(coverW, coverW * 1.5f).clip(RoundedCornerShape(Glass.r8)).background(Glass.page)
+                    // the cover opens the title page; the chevron keeps expand/collapse
+                    .then(if (title != null && group.mediaId != null) Modifier.clickable { onOpen(title) } else Modifier),
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
