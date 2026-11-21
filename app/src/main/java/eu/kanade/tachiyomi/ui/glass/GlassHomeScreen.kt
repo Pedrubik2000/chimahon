@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.GlassRail
 import eu.kanade.presentation.glass.GlassRailItems
 import eu.kanade.presentation.glass.Pill
@@ -40,12 +41,7 @@ object GlassHomeScreen : Screen() {
         var page by rememberSaveable { mutableStateOf("home") }
         BackHandler(enabled = page != "home") { page = "home" }
 
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Glass.page)
-                .windowInsetsPadding(WindowInsets.systemBars),
-        ) {
+        GlassPage {
             GlassRail(
                 active = page,
                 onSelect = { if (it == "settings") navigator.push(SettingsScreen()) else page = it },

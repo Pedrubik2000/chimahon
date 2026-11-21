@@ -6,6 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -22,8 +26,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -89,6 +98,23 @@ val GlassRailItems = listOf(
 )
 
 /** The bear + five round buttons; [active] is one of the [GlassRailItems] ids (or "none"). */
+/** Root of every glass screen: the page colour behind the system bars, white sans-serif text whatever the app theme's font is. */
+@Composable
+fun GlassPage(content: @Composable BoxScope.() -> Unit) {
+    CompositionLocalProvider(
+        LocalContentColor provides Color.White,
+        LocalTextStyle provides TextStyle(fontFamily = FontFamily.SansSerif, color = Color.White),
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Glass.page)
+                .windowInsetsPadding(WindowInsets.systemBars),
+            content = content,
+        )
+    }
+}
+
 @Composable
 fun GlassRail(
     active: String,

@@ -37,6 +37,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.CoverCard
 import eu.kanade.presentation.glass.CoverageBar
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassIconNames
@@ -58,12 +59,7 @@ class GlassKitScreen : Screen() {
         var toggle by remember { mutableStateOf(true) }
         var source by remember { mutableStateOf(0) }
 
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Glass.page)
-                .windowInsetsPadding(WindowInsets.systemBars),
-        ) {
+        GlassPage {
             GlassRail(active = rail, onSelect = { rail = it }, modifier = Modifier.padding(start = 20.dp, top = 24.dp))
             Column(
                 Modifier
