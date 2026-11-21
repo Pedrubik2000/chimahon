@@ -11,12 +11,12 @@ class WpRawParserTest {
         """^https?://(?:www\.)?(rapidgator\.net|rg\.to|katfile\.[a-z]+|ex-load\.com|uploady\.io|ddownload\.com|ddl\.to)/""",
     )
 
-    // fixture number -> site; a-zmanga's saved post is its request board (no volumes): 0 allowed there
+    // fixture number -> site, least volumes its post fixture must give
     private val sites = listOf(
         Triple(11, WpRaw.MANGA_ZONE, 1),
         Triple(16, WpRaw.BSZIP, 1),
         Triple(9, WpRaw.RAWXT, 1),
-        Triple(3, WpRaw.A_ZMANGA, 0),
+        Triple(3, WpRaw.A_ZMANGA, 1),
     )
 
     @Test
