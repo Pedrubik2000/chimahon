@@ -83,7 +83,10 @@ import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import tachiyomi.core.common.i18n.stringResource
+import eu.kanade.domain.ui.UiPreferences
 import tachiyomi.i18n.MR
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import java.io.File
@@ -109,6 +112,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val message by model.message.collectAsStateWithLifecycle()
         val fillGapsPref = remember { model.downloadPreferences.realDebridFillGaps() }
         val fillGaps by fillGapsPref.collectAsState()
+        val hideUnreadPref = remember { Injekt.get<UiPreferences>().glassHideUnreadCovers() }
+        val hideUnread by hideUnreadPref.collectAsState()
 
         val volumes = local?.volumes.orEmpty()
         val here = volumes.map { it.number }.toSet()
@@ -155,6 +160,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     onBack = { navigator.pop() },
                     onClassic = local?.let { l -> { navigator.push(MangaScreen(l.manga.id)) } },
                     onRefresh = model::refreshSources,
+                    hideUnread = hideUnread,
+                    onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
                 )
                 Heading(entry, fallbackTitle = local?.manga?.title)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -288,6 +295,9 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 VolumeCellView(
                     cell = cell,
                     localCover = localCovers[cell.number],
+                    // a cover shows once the volume is read or started
+                    hidden = hideUnread && cell.state != VolState.READ &&
+                        cell.local?.let { it.read || it.lastPageRead > 0 } != true,
                     cover = covers[cell.number],
                     seriesCover = entry?.let { it.coverLarge ?: it.cover },
                     current = cell.number == current,
@@ -382,7 +392,13 @@ private fun LazyGridScope.fullSpan(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TopRow(onBack: () -> Unit, onClassic: (() -> Unit)?, onRefresh: () -> Unit) {
+private fun TopRow(
+    onBack: () -> Unit,
+    onClassic: (() -> Unit)?,
+    onRefresh: () -> Unit,
+    hideUnread: Boolean,
+    onToggleHideUnread: () -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Pill(stringResource(MR.strings.glass_back), onClick = onBack, icon = "chevLeft", small = true)
@@ -393,6 +409,14 @@ private fun TopRow(onBack: () -> Unit, onClassic: (() -> Unit)?, onRefresh: () -
                 MenuItem(stringResource(MR.strings.glass_title_refresh_sources)) {
                     open = false
                     onRefresh()
+                }
+                MenuItem(
+                    stringResource(
+                        if (hideUnread) MR.strings.glass_title_show_unread_covers else MR.strings.glass_title_hide_unread_covers,
+                    ),
+                ) {
+                    open = false
+                    onToggleHideUnread()
                 }
                 onClassic?.let {
                     MenuItem(stringResource(MR.strings.glass_classic_view)) {
@@ -627,6 +651,7 @@ private fun LegendItem(icon: String, text: String, color: Color) {
 private fun VolumeCellView(
     cell: VolumeCell,
     localCover: File?,
+    hidden: Boolean,
     cover: String?,
     seriesCover: String?,
     current: Boolean,
@@ -673,7 +698,7 @@ private fun VolumeCellView(
                 ),
         ) {
             val context = LocalPlatformContext.current
-            AsyncImage(
+            if (!hidden) AsyncImage(
                 // the volume's own first page, else MangaDex's cover, else the series cover
                 model = when {
                     localCover != null -> localCover

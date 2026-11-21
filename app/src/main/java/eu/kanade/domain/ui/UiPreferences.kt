@@ -47,6 +47,9 @@ class UiPreferences(
     /** Glass Discover: AniList media ids marked "Not for me" (never picked again). */
     fun discoverNotForMe() = preferenceStore.getStringSet("pref_glass_discover_not_for_me", emptySet())
 
+    /** Glass title page: a volume shows its cover only once it is read or started. */
+    fun glassHideUnreadCovers() = preferenceStore.getBoolean("pref_glass_hide_unread_covers", false)
+
     fun imagesInDescription() = preferenceStore.getBoolean("pref_render_images_description", true)
 
     // SY -->

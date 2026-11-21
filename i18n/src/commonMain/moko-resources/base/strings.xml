@@ -984,6 +984,8 @@
     <string name="glass_title_mark_read">Mark read</string>
     <string name="glass_title_mark_unread">Mark unread</string>
     <string name="glass_title_refresh_sources">Refresh sources</string>
+    <string name="glass_title_hide_unread_covers">Hide covers of unread volumes</string>
+    <string name="glass_title_show_unread_covers">Show covers of unread volumes</string>
     <string name="glass_title_no_source">No source has vol. %1$s</string>
     <string name="glass_title_unknown">This title is not in your AniList list yet: refresh the list on Home.</string>
     <!-- Glass Home and Library (UI rebuild phase 3) -->
