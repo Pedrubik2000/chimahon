@@ -58,6 +58,9 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
 import eu.kanade.presentation.glass.CoverageBar
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
@@ -72,6 +75,7 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.Coverage
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
+import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
@@ -641,8 +645,11 @@ private fun VolumeCellView(
                     onLongClick = { if (local != null) menu = true },
                 ),
         ) {
+            val context = LocalPlatformContext.current
             AsyncImage(
-                model = cover ?: seriesCover,
+                model = if (cover == null) seriesCover else remember(cover) {
+                    ImageRequest.Builder(context).data(cover).httpHeaders(VolumeCovers.imageHeaders).build()
+                },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 alpha = alpha,

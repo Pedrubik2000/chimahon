@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.mangadex
 
 import android.app.Application
+import coil3.network.NetworkHeaders
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.network.GET
@@ -88,7 +89,7 @@ class VolumeCovers(private val app: Application) {
     private suspend fun text(request: Request) = network.client
         .newCall(
             request.newBuilder()
-                .header("User-Agent", "Chimahon/v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})")
+                .header("User-Agent", USER_AGENT)
                 .build(),
         )
         .awaitSuccess().use { it.body.string() }
@@ -98,6 +99,11 @@ class VolumeCovers(private val app: Application) {
     data class CoverPage(val total: Int, val covers: List<Cover>)
 
     companion object {
+        val USER_AGENT = "Chimahon/v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})"
+
+        /** For loading a cover image: the image host answers the app's default User-Agent with the same challenge. */
+        val imageHeaders: NetworkHeaders = NetworkHeaders.Builder().set("User-Agent", USER_AGENT).build()
+
         private const val API = "https://api.mangadex.org"
         private val MAX_AGE = 30.days.inWholeMilliseconds
         private val json = Json { ignoreUnknownKeys = true }
