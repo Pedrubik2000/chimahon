@@ -23,6 +23,7 @@ import eu.kanade.tachiyomi.util.system.notify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 import logcat.LogPriority
 import mihon.core.archive.ArchiveInputStream
 import mihon.core.archive.archiveReader
@@ -100,13 +101,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         setSmallIcon(android.R.drawable.stat_sys_download_done)
     }
 
+    /** Cancelled from RealDebridQueue (or stopped by WorkManager): ends the job between two steps. */
+    private fun checkCancelled() {
+        if (isStopped || Injekt.get<RealDebridQueue>().isCancelled(id)) throw CancelledException()
+    }
+
+    // Never Result.failure(): a failed work fails every work chained behind it (RealDebridQueue reads the error).
     override suspend fun doWork(): Result {
-        val link = inputData.getString(KEY_LINK) ?: return Result.failure()
+        val link = inputData.getString(KEY_LINK) ?: return Result.success(output("No link"))
         if (token.isEmpty()) {
             done("Set the Real-Debrid API token in Settings > Downloads")
-            return Result.failure(output("No Real-Debrid token"))
+            return Result.success(output("No Real-Debrid token"))
         }
         return try {
+            checkCancelled()
             if (ExcnnParser.isPost(link)) { // an excnn.com post: queue each of its volumes under the post's title
                 val html = client.newCall(Request.Builder().url(link).build()).execute().use { it.body.string() }
                 val post = ExcnnParser.parsePost(html)
@@ -132,12 +140,17 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
             val folder = mangaDir.name ?: title
             files.forEachIndexed { i, (path, url) ->
+                checkCancelled()
                 val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
                 status(label)
                 progress(STEP_DOWNLOADING)
                 val (dir, fileName) = target(mangaDir, path, title) ?: return@forEachIndexed
-                val file = download(url, dir, fileName, report = true) ?: return@forEachIndexed
-                if (fileName.substringAfterLast('.').lowercase() in BUNDLES) {
+                val bundle = fileName.substringAfterLast('.').lowercase() in BUNDLES
+                val file = download(url, dir, fileName, report = true)
+                    // a bundle still there: a run killed while unpacking it (unpacking deletes it when done)
+                    ?: dir.findFile(fileName)?.takeIf { bundle }
+                    ?: return@forEachIndexed
+                if (bundle) {
                     status("$label: unpacking")
                     progress(STEP_UNPACKING)
                     unpack(file, mangaDir)
@@ -153,10 +166,15 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             found?.let { bindAniList(folder, it) }
             done("Added $folder (${files.size} files)")
             Result.success(output())
+        } catch (e: CancelledException) {
+            logcat(LogPriority.INFO) { "Real-Debrid import cancelled: ${inputData.getString(KEY_NAME) ?: id}" }
+            Result.success(output(RealDebridQueue.CANCELLED))
+        } catch (e: CancellationException) {
+            throw e // WorkManager stopped the worker ("Cancel all", system): no failed notification
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
             done("Failed: ${e.message}")
-            Result.failure(output(e.message ?: e.javaClass.simpleName))
+            Result.success(output(e.message ?: e.javaClass.simpleName))
         }
     }
 
@@ -204,6 +222,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
                 "magnet_error", "error", "virus", "dead" -> throw DeadLinkException("Real-Debrid: $s")
                 else -> {
+                    checkCancelled()
                     status("Real-Debrid: $s ${info.optInt("progress")}%")
                     progress(STEP_WAITING, info.optLong("progress"), 100)
                 }
@@ -272,12 +291,18 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** The new file, or null when it's already there from an earlier run. [report]: bytes go to the job's progress. */
     private fun download(url: String, dir: UniFile, name: String, report: Boolean = false): UniFile? {
         if (dir.findFile(name) != null) return null
+        dir.findFile("$name.part")?.delete() // left by a killed run
         val part = dir.createFile("$name.part") ?: error("Can't create $name")
-        client.newCall(Request.Builder().url(url).build()).execute().use { r ->
-            if (!r.isSuccessful) error("Download $name: HTTP ${r.code}")
-            part.openOutputStream().use { out ->
-                if (report) copyReporting(r.body.byteStream(), out, r.body.contentLength()) else r.body.byteStream().copyTo(out)
+        try {
+            client.newCall(Request.Builder().url(url).build()).execute().use { r ->
+                if (!r.isSuccessful) error("Download $name: HTTP ${r.code}")
+                part.openOutputStream().use { out ->
+                    if (report) copyReporting(r.body.byteStream(), out, r.body.contentLength()) else r.body.byteStream().copyTo(out)
+                }
             }
+        } catch (e: Exception) {
+            part.delete()
+            throw e
         }
         if (!part.renameTo(name)) error("Can't rename $name")
         return part
@@ -297,6 +322,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val now = System.currentTimeMillis()
             if (now - last >= 500) {
                 last = now
+                checkCancelled()
                 progress(STEP_DOWNLOADING, done, total, done * 1000 / (now - start).coerceAtLeast(1))
             }
         }
@@ -312,8 +338,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 generateSequence { stream.getNextEntry() }.filter { it.isFile }.forEach { entry ->
                     val (dir, name) = target(mangaDir, entry.name, stem, inBundle = true) ?: return@forEach
                     if (dir.findFile(name) != null) return@forEach
-                    val file = dir.createFile(name) ?: error("Can't create $name")
+                    // via .part: a run killed mid-entry must not leave a half volume that looks done
+                    dir.findFile("$name.part")?.delete()
+                    val file = dir.createFile("$name.part") ?: error("Can't create $name")
                     file.openOutputStream().use { stream.copyTo(it) }
+                    if (!file.renameTo(name)) error("Can't rename $name")
                 }
             }
         }
@@ -394,6 +423,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
     /** Real-Debrid can't serve this link (file gone, hoster unsupported or down): the next source's may work. */
     private class DeadLinkException(message: String) : IllegalStateException(message)
+
+    /** The job was cancelled from RealDebridQueue: it ends as success with the error "Cancelled". */
+    private class CancelledException : Exception("Cancelled")
 
     /** Real-Debrid account state for Settings: premium and days left, or a token it refused. */
     data class Account(val premium: Boolean, val daysLeft: Int, val tokenRejected: Boolean = false)

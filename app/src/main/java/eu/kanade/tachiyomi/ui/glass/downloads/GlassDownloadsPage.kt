@@ -183,7 +183,8 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                     sourceNames = sourceNames,
                     expanded = k in expanded,
                     onToggle = { open = if (k in expanded) expanded - k else expanded + k },
-                    onCancel = { row -> WorkManager.getInstance(context).cancelWorkById(row.workId) },
+                    // not cancelWorkById: that also cancels every job queued behind this one
+                    onCancel = { row -> queue.cancel(row.workId) },
                     onTryAgain = { tryAgain(g) },
                 )
             }
