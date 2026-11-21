@@ -88,7 +88,16 @@ class AniListLibrary(private val app: Application) {
     /** Message of the last failed refresh, null after a good one. The old list stays. */
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    fun get(mediaId: Long): Entry? = _entries.value.firstOrNull { it.mediaId == mediaId }
+    /** The list entry, else a title not on the list that Discover opened ([remember]). */
+    fun get(mediaId: Long): Entry? = _entries.value.firstOrNull { it.mediaId == mediaId } ?: visited[mediaId]
+
+    // ponytail: memory only, lost on restart; a title page that needs more fetches the media itself
+    private val visited = java.util.concurrent.ConcurrentHashMap<Long, Entry>()
+
+    /** Discover: keeps a title that is not on the list (status "") so a title screen can load it by media id. */
+    fun remember(entry: Entry) {
+        visited[entry.mediaId] = entry
+    }
 
     /** Fetch → save → emit. On failure the cached list stays and [error] says why. */
     suspend fun refresh(): Result<Unit> = withIOContext {
@@ -108,6 +117,18 @@ class AniListLibrary(private val app: Application) {
             logcat(LogPriority.WARN, it) { "AniList list refresh failed" }
             _error.value = it.message ?: it.javaClass.simpleName
         }
+    }
+
+    /** Puts one entry (an edit just made on AniList) into the cache and its file; a new media id is added. */
+    suspend fun replace(entry: Entry) = withIOContext {
+        val list = _entries.value.filterNot { it.mediaId == entry.mediaId } + entry
+        _entries.value = list
+        runCatching {
+            file.parentFile?.mkdirs()
+            val tmp = File(file.path + ".tmp")
+            tmp.writeText(json.encodeToString(Saved(_refreshedAt.value, list)))
+            check(tmp.renameTo(file)) { "Can't write ${file.name}" }
+        }.onFailure { logcat(LogPriority.WARN, it) { "AniList cache write failed" } }
     }
 
     /**

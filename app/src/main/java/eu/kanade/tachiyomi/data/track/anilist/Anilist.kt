@@ -430,6 +430,9 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     /** Raw `MediaListCollection` response of the signed-in user's manga list. */
     suspend fun fetchMangaList(): String = api.getMangaListCollection(getUsername().toInt())
 
+    /** The authenticated API, for the glass Discover page's own queries (browse, recommendations, + Home). */
+    val discoverApi: AnilistApi get() = api
+
     /**
      * Local-source manga: a chapter is a volume, so a finished volume sets AniList's progressVolumes (never lowers
      * it) and leaves chapter progress as it is on AniList. Returns the track with last_chapter_read = volumes read.

@@ -27,7 +27,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import okhttp3.Call
 import okhttp3.OkHttpClient
@@ -189,6 +191,72 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                 .awaitALSuccess()
                 .use { it.body.string() }
         }
+    }
+
+    /**
+     * Discover › Browse: one page (50) of Japanese manga/one-shots, popular first, for the filter [variables]
+     * (`page`, `genres`, `tagIn`, `tagNotIn`, `status`, `volGt`, `volLt`, `search`, `isAdult`, `onList`, `sort`;
+     * a missing variable = no filter). Raw response, parsed by the Discover page; also carries the viewer's adult option.
+     */
+    suspend fun browseManga(variables: JsonObject): String = rawQuery(
+        $$"""
+        |query ($page: Int, $genres: [String], $tagIn: [String], $tagNotIn: [String], $status: MediaStatus,
+        |  $volGt: Int, $volLt: Int, $search: String, $isAdult: Boolean, $onList: Boolean, $sort: [MediaSort]) {
+            |Page(page: $page, perPage: 50) {
+                |pageInfo { hasNextPage }
+                |media(type: MANGA, format_in: [MANGA, ONE_SHOT], countryOfOrigin: "JP", sort: $sort,
+                |  genre_in: $genres, tag_in: $tagIn, tag_not_in: $tagNotIn, minimumTagRank: 60, status: $status,
+                |  volumes_greater: $volGt, volumes_lesser: $volLt, search: $search, isAdult: $isAdult, onList: $onList) {
+                    |$$DISCOVER_MEDIA
+                |}
+            |}
+            |Viewer { options { displayAdultContent } }
+        |}
+        |
+        """.trimMargin(),
+        variables,
+    )
+
+    /** Discover: AniList's top recommendations of up to 5 [mediaIds] in one request. Raw response. */
+    suspend fun mangaRecommendations(mediaIds: List<Long>): String = rawQuery(
+        $$"""
+        |query ($ids: [Int]) {
+            |Page(perPage: 5) {
+                |media(id_in: $ids, type: MANGA) {
+                    |id
+                    |recommendations(sort: RATING_DESC, perPage: 10) {
+                        |nodes { rating mediaRecommendation { $$DISCOVER_MEDIA countryOfOrigin } }
+                    |}
+                |}
+            |}
+            |Viewer { options { displayAdultContent } }
+        |}
+        |
+        """.trimMargin(),
+        buildJsonObject {
+            putJsonArray("ids") { mediaIds.forEach { add(it) } }
+        },
+    )
+
+    /** "+ Home": puts [mediaId] on the signed-in user's list as Plan to read (adds it, or changes its status). */
+    suspend fun savePlanning(mediaId: Long) {
+        rawQuery(
+            $$"""
+            |mutation ($id: Int) { SaveMediaListEntry(mediaId: $id, status: PLANNING) { id status } }
+            |
+            """.trimMargin(),
+            buildJsonObject { put("id", mediaId) },
+        )
+    }
+
+    private suspend fun rawQuery(query: String, variables: JsonObject): String = withIOContext {
+        val payload = buildJsonObject {
+            put("query", query)
+            put("variables", variables)
+        }
+        authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
+            .awaitALSuccess()
+            .use { it.body.string() }
     }
     // chimahon <--
 
@@ -773,6 +841,11 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         private const val BASE_URL = "https://anilist.co/api/v2/"
         private const val BASE_MANGA_URL = "https://anilist.co/manga/"
         private const val BASE_ANIME_URL = "https://anilist.co/anime/"
+
+        // chimahon: the media fields Discover reads (as in the list query, + isAdult + the viewer's list status)
+        private const val DISCOVER_MEDIA = "id title { native romaji english } coverImage { large extraLarge } " +
+            "bannerImage volumes chapters status format genres tags { name rank isMediaSpoiler isGeneralSpoiler } " +
+            "averageScore popularity startDate { year } isAdult mediaListEntry { status }"
 
         fun mangaUrl(mediaId: Long): String {
             return BASE_MANGA_URL + mediaId

@@ -23,10 +23,13 @@ import eu.kanade.presentation.glass.GlassRail
 import eu.kanade.presentation.glass.GlassRailItems
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverModel
+import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverPage
+import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloadsPage
 import eu.kanade.tachiyomi.ui.glass.home.GlassHomePage
 import eu.kanade.tachiyomi.ui.glass.library.GlassLibraryPage
+import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
 import eu.kanade.tachiyomi.ui.home.HomeScreen
-import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 
 /** The new root on tablets (pref glassUi). Discover and Downloads are placeholders until phase 5. */
 object GlassHomeScreen : Screen() {
@@ -43,6 +46,10 @@ object GlassHomeScreen : Screen() {
             when (page) {
                 "home" -> GlassHomePage(model, navigator)
                 "library" -> GlassLibraryPage(model, navigator)
+                // created on the first Discover visit, then kept with the shell (no AniList call before that)
+                "discover" -> GlassDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
+                "downloads" -> GlassDownloadsPage(model, navigator)
+                "settings" -> GlassSettingsPage(navigator)
                 else -> Column(
                     Modifier.padding(start = 108.dp, top = 24.dp, end = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -60,7 +67,7 @@ object GlassHomeScreen : Screen() {
             // last, so it draws over the pages (Home's banner scrolls under it) and keeps its touches
             GlassRail(
                 active = page,
-                onSelect = { if (it == "settings") navigator.push(SettingsScreen()) else page = it },
+                onSelect = { page = it },
                 onBearLongClick = { navigator.push(GlassKitScreen()) },
                 modifier = Modifier.padding(start = 20.dp, top = 24.dp),
             )

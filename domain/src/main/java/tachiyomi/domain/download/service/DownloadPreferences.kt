@@ -20,6 +20,9 @@ class DownloadPreferences(
     /** Real-Debrid source ids switched off for coverage and downloads. */
     fun realDebridSourcesOff() = preferenceStore.getLongArray("real_debrid_sources_off", emptyList())
 
+    /** Title page: a volume the chosen source lacks (or whose link is dead) comes from the next source. */
+    fun realDebridFillGaps() = preferenceStore.getBoolean("real_debrid_fill_gaps", true)
+
     fun saveChaptersAsCBZ() = preferenceStore.getBoolean("save_chapter_as_cbz", true)
 
     fun splitTallImages() = preferenceStore.getBoolean("split_tall_images", true)

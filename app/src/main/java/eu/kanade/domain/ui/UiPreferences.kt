@@ -44,6 +44,9 @@ class UiPreferences(
 
     fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", false)
 
+    /** Glass Discover: AniList media ids marked "Not for me" (never picked again). */
+    fun discoverNotForMe() = preferenceStore.getStringSet("pref_glass_discover_not_for_me", emptySet())
+
     fun imagesInDescription() = preferenceStore.getBoolean("pref_render_images_description", true)
 
     // SY -->
