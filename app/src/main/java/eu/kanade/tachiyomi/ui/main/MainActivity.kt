@@ -73,6 +73,7 @@ import eu.kanade.presentation.more.settings.screen.browse.ExtensionStoresScreen
 import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.util.AssistContentScreen
 import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
+import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.BackupRestoreStatus
 import eu.kanade.tachiyomi.data.LibraryUpdateStatus
@@ -94,6 +95,7 @@ import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreen
 import eu.kanade.tachiyomi.ui.browse.source.feed.SourceFeedScreen
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.ui.deeplink.DeepLinkScreen
+import eu.kanade.tachiyomi.ui.glass.GlassHomeScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
@@ -267,8 +269,9 @@ class MainActivity : BaseActivity() {
                 )
             }
 
+            val glassRoot = remember { Injekt.get<UiPreferences>().glassUi().get() } && isTabletUi()
             Navigator(
-                screen = HomeScreen,
+                screen = if (glassRoot) GlassHomeScreen else HomeScreen,
                 disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false, disposeSteps = true),
             ) { navigator ->
                 LaunchedEffect(navigator) {
@@ -751,6 +754,8 @@ class MainActivity : BaseActivity() {
         }
 
         if (tabToOpen != null) {
+            // Glass root: the classic tabs only exist inside HomeScreen
+            if (HomeScreen !in navigator.items) navigator.push(HomeScreen)
             lifecycleScope.launch { HomeScreen.openTab(tabToOpen) }
         }
 

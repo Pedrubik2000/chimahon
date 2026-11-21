@@ -42,6 +42,8 @@ class UiPreferences(
 
     fun tabletUiMode() = preferenceStore.getEnum("tablet_ui_mode", TabletUiMode.AUTOMATIC)
 
+    fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", false)
+
     fun imagesInDescription() = preferenceStore.getBoolean("pref_render_images_description", true)
 
     // SY -->

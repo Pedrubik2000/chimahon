@@ -1,6 +1,7 @@
 package eu.kanade.presentation.more.settings.screen
 
 import android.app.Activity
+import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -248,6 +249,17 @@ object SettingsAppearanceScreen : SearchableSettings {
                     title = stringResource(MR.strings.pref_tablet_ui_mode),
                     onValueChanged = {
                         context.toast(MR.strings.requires_app_restart)
+                        true
+                    },
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.glassUi(),
+                    title = stringResource(MR.strings.pref_glass_ui),
+                    onValueChanged = {
+                        uiPreferences.glassUi().set(it)
+                        (context as? Activity)?.let { activity ->
+                            activity.startActivity(Intent.makeRestartActivityTask(activity.componentName))
+                        }
                         true
                     },
                 ),

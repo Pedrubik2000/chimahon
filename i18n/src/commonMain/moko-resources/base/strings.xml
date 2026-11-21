@@ -768,6 +768,16 @@
     <string name="enhanced_services">Enhanced trackers</string>
     <string name="enhanced_services_not_installed">Available but source not installed: %s</string>
     <string name="enhanced_tracking_info">Provides enhanced features for specific sources. Entries are automatically tracked when added to your library.</string>
+    <!-- chimahon: AniList list -->
+    <string name="anilist_list">AniList list</string>
+    <string name="anilist_list_summary">%1$d titles · %2$d reading · %3$d planning · refreshed %4$s</string>
+    <string name="anilist_list_never">never</string>
+    <string name="anilist_list_error">Refresh failed: %1$s</string>
+    <string name="anilist_link_local">Link local series</string>
+    <string name="anilist_link_local_summary">Bind local series without an AniList track to their AniList entry</string>
+    <string name="anilist_link_unmatched">%1$d local series with no match</string>
+    <string name="anilist_link_confirm">Confirm</string>
+    <string name="anilist_link_done">Linked %1$d series</string>
     <string name="track_activity_name">Tracker login</string>
 
       <!-- Browse section -->
@@ -919,6 +929,7 @@
     <string name="battery_optimization_setting_activity_not_found">Couldn\'t open device settings</string>
     <string name="about_dont_kill_my_app">Some manufacturers have additional app restrictions that kill background services. This website has more info on how to fix it.</string>
     <string name="pref_tablet_ui_mode">Tablet UI</string>
+    <string name="pref_glass_ui">New look (tablet)</string>
     <string name="pref_verbose_logging">Verbose logging</string>
     <string name="pref_verbose_logging_summary">Print verbose logs to system log (reduces app performance)</string>
     <string name="pref_debug_info">Debug info</string>
