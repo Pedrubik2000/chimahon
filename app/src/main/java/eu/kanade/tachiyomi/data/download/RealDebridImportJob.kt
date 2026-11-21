@@ -13,6 +13,7 @@ import androidx.work.workDataOf
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.network.NetworkHelper
+import eu.kanade.tachiyomi.source.online.all.ExcnnParser
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import eu.kanade.tachiyomi.ui.browse.source.MangaImportUtil
 import eu.kanade.tachiyomi.util.system.notificationBuilder
@@ -86,13 +87,19 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             return Result.failure()
         }
         return try {
+            if (ExcnnParser.isPost(link)) { // an excnn.com post: queue each of its volumes under the post's title
+                val html = client.newCall(Request.Builder().url(link).build()).execute().use { it.body.string() }
+                val post = ExcnnParser.parsePost(html)
+                post.volumes.forEach { start(applicationContext, it.link, post.title) }
+                return Result.success()
+            }
             status("Adding link")
             val (name, files) = if (link.startsWith("magnet:")) torrentFiles(link) else linkFiles(link)
             val localDir = Injekt.get<StorageManager>().getLocalSourceDirectory()
                 ?: error("No local source folder (Settings > Data and storage)")
             // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
             // named after AniList's romaji title when AniList knows it
-            val guess = MangaImportUtil.seriesTitle(name)
+            val guess = MangaImportUtil.seriesTitle(inputData.getString(KEY_NAME) ?: name)
             status("AniList: $guess")
             val media = runCatching { aniList(guess) }
                 .onFailure { logcat(LogPriority.WARN, it) { "AniList lookup failed: $guess" } }.getOrNull()
@@ -294,6 +301,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     companion object {
         private const val API = "https://api.real-debrid.com/rest/1.0"
         private const val KEY_LINK = "link"
+        private const val KEY_NAME = "name"
         private val IMAGES = setOf("jpg", "jpeg", "png", "webp", "avif", "gif", "jxl", "heif")
         private val CHAPTERS = setOf("cbz", "cbr", "cb7", "epub", "pdf")
         private val BUNDLES = setOf("zip", "rar", "7z")
@@ -302,7 +310,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
         /** Magnets, real-debrid.com links, and links to hosters Real-Debrid supports (once a token is set). */
         suspend fun isLink(text: String): Boolean {
-            if (text.startsWith("magnet:") || text.contains("real-debrid.com/")) return true
+            if (text.startsWith("magnet:") || text.contains("real-debrid.com/") || ExcnnParser.isPost(text)) return true
             if (Injekt.get<DownloadPreferences>().realDebridToken().get().isBlank()) return false
             val host = text.toHttpUrlOrNull()?.host ?: return false
             val domains = hosts ?: withContext(Dispatchers.IO) {
@@ -316,12 +324,13 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             return domains.any { host == it || host.endsWith(".$it") }
         }
 
-        fun start(context: Context, link: String) {
+        /** [name]: the series when the hoster's filename says nothing about it (Excnn's "excnn20-11-2026a07.rar"). */
+        fun start(context: Context, link: String, name: String? = null) {
             // One at a time: links shared together often hold the same series (or the same file from two hosters)
             WorkManager.getInstance(context).enqueueUniqueWork(
                 "RealDebridImport",
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
-                OneTimeWorkRequestBuilder<RealDebridImportJob>().setInputData(workDataOf(KEY_LINK to link)).build(),
+                OneTimeWorkRequestBuilder<RealDebridImportJob>().setInputData(workDataOf(KEY_LINK to link, KEY_NAME to name)).build(),
             )
         }
     }
