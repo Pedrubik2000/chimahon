@@ -97,11 +97,14 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
     }
     // KMK <--
 
-    suspend fun addLibManga(track: Track): Track {
+    // chimahon: progressVolumes given (local volumes) → sent instead of progress, so chapter progress stays 0
+    suspend fun addLibManga(track: Track, progressVolumes: Int? = null): Track {
         return withIOContext {
+            val p = if (progressVolumes != null) "progressVolumes" else "progress"
+            val v = "\$$p"
             val query = $$"""
-            |mutation AddManga($mangaId: Int, $progress: Int, $status: MediaListStatus, $private: Boolean) {
-                |SaveMediaListEntry (mediaId: $mangaId, progress: $progress, status: $status, private: $private) {
+            |mutation AddManga($mangaId: Int, $${v}: Int, $status: MediaListStatus, $private: Boolean) {
+                |SaveMediaListEntry (mediaId: $mangaId, $${p}: $${v}, status: $status, private: $private) {
                 |   id
                 |   status
                 |}
@@ -112,7 +115,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                 put("query", query)
                 putJsonObject("variables") {
                     put("mangaId", track.remote_id)
-                    put("progress", track.last_chapter_read.toInt())
+                    put(p, progressVolumes ?: track.last_chapter_read.toInt())
                     put("status", track.toApiStatus())
                     put("private", track.private)
                 }
@@ -136,40 +139,11 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         }
     }
 
-    // chimahon: progressVolumes is only in the request when given (local volumes), so other callers send what they did
+    // chimahon: progressVolumes given (local volumes) → sent instead of progress, so AniList's chapter progress is
+    // left as it is; without it the request is the upstream one
     suspend fun updateLibManga(track: Track, progressVolumes: Int? = null): Track {
         return withIOContext {
-            val volumesDecl = if (progressVolumes != null) ", \$progressVolumes: Int" else ""
-            val volumesArg = if (progressVolumes != null) ", progressVolumes: \$progressVolumes" else ""
-            val query = $$"""
-            |mutation UpdateManga(
-                |$listId: Int, $progress: Int, $status: MediaListStatus, $private: Boolean,
-                |$score: Int, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput$${volumesDecl}
-            |) {
-                |SaveMediaListEntry(
-                    |id: $listId, progress: $progress, status: $status, private: $private,
-                    |scoreRaw: $score, startedAt: $startedAt, completedAt: $completedAt$${volumesArg}
-                |) {
-                    |id
-                    |status
-                    |progress
-                |}
-            |}
-            |
-            """.trimMargin()
-            val payload = buildJsonObject {
-                put("query", query)
-                putJsonObject("variables") {
-                    put("listId", track.library_id)
-                    put("progress", track.last_chapter_read.toInt())
-                    put("status", track.toApiStatus())
-                    put("score", track.score.toInt())
-                    put("startedAt", createDate(track.started_reading_date))
-                    put("completedAt", createDate(track.finished_reading_date))
-                    put("private", track.private)
-                    if (progressVolumes != null) put("progressVolumes", progressVolumes)
-                }
-            }
+            val payload = updateMangaPayload(track, progressVolumes)
             authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
                 // KMK -->
                 .awaitALSuccess()
@@ -792,23 +766,6 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
     }
     // SY <--
 
-    private fun createDate(dateValue: Long): JsonObject {
-        if (dateValue == 0L) {
-            return buildJsonObject {
-                put("year", JsonNull)
-                put("month", JsonNull)
-                put("day", JsonNull)
-            }
-        }
-
-        val dateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateValue), ZoneId.systemDefault())
-        return buildJsonObject {
-            put("year", dateTime.year)
-            put("month", dateTime.monthValue)
-            put("day", dateTime.dayOfMonth)
-        }
-    }
-
     companion object {
         // Registered under KMK's MAL account
         private const val CLIENT_ID = "16801"
@@ -829,5 +786,57 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
             .appendQueryParameter("client_id", CLIENT_ID)
             .appendQueryParameter("response_type", "token")
             .build()
+    }
+}
+
+// chimahon: pulled out of updateLibManga (pure, for AnilistVolumesTest); progressVolumes != null replaces progress
+internal fun updateMangaPayload(track: Track, progressVolumes: Int?): JsonObject {
+    val p = if (progressVolumes != null) "progressVolumes" else "progress"
+    val v = "\$$p"
+    val query = $$"""
+    |mutation UpdateManga(
+        |$listId: Int, $${v}: Int, $status: MediaListStatus, $private: Boolean,
+        |$score: Int, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput
+    |) {
+        |SaveMediaListEntry(
+            |id: $listId, $${p}: $${v}, status: $status, private: $private,
+            |scoreRaw: $score, startedAt: $startedAt, completedAt: $completedAt
+        |) {
+            |id
+            |status
+            |progress
+        |}
+    |}
+    |
+    """.trimMargin()
+    return buildJsonObject {
+        put("query", query)
+        putJsonObject("variables") {
+            put("listId", track.library_id)
+            put(p, progressVolumes ?: track.last_chapter_read.toInt())
+            put("status", track.toApiStatus())
+            put("score", track.score.toInt())
+            put("startedAt", createDate(track.started_reading_date))
+            put("completedAt", createDate(track.finished_reading_date))
+            put("private", track.private)
+        }
+    }
+}
+
+// chimahon: moved out of AnilistApi (unchanged) so updateMangaPayload can use it
+private fun createDate(dateValue: Long): JsonObject {
+    if (dateValue == 0L) {
+        return buildJsonObject {
+            put("year", JsonNull)
+            put("month", JsonNull)
+            put("day", JsonNull)
+        }
+    }
+
+    val dateTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateValue), ZoneId.systemDefault())
+    return buildJsonObject {
+        put("year", dateTime.year)
+        put("month", dateTime.monthValue)
+        put("day", dateTime.dayOfMonth)
     }
 }

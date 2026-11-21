@@ -19,7 +19,9 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
+import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.i18n.MR
+import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.injectLazy
 import tachiyomi.domain.track.anime.model.AnimeTrack as DomainAnimeTrack
 import tachiyomi.domain.track.model.Track as DomainTrack
@@ -224,6 +226,20 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
             }
         }
 
+        // chimahon -->
+        if (isLocalVolumes(track)) {
+            // setRemoteStatus(COMPLETED) copies the chapter total into last_chapter_read: keep AniList's volumes
+            if (track.status == COMPLETED && track.total_chapters > 0 &&
+                track.last_chapter_read == track.total_chapters.toDouble()
+            ) {
+                track.last_chapter_read = (
+                    api.findLibMangaWithVolumes(track, getUsername().toInt())
+                        ?: throw Exception("$track not found on user library")
+                    ).second.toDouble()
+            }
+            return api.updateLibManga(track, progressVolumes = track.last_chapter_read.toInt())
+        }
+        // chimahon <--
         return api.updateLibManga(track)
     }
 
@@ -271,9 +287,18 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     }
 
     override suspend fun bind(track: Track, hasReadChapters: Boolean): Track {
-        val remoteTrack = api.findLibManga(track, getUsername().toInt())
+        // chimahon -->
+        val local = isLocalVolumes(track)
+        val remote = if (local) {
+            api.findLibMangaWithVolumes(track, getUsername().toInt())
+        } else {
+            api.findLibManga(track, getUsername().toInt())?.let { it to null }
+        }
+        val remoteTrack = remote?.first
+        // chimahon <--
         return if (remoteTrack != null) {
             track.copyPersonalFrom(remoteTrack, copyRemotePrivate = false)
+            remote?.second?.let { track.last_chapter_read = it.toDouble() } // chimahon: local → volumes read
             track.library_id = remoteTrack.library_id
 
             if (track.status != COMPLETED) {
@@ -286,7 +311,8 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
             // Set default fields if it's not found in the list
             track.status = if (hasReadChapters) READING else PLAN_TO_READ
             track.score = 0.0
-            add(track)
+            // chimahon: local → the new entry gets volumes read, chapter progress stays 0
+            if (local) api.addLibManga(track, progressVolumes = track.last_chapter_read.toInt()) else add(track)
         }
     }
 
@@ -319,8 +345,15 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     }
 
     override suspend fun refresh(track: Track): Track {
-        val remoteTrack = api.getLibManga(track, getUsername().toInt())
+        // chimahon -->
+        val (remoteTrack, volumes) = if (isLocalVolumes(track)) {
+            api.findLibMangaWithVolumes(track, getUsername().toInt()) ?: throw Exception("Could not find manga")
+        } else {
+            api.getLibManga(track, getUsername().toInt()) to null
+        }
         track.copyPersonalFrom(remoteTrack)
+        volumes?.let { track.last_chapter_read = it.toDouble() } // local: volumes read, not AniList's chapter progress
+        // chimahon <--
         track.title = remoteTrack.title
         track.total_chapters = remoteTrack.total_chapters
         return track
@@ -386,6 +419,14 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     // KMK <--
 
     // chimahon -->
+    private val getManga: GetManga by injectLazy()
+
+    /**
+     * Local-source manga are one archive per volume: their last_chapter_read is AniList's progressVolumes, and every
+     * write sends progressVolumes instead of chapter progress (AniList's chapter count is never touched).
+     */
+    private suspend fun isLocalVolumes(track: Track) = getManga.await(track.manga_id)?.source == LocalSource.ID
+
     /** Raw `MediaListCollection` response of the signed-in user's manga list. */
     suspend fun fetchMangaList(): String = api.getMangaListCollection(getUsername().toInt())
 

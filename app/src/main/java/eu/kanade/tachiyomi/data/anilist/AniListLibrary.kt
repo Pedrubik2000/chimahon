@@ -127,8 +127,7 @@ class AniListLibrary(private val app: Application) {
             total_chapters = chapters
             tracking_url = AnilistApi.mangaUrl(mediaId)
         }
-        anilist.bind(track, hasReadChapters = false)
-        track.last_chapter_read = (get(mediaId)?.progressVolumes ?: 0).toDouble()
+        anilist.bind(track, hasReadChapters = false) // local manga: bind sets lastChapterRead = live progressVolumes
         insertTrack.await(track.toDomainTrack(idRequired = false)!!)
         true
     }
