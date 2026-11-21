@@ -5,9 +5,11 @@ import eu.kanade.domain.track.model.toDbTrack
 import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.domain.track.service.DelayedTrackingUpdateJob
 import eu.kanade.domain.track.store.DelayedTrackingStore
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary // chimahon
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.anilist.Anilist
 import eu.kanade.tachiyomi.data.track.mdlist.MdList
+import eu.kanade.tachiyomi.ui.glass.title.GlassTitleState // chimahon
 import exh.md.utils.FollowStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -17,6 +19,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.track.interactor.GetTracks
 import tachiyomi.domain.track.interactor.InsertTrack
+import tachiyomi.domain.track.model.Track // chimahon
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.injectLazy
 
@@ -59,6 +62,7 @@ class TrackChapter(
                             val updatedTrack = if (volumes) {
                                 (service as Anilist).updateVolumes(track.toDbTrack(), chapterNumber.toInt())
                                     .toDomainTrack(idRequired = true)!!
+                                    .also { patchListCache(it) } // chimahon
                             } else {
                                 service.refresh(track.toDbTrack())
                                     .toDomainTrack(idRequired = true)!!
@@ -82,4 +86,24 @@ class TrackChapter(
                 .forEach { logcat(LogPriority.WARN, it) }
         }
     }
+
+    // chimahon -->
+    private val aniListLibrary: AniListLibrary by injectLazy()
+
+    /** The cached AniList list follows a sent volume (Home, Library, title page); a failure here never breaks tracking. */
+    private suspend fun patchListCache(track: Track) {
+        try {
+            val cached = aniListLibrary.entries.value.firstOrNull { it.mediaId == track.remoteId } ?: return
+            aniListLibrary.replace(
+                cached.copy(
+                    progressVolumes = track.lastChapterRead.toInt(),
+                    status = GlassTitleState.listStatus(track.status) ?: cached.status,
+                    updatedAt = System.currentTimeMillis() / 1000,
+                ),
+            )
+        } catch (e: Exception) {
+            logcat(LogPriority.WARN, e) { "AniList cache patch failed" }
+        }
+    }
+    // chimahon <--
 }

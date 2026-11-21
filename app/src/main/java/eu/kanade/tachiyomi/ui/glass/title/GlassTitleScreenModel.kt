@@ -25,7 +25,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -49,6 +51,7 @@ import tachiyomi.domain.track.repository.TrackRepository
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.io.File
 import tachiyomi.domain.track.model.Track as DomainTrack
 
 /**
@@ -90,7 +93,7 @@ class GlassTitleScreenModel(
     /** On Pedro's AniList list (the cache), not only visited from Discover. */
     val onList: Boolean get() = library.entries.value.any { it.mediaId == mediaId }
 
-    val local: StateFlow<Local?> = trackRepository.getTracksAsFlow()
+    private val localFlow = trackRepository.getTracksAsFlow()
         .map { tracks -> tracks.filter { it.trackerId == TrackerManager.ANILIST && it.remoteId == mediaId } }
         .distinctUntilChanged()
         .map { tracks ->
@@ -110,7 +113,8 @@ class GlassTitleScreenModel(
             }
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(screenModelScope, SharingStarted.Eagerly, null)
+
+    val local: StateFlow<Local?> = localFlow.stateIn(screenModelScope, SharingStarted.Eagerly, null)
 
     val rows: StateFlow<List<RealDebridQueue.Row>> = queue.rows
         .map { rows -> rows.filter { it.mediaId == mediaId } }
@@ -129,6 +133,10 @@ class GlassTitleScreenModel(
     private val _covers = MutableStateFlow<Map<Int, String>>(emptyMap())
     val covers: StateFlow<Map<Int, String>> = _covers.asStateFlow()
 
+    /** Volume → its own first page ([LocalVolumeCovers]), filled in as each is ready; wins over [covers]. */
+    private val _localCovers = MutableStateFlow<Map<Int, File>>(emptyMap())
+    val localCovers: StateFlow<Map<Int, File>> = _localCovers.asStateFlow()
+
     /** The last failed AniList edit or fetch, shown quietly; null when none. */
     val message = MutableStateFlow<String?>(null)
 
@@ -139,9 +147,58 @@ class GlassTitleScreenModel(
             _sources.value = coverageService.sources()
             val e = entry.filterNotNull().first()
             loadCoverage(e, force = false)
-            _covers.value = volumeCovers.get(e)
-                .filterKeys { it % 1.0 == 0.0 }
-                .mapKeys { it.key.toInt() }
+            launch { refreshEntry() }
+            // a title with every volume on the tablet asks MangaDex nothing
+            if (GlassTitleState.needsMangaDex(e.volumes, localFlow.first()?.volumes.orEmpty())) {
+                _covers.value = volumeCovers.get(e)
+                    .filterKeys { it % 1.0 == 0.0 }
+                    .mapKeys { it.key.toInt() }
+            }
+        }
+        // again only when the set of volume files changes, not when one is read
+        screenModelScope.launch {
+            local.filterNotNull()
+                .map { l ->
+                    l.manga.id to l.volumes.mapNotNull { v ->
+                        l.chapters.firstOrNull { it.id == v.chapterId }?.let { v.number to it }
+                    }.toMap()
+                }
+                .distinctUntilChangedBy { (mangaId, chapters) -> mangaId to chapters.mapValues { it.value.id } }
+                .collectLatest { (mangaId, chapters) ->
+                    _localCovers.update { covers -> covers.filterKeys { it in chapters } }
+                    LocalVolumeCovers.load(mangaId, chapters) { n, file -> _localCovers.update { it + (n to file) } }
+                }
+        }
+    }
+
+    /**
+     * One fetch of this list entry from AniList per open, so "On AniList: Vol. N" is not a stale cache. Logged out,
+     * not on the list, an edit in flight or any failure: the cache stays.
+     */
+    private suspend fun refreshEntry() {
+        val anilist = trackerManager.aniList
+        if (!anilist.isLoggedIn || !onList) return
+        try {
+            val probe = Track.create(anilist.id).apply {
+                manga_id = 0L
+                remote_id = mediaId
+            }
+            val (remote, volumes) = anilist.discoverApi.findLibMangaWithVolumes(probe, anilist.getUsername().toInt())
+                ?: return
+            if (pending.value != null) return
+            val cached = library.entries.value.firstOrNull { it.mediaId == mediaId } ?: return
+            library.replace(
+                cached.copy(
+                    status = GlassTitleState.listStatus(remote.status) ?: cached.status,
+                    progress = remote.last_chapter_read.toInt(),
+                    progressVolumes = volumes,
+                    score = remote.score.toInt(),
+                ),
+            )
+        } catch (ex: CancellationException) {
+            throw ex
+        } catch (ex: Exception) {
+            logcat(LogPriority.WARN, ex) { "AniList entry refresh failed: $mediaId" }
         }
     }
 

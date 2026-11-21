@@ -86,6 +86,7 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
+import java.io.File
 
 /** Glass title page (canvas `Title2-B`) of one AniList media, whatever is on the tablet. */
 class GlassTitleScreen(private val mediaId: Long) : Screen() {
@@ -104,6 +105,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val coverage by model.coverage.collectAsStateWithLifecycle()
         val chosenId by model.chosen.collectAsStateWithLifecycle()
         val covers by model.covers.collectAsStateWithLifecycle()
+        val localCovers by model.localCovers.collectAsStateWithLifecycle()
         val message by model.message.collectAsStateWithLifecycle()
         val fillGapsPref = remember { model.downloadPreferences.realDebridFillGaps() }
         val fillGaps by fillGapsPref.collectAsState()
@@ -147,7 +149,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             Unit
         }
 
-        val left: @Composable () -> Unit = {
+        val header: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 TopRow(
                     onBack = { navigator.pop() },
@@ -181,7 +183,12 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         }
                     }
                 }
-                if (entry != null) {
+            }
+        }
+
+        val sourceList: @Composable () -> Unit = {
+            if (entry != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         if (count > 0) {
                             stringResource(MR.strings.glass_title_sources, count)
@@ -219,7 +226,14 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             }
         }
 
-        val right: LazyGridScope.() -> Unit = {
+        val left: @Composable () -> Unit = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                header()
+                sourceList()
+            }
+        }
+
+        val aniList: LazyGridScope.() -> Unit = {
             fullSpan {
                 if (entry != null) {
                     AniListPanel(
@@ -233,6 +247,9 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     Text(stringResource(MR.strings.glass_title_unknown), color = Glass.secondary, fontSize = Glass.body)
                 }
             }
+        }
+
+        val volumeGrid: LazyGridScope.() -> Unit = {
             fullSpan {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
@@ -270,6 +287,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             items(cells, key = { it.number }) { cell ->
                 VolumeCellView(
                     cell = cell,
+                    localCover = localCovers[cell.number],
                     cover = covers[cell.number],
                     seriesCover = entry?.let { it.coverLarge ?: it.cover },
                     current = cell.number == current,
@@ -298,7 +316,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 )
             }
             BoxWithConstraints(Modifier.fillMaxSize().padding(start = 108.dp, end = 32.dp)) {
-                val grid = @Composable { modifier: Modifier, withLeft: Boolean ->
+                val grid = @Composable { modifier: Modifier, portrait: Boolean ->
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(68.dp),
                         modifier = modifier,
@@ -306,8 +324,16 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        if (withLeft) fullSpan { left() }
-                        right(this)
+                        if (portrait) {
+                            // header → volumes → AniList → sources
+                            fullSpan { header() }
+                            volumeGrid(this)
+                            aniList(this)
+                            fullSpan { sourceList() }
+                        } else {
+                            aniList(this)
+                            volumeGrid(this)
+                        }
                     }
                 }
                 if (maxWidth >= 900.dp) {
@@ -322,7 +348,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         grid(Modifier.weight(1f).fillMaxHeight(), false)
                     }
                 } else {
-                    // portrait: one scrolling column, the left column first
+                    // portrait: one scrolling column
                     grid(Modifier.fillMaxSize(), true)
                 }
             }
@@ -600,6 +626,7 @@ private fun LegendItem(icon: String, text: String, color: Color) {
 @Composable
 private fun VolumeCellView(
     cell: VolumeCell,
+    localCover: File?,
     cover: String?,
     seriesCover: String?,
     current: Boolean,
@@ -612,7 +639,7 @@ private fun VolumeCellView(
     val shape = RoundedCornerShape(Glass.r8)
     val local = cell.local
     val alpha = when {
-        cover == null -> 0.3f // the series cover standing in, dimmed: the number says which volume
+        localCover == null && cover == null -> 0.3f // the series cover standing in, dimmed
         cell.state == VolState.READ -> 0.35f
         cell.state == VolState.HERE -> 1f
         cell.state == VolState.DOWNLOADING -> 0.7f
@@ -647,8 +674,13 @@ private fun VolumeCellView(
         ) {
             val context = LocalPlatformContext.current
             AsyncImage(
-                model = if (cover == null) seriesCover else remember(cover) {
-                    ImageRequest.Builder(context).data(cover).httpHeaders(VolumeCovers.imageHeaders).build()
+                // the volume's own first page, else MangaDex's cover, else the series cover
+                model = when {
+                    localCover != null -> localCover
+                    cover == null -> seriesCover
+                    else -> remember(cover) {
+                        ImageRequest.Builder(context).data(cover).httpHeaders(VolumeCovers.imageHeaders).build()
+                    }
                 },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,

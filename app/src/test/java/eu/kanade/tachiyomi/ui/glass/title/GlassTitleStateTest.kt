@@ -123,4 +123,12 @@ class GlassTitleStateTest {
         listOf(0, 10, 20, 50, 70, 90, 100).map(GlassTitleState::stars) shouldBe listOf(0, 1, 1, 3, 4, 5, 5)
         GlassTitleState.statuses.all { GlassTitleState.listStatus(GlassTitleState.trackerStatus(it)) == it } shouldBe true
     }
+
+    @Test
+    fun `MangaDex only when a volume is missing or the count is unknown`() {
+        GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(2), vol(3))) shouldBe false
+        GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(3))) shouldBe true
+        GlassTitleState.needsMangaDex(null, listOf(vol(1))) shouldBe true
+        GlassTitleState.needsMangaDex(0, emptyList()) shouldBe true
+    }
 }

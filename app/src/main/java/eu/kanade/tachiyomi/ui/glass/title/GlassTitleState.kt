@@ -48,6 +48,13 @@ object GlassTitleState {
         return maxOf(known, local.maxOfOrNull { it.number } ?: 0)
     }
 
+    /** MangaDex covers are wanted unless every volume 1..N (AniList's count) is on the tablet; unknown N → wanted. */
+    fun needsMangaDex(aniListVolumes: Int?, local: List<LocalVolume>): Boolean {
+        val n = aniListVolumes?.takeIf { it > 0 } ?: return true
+        val here = local.map { it.number }.toSet()
+        return (1..n).any { it !in here }
+    }
+
     /** Volume → the queued/running job holding it (the first such row). Finished and failed rows are not active. */
     fun active(rows: List<RealDebridQueue.Row>): Map<Int, Active> {
         val result = mutableMapOf<Int, Active>()
