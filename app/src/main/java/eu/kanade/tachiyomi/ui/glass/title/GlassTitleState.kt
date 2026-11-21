@@ -40,12 +40,14 @@ object GlassTitleState {
             .map { (_, same) -> same.firstOrNull { !it.read } ?: same.first() }
             .sortedBy { it.number }
 
-    /** Volumes 1..N: AniList's count, else the highest any source has; never fewer than the tablet's highest. */
+    /**
+     * Volumes 1..N: AniList's count; unknown → the highest any source or the tablet has. A file on the tablet numbered
+     * above AniList's count (a chapter pack read as "153") gets its own cell in [cells], it does not stretch the range.
+     */
     fun volumeCount(aniListVolumes: Int?, coverages: Collection<Coverage>, local: List<LocalVolume>): Int {
-        val known = aniListVolumes?.takeIf { it > 0 }
-            ?: coverages.flatMap { it.volumes.keys }.maxOrNull()
-            ?: 0
-        return maxOf(known, local.maxOfOrNull { it.number } ?: 0)
+        aniListVolumes?.takeIf { it > 0 }?.let { return it }
+        val sources = coverages.flatMap { it.volumes.keys }.maxOrNull() ?: 0
+        return maxOf(sources, local.maxOfOrNull { it.number } ?: 0)
     }
 
     /** MangaDex covers are wanted unless every volume 1..N (AniList's count) is on the tablet; unknown N → wanted. */
@@ -85,7 +87,8 @@ object GlassTitleState {
 
     fun cells(count: Int, local: List<LocalVolume>, active: Map<Int, Active>): List<VolumeCell> {
         val byNumber = local.associateBy { it.number }
-        return (1..count).map { v ->
+        val numbers = (1..count) + byNumber.keys.filter { it > count }.sorted() // extras beyond the count, one each
+        return numbers.map { v ->
             val l = byNumber[v]
             val a = active[v]
             when {

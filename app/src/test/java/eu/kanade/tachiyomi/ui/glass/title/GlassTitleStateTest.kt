@@ -110,6 +110,8 @@ class GlassTitleStateTest {
 
         GlassTitleState.volumeCount(null, listOf(excnn), listOf(vol(14))) shouldBe 14
         GlassTitleState.volumeCount(26, listOf(excnn), emptyList()) shouldBe 26
+        GlassTitleState.volumeCount(18, emptyList(), listOf(vol(3), vol(153))) shouldBe 18
+        GlassTitleState.cells(2, listOf(vol(1), vol(153)), emptyMap()).map { it.number } shouldBe listOf(1, 2, 153)
         GlassTitleState.volumeCount(null, emptyList(), emptyList()) shouldBe 0
 
         val cells = GlassTitleState.cells(

@@ -51,6 +51,7 @@ object MangaImportUtil {
 
     private val jpVolume = Regex("""第?\s*(\d+)\s*巻\s*([a-z])?(?![a-z])""", RegexOption.IGNORE_CASE)
     private val volume = Regex("""(?:^|[\s\-_])(?:v|vol\.?|volume|tome)\s*(\d+)([a-z])?(?![a-z0-9])""", RegexOption.IGNORE_CASE)
+    private val chapters = Regex("""\d\s*話|(?:^|[\s\-_])(?:ch\.?|chapter|c)\s*\d""", RegexOption.IGNORE_CASE)
     private val lastNumber = Regex("""(?:^|[\s\-_])(\d+)([a-z])?$""", RegexOption.IGNORE_CASE)
 
     /**
@@ -61,6 +62,7 @@ object MangaImportUtil {
     fun volumeName(name: String): String {
         val bare = tags.replace(archiveExt.replace(name, ""), " ").replace(Regex("""\s+"""), " ").trim()
         jpVolume.find(bare)?.let { m -> return label("第%02d巻", m) }
+        if (chapters.containsMatchIn(bare)) return bare // "第153-162話": chapters, not a volume
         (volume.find(bare) ?: lastNumber.find(bare))?.let { m -> return label("Vol. %02d", m) }
         return bare.ifBlank { archiveExt.replace(name, "") }
     }
