@@ -194,7 +194,12 @@ fun GlassChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     detail: String? = null,
+    /** a count after the text, in the text colour at 62% (Library "Reading 56") */
+    count: String? = null,
+    /** trailing icon ("chevDown" for menus) */
+    icon: String? = null,
 ) {
+    val ink = if (selected) Color.Black else Color.White
     Row(
         modifier
             .height(Glass.chip)
@@ -206,12 +211,14 @@ fun GlassChip(
     ) {
         Text(
             text,
-            color = if (selected) Color.Black else Color.White,
+            color = ink,
             fontSize = Glass.body,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
         )
         detail?.let { Text(it, color = Glass.ice, fontSize = Glass.caption) }
+        count?.let { Text(it, color = ink.copy(alpha = 0.62f), fontSize = Glass.body, maxLines = 1) }
+        icon?.let { GlassIcon(it, size = 16.dp, tint = ink) }
     }
 }
 

@@ -804,6 +804,54 @@
     <string name="rd_step_downloading">Downloading</string>
     <string name="rd_step_unpacking">Unpacking</string>
     <string name="rd_step_adding">Adding to the library</string>
+    <!-- Glass reader (UI rebuild phase 6) -->
+    <string name="glass_reader_more">More</string>
+    <string name="glass_reader_these_pages">These pages</string>
+    <string name="glass_reader_new">%1$d new</string>
+    <string name="glass_reader_due">%1$d due</string>
+    <string name="glass_reader_mined">%1$d mined</string>
+    <string name="glass_reader_words">Words</string>
+    <string name="glass_reader_peek_hint">Reading and meaning stay hidden. Tap a word to peek.</string>
+    <string name="glass_reader_no_ocr">No OCR on this page yet</string>
+    <string name="glass_reader_nothing_new">Nothing new on this page</string>
+    <string name="glass_reader_review">Review</string>
+    <string name="glass_reader_mark_known">Mark known</string>
+    <string name="glass_reader_mine">Mine</string>
+    <string name="glass_reader_no_entry">No dictionary entry for %1$s</string>
+    <!-- Glass Home and Library (UI rebuild phase 3) -->
+    <string name="glass_library">Library</string>
+    <string name="glass_classic_view">Classic view</string>
+    <string name="glass_refresh">Refresh</string>
+    <string name="glass_refreshing">Refreshing…</string>
+    <string name="glass_refresh_failed">AniList: %1$s</string>
+    <string name="glass_empty">Your AniList list isn\'t here yet: log in to AniList, then refresh.</string>
+    <string name="glass_open_tracking">Open tracking settings</string>
+    <string name="glass_resume">Resume</string>
+    <string name="glass_volumes">Volumes</string>
+    <string name="glass_hero_vol">Vol. %1$s</string>
+    <string name="glass_hero_vol_page">Vol. %1$s · page %2$d</string>
+    <string name="glass_n_volumes">%1$d volumes</string>
+    <string name="glass_row_reading">Reading</string>
+    <string name="glass_row_planning">Plan to read</string>
+    <string name="glass_search">Search my %1$d titles</string>
+    <string name="glass_anilist">ANILIST</string>
+    <string name="glass_on_tablet">ON THIS TABLET</string>
+    <string name="glass_all">All</string>
+    <string name="glass_more">More</string>
+    <string name="glass_status_current">Reading</string>
+    <string name="glass_status_planning">Plan to read</string>
+    <string name="glass_status_completed">Completed</string>
+    <string name="glass_status_paused">Paused</string>
+    <string name="glass_status_dropped">Dropped</string>
+    <string name="glass_status_repeating">Rereading</string>
+    <string name="glass_here_every">Every volume here</string>
+    <string name="glass_here_some">Some volumes here</string>
+    <string name="glass_here_nothing">Nothing yet</string>
+    <string name="glass_sort_last_read">Last read</string>
+    <string name="glass_sort_title">Title</string>
+    <string name="glass_sort_volumes_here">Volumes here</string>
+    <string name="glass_back">Back</string>
+    <string name="glass_title_later">Sources and downloads come with the title page</string>
     <string name="track_activity_name">Tracker login</string>
 
       <!-- Browse section -->
