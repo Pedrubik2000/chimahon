@@ -1,11 +1,17 @@
 package eu.kanade.presentation.more.settings.screen
 
 import android.content.Context
+import android.text.format.DateUtils
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -15,6 +21,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +30,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
@@ -46,6 +55,7 @@ import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.track.model.AutoTrackState
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.presentation.more.settings.Preference
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.track.EnhancedAnimeTracker
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.Tracker
@@ -72,6 +82,7 @@ import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import tachiyomi.core.common.i18n.stringResource as contextString
 
 object SettingsTrackingScreen : SearchableSettings {
     @Suppress("unused")
@@ -116,8 +127,30 @@ object SettingsTrackingScreen : SearchableSettings {
                         onDismissRequest = { dialog = null },
                     )
                 }
+                // chimahon -->
+                is AniListLibrary.LinkProposals -> {
+                    AniListLinkDialog(
+                        proposals = this,
+                        onDismissRequest = { dialog = null },
+                    )
+                }
+                // chimahon <--
             }
         }
+
+        // chimahon -->
+        val scope = rememberCoroutineScope()
+        val aniListLibrary = remember { Injekt.get<AniListLibrary>() }
+        val alEntries by aniListLibrary.entries.collectAsState()
+        val alRefreshedAt by aniListLibrary.refreshedAt.collectAsState()
+        val alError by aniListLibrary.error.collectAsState()
+        var alBusy by remember { mutableStateOf(false) }
+        val alRefreshed = if (alRefreshedAt == 0L) {
+            stringResource(MR.strings.anilist_list_never)
+        } else {
+            DateUtils.getRelativeTimeSpanString(alRefreshedAt).toString()
+        }
+        // chimahon <--
 
         val enhancedTrackers = trackerManager.trackers
             .filter { it is EnhancedTracker }
@@ -219,6 +252,46 @@ object SettingsTrackingScreen : SearchableSettings {
                     Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.tracking_info)),
                 ),
             ),
+            // chimahon -->
+            Preference.PreferenceGroup(
+                title = stringResource(MR.strings.anilist_list),
+                preferenceItems = persistentListOf(
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(
+                            MR.strings.anilist_list_summary,
+                            alEntries.size,
+                            alEntries.count { it.status == "CURRENT" },
+                            alEntries.count { it.status == "PLANNING" },
+                            alRefreshed,
+                        ),
+                        subtitle = when {
+                            alBusy -> stringResource(MR.strings.loading)
+                            alError != null -> stringResource(MR.strings.anilist_list_error, alError.orEmpty())
+                            else -> null
+                        },
+                        onClick = {
+                            if (!alBusy) {
+                                alBusy = true
+                                scope.launchIO {
+                                    aniListLibrary.refresh()
+                                    withUIContext { alBusy = false }
+                                }
+                            }
+                        },
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        title = stringResource(MR.strings.anilist_link_local),
+                        subtitle = stringResource(MR.strings.anilist_link_local_summary),
+                        onClick = {
+                            scope.launchIO {
+                                val proposals = aniListLibrary.proposeLinks()
+                                withUIContext { dialog = proposals }
+                            }
+                        },
+                    ),
+                ),
+            ),
+            // chimahon <--
             Preference.PreferenceGroup(
                 title = stringResource(MR.strings.enhanced_services),
                 preferenceItems = (
@@ -405,6 +478,74 @@ object SettingsTrackingScreen : SearchableSettings {
             },
         )
     }
+}
+
+// chimahon: proposals of AniListLibrary.proposeLinks, one checkbox per pair; nothing is linked before Confirm
+@Composable
+private fun AniListLinkDialog(
+    proposals: AniListLibrary.LinkProposals,
+    onDismissRequest: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val checked = remember { proposals.matches.map { true }.toMutableStateList() }
+    var processing by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(text = stringResource(MR.strings.anilist_link_local)) },
+        text = {
+            LazyColumn(modifier = Modifier.heightIn(max = 480.dp)) {
+                itemsIndexed(proposals.matches) { i, proposal ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { checked[i] = !checked[i] },
+                    ) {
+                        Checkbox(checked = checked[i], onCheckedChange = { checked[i] = it })
+                        Text(
+                            text = "${proposal.mangaTitle} → " +
+                                (proposal.entry.native ?: proposal.entry.romaji ?: proposal.entry.mediaId.toString()),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+                item {
+                    Text(
+                        text = (
+                            listOf(stringResource(MR.strings.anilist_link_unmatched, proposals.unmatched.size)) +
+                                proposals.unmatched
+                            ).joinToString("\n"),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !processing && checked.any { it },
+                onClick = {
+                    processing = true
+                    val pairs = proposals.matches.filterIndexed { i, _ -> checked[i] }.map { it.mangaId to it.entry.mediaId }
+                    scope.launchIO {
+                        val linked = Injekt.get<AniListLibrary>().applyLinks(pairs)
+                        withUIContext {
+                            context.toast(context.contextString(MR.strings.anilist_link_done, linked))
+                            onDismissRequest()
+                        }
+                    }
+                },
+            ) {
+                Text(text = stringResource(MR.strings.anilist_link_confirm))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismissRequest) {
+                Text(text = stringResource(MR.strings.action_cancel))
+            }
+        },
+    )
 }
 
 private data class LoginDialog(

@@ -1,0 +1,492 @@
+{
+ "result": "ok",
+ "response": "collection",
+ "data": [
+  {
+   "id": "74728332-369e-469c-9cf8-b01bb4afc165",
+   "type": "manga",
+   "attributes": {
+    "title": {
+     "ja-ro": "Nanako-san-teki na Nichijou"
+    },
+    "altTitles": [
+     {
+      "ja": "菜々子さん的な日常"
+     },
+     {
+      "ja-ro": "Nanako-san Teki na Nichijou"
+     },
+     {
+      "en": "A Nanako-san-ical Daily Life"
+     }
+    ],
+    "description": {
+     "en": "Nanako is an athletic and carefree girl. But she is too care"
+    },
+    "isLocked": false,
+    "links": {
+     "al": "33809",
+     "ap": "nanako-san-teki-na-nichijou",
+     "kt": "8414",
+     "mu": "qtxxefn",
+     "amz": "https://www.amazon.co.jp/dp/4877344039",
+     "mal": "3809"
+    },
+    "officialLinks": null,
+    "originalLanguage": "ja",
+    "lastVolume": "2",
+    "lastChapter": "36",
+    "publicationDemographic": null,
+    "status": "completed",
+    "year": 1998,
+    "contentRating": "suggestive",
+    "tags": [
+     {
+      "id": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Comedy"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "caaa44eb-cd40-4177-b930-79d3ef2afe87",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "School Life"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "e5301a23-ebd9-49dd-a0cb-2add944c7fe9",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Slice of Life"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     }
+    ],
+    "state": "published",
+    "chapterNumbersResetOnNewVolume": false,
+    "createdAt": "2019-04-30T00:30:41+00:00",
+    "updatedAt": "2025-11-19T18:09:09+00:00",
+    "version": 12,
+    "availableTranslatedLanguages": [
+     "en",
+     "pt-br"
+    ],
+    "latestUploadedChapter": "9fa87625-e083-419b-9fc4-e1e6bd21da4d"
+   },
+   "relationships": [
+    {
+     "id": "b511142e-220d-4919-8e8c-ad5951bcd152",
+     "type": "author"
+    },
+    {
+     "id": "b511142e-220d-4919-8e8c-ad5951bcd152",
+     "type": "artist"
+    }
+   ]
+  },
+  {
+   "id": "f5bf9cc3-d003-47fe-bc76-99774b2a0562",
+   "type": "manga",
+   "attributes": {
+    "title": {
+     "en": "Nichijou"
+    },
+    "altTitles": [
+     {
+      "fi": "Arki"
+     },
+     {
+      "tr": "Günlük Yaşam"
+     },
+     {
+      "en": "My Ordinary Life"
+     }
+    ],
+    "description": {
+     "de": "Währendessen der Titel \"alltägliches Leben\" bedeutet ist der"
+    },
+    "isLocked": false,
+    "links": {
+     "al": "33082",
+     "kt": "6617",
+     "mu": "uothgqj",
+     "mal": "3082",
+     "raw": "https://web-ace.jp/youngaceup/contents/1000069/episode/"
+    },
+    "officialLinks": null,
+    "originalLanguage": "ja",
+    "lastVolume": "",
+    "lastChapter": "",
+    "publicationDemographic": "shounen",
+    "status": "hiatus",
+    "year": 2006,
+    "contentRating": "safe",
+    "tags": [
+     {
+      "id": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Comedy"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "b9af3a63-f058-46de-a9a0-e0c13906197a",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Drama"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "caaa44eb-cd40-4177-b930-79d3ef2afe87",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "School Life"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "e5301a23-ebd9-49dd-a0cb-2add944c7fe9",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Slice of Life"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     }
+    ],
+    "state": "published",
+    "chapterNumbersResetOnNewVolume": false,
+    "createdAt": "2018-01-22T00:33:57+00:00",
+    "updatedAt": "2026-01-10T21:12:13+00:00",
+    "version": 23,
+    "availableTranslatedLanguages": [
+     "es-la",
+     "en",
+     "pl",
+     "pt-br",
+     "de",
+     "id",
+     "ru",
+     "la",
+     "uk",
+     "it",
+     "vi",
+     "fr"
+    ],
+    "latestUploadedChapter": "619490c5-d745-4bd6-b28f-1220effaadf8"
+   },
+   "relationships": [
+    {
+     "id": "43243d69-13cf-454a-9e37-6d0d3adb22c8",
+     "type": "author"
+    },
+    {
+     "id": "43243d69-13cf-454a-9e37-6d0d3adb22c8",
+     "type": "artist"
+    }
+   ]
+  },
+  {
+   "id": "03426dd2-63c5-493e-853e-485d7c7dc9c0",
+   "type": "manga",
+   "attributes": {
+    "title": {
+     "ja-ro": "Kono Subarashii Sekai ni Nichijou wo!"
+    },
+    "altTitles": [
+     {
+      "ja": "この素晴らしい世界に日常を！"
+     },
+     {
+      "ja-ro": "Kono Subarashii Sekai ni Nichijou o!"
+     },
+     {
+      "en": "Everyday Life in This Wonderful World!"
+     }
+    ],
+    "description": {
+     "en": "Spinoff of the KonoSuba series, featuring the daily life of "
+    },
+    "isLocked": false,
+    "links": {
+     "al": "99850",
+     "ap": "konosuba-everyday-life-in-this-wonderful-world",
+     "bl": "431919",
+     "bw": "series/153436",
+     "kt": "39722",
+     "mu": "6tjj5ag",
+     "amz": "https://www.amazon.co.jp/dp/B082887QLR",
+     "ebj": "https://ebookjapan.yahoo.co.jp/books/400974/",
+     "mal": "106218"
+    },
+    "officialLinks": null,
+    "originalLanguage": "ja",
+    "lastVolume": "3",
+    "lastChapter": "32",
+    "publicationDemographic": "shounen",
+    "status": "completed",
+    "year": 2016,
+    "contentRating": "safe",
+    "tags": [
+     {
+      "id": "0bc90acb-ccc1-44ca-a34a-b9f3a73259d0",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Reincarnation"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "36fd93ea-e8b8-445e-b836-358f02b3d33d",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Monsters"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "391b0423-d847-456f-aff0-8b0cfc03066b",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Action"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "39730448-9a5f-48a2-85b0-a70db87b1233",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Demons"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "3de8c75d-8ee3-48ff-98ee-e20a65c86451",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Animals"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "423e2eae-a7a2-4a8b-ac03-a8351462d71d",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Romance"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Comedy"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "87cc87cd-a395-47af-b27a-93258283bbc6",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Adventure"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "a1f53773-c69a-4ce5-8cab-fffcd90b1565",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Magic"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "aafb99c1-7f60-43fa-b75f-fc9502ce29c7",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Harem"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "ace04997-f6bd-436e-b261-779182193d3d",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Isekai"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "cdc58593-87dd-415e-bbc0-2ec27bf404cc",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Fantasy"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "dd1f77c5-dea9-4e2b-97ae-224af09caf99",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Monster Girls"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "e5301a23-ebd9-49dd-a0cb-2add944c7fe9",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Slice of Life"
+       },
+       "description": {},
+       "group": "genre",
+       "version": 1
+      },
+      "relationships": []
+     },
+     {
+      "id": "eabc5b4c-6aff-42f3-b657-3e90cbd00b75",
+      "type": "tag",
+      "attributes": {
+       "name": {
+        "en": "Supernatural"
+       },
+       "description": {},
+       "group": "theme",
+       "version": 1
+      },
+      "relationships": []
+     }
+    ],
+    "state": "published",
+    "chapterNumbersResetOnNewVolume": false,
+    "createdAt": "2019-02-17T06:09:16+00:00",
+    "updatedAt": "2026-08-07T13:42:14+00:00",
+    "version": 13,
+    "availableTranslatedLanguages": [
+     "en"
+    ],
+    "latestUploadedChapter": "aceacb16-8f9f-48d7-83cb-21a3d5ace1f5"
+   },
+   "relationships": [
+    {
+     "id": "2be83606-b862-46a9-bd36-6af1f56bd459",
+     "type": "author"
+    },
+    {
+     "id": "202e82e4-d8d7-4103-9ec8-b2c3488cfad4",
+     "type": "artist"
+    }
+   ]
+  }
+ ],
+ "limit": 10,
+ "offset": 0,
+ "total": 3
+}

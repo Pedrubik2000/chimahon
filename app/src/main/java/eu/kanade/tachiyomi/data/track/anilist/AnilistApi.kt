@@ -11,6 +11,7 @@ import eu.kanade.tachiyomi.data.track.anilist.dto.ALIdSearchResult
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALMangaMetadata
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALOAuth
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALSearchResult
+import eu.kanade.tachiyomi.data.track.anilist.dto.ALUserListItem
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALUserListMangaQueryResult
 import eu.kanade.tachiyomi.data.track.model.AnimeTrackSearch
 import eu.kanade.tachiyomi.data.track.model.TrackMangaMetadata
@@ -135,16 +136,19 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         }
     }
 
-    suspend fun updateLibManga(track: Track): Track {
+    // chimahon: progressVolumes is only in the request when given (local volumes), so other callers send what they did
+    suspend fun updateLibManga(track: Track, progressVolumes: Int? = null): Track {
         return withIOContext {
+            val volumesDecl = if (progressVolumes != null) ", \$progressVolumes: Int" else ""
+            val volumesArg = if (progressVolumes != null) ", progressVolumes: \$progressVolumes" else ""
             val query = $$"""
             |mutation UpdateManga(
                 |$listId: Int, $progress: Int, $status: MediaListStatus, $private: Boolean,
-                |$score: Int, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput
+                |$score: Int, $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput$${volumesDecl}
             |) {
                 |SaveMediaListEntry(
                     |id: $listId, progress: $progress, status: $status, private: $private,
-                    |scoreRaw: $score, startedAt: $startedAt, completedAt: $completedAt
+                    |scoreRaw: $score, startedAt: $startedAt, completedAt: $completedAt$${volumesArg}
                 |) {
                     |id
                     |status
@@ -163,6 +167,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                     put("startedAt", createDate(track.started_reading_date))
                     put("completedAt", createDate(track.finished_reading_date))
                     put("private", track.private)
+                    if (progressVolumes != null) put("progressVolumes", progressVolumes)
                 }
             }
             authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
@@ -173,6 +178,45 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
             track
         }
     }
+
+    // chimahon -->
+    /** The signed-in user's whole manga list (`MediaListCollection`) as the raw response, parsed by AniListLibrary. */
+    suspend fun getMangaListCollection(userId: Int): String {
+        return withIOContext {
+            val query = $$"""
+            |query ($userId: Int) {
+                |MediaListCollection(userId: $userId, type: MANGA) {
+                    |lists {
+                        |isCustomList
+                        |entries {
+                            |status progress progressVolumes score(format: POINT_100) updatedAt
+                            |media {
+                                |id
+                                |title { native romaji english }
+                                |coverImage { large extraLarge }
+                                |bannerImage volumes chapters status format genres
+                                |tags { name rank isMediaSpoiler isGeneralSpoiler }
+                                |averageScore popularity
+                                |startDate { year }
+                            |}
+                        |}
+                    |}
+                |}
+            |}
+            |
+            """.trimMargin()
+            val payload = buildJsonObject {
+                put("query", query)
+                putJsonObject("variables") {
+                    put("userId", userId)
+                }
+            }
+            authClient.newCall(POST(API_URL, body = payload.toString().toRequestBody(jsonMime)))
+                .awaitALSuccess()
+                .use { it.body.string() }
+        }
+    }
+    // chimahon <--
 
     suspend fun deleteLibManga(track: DomainTrack) {
         withIOContext {
@@ -413,7 +457,14 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         }
     }
 
-    suspend fun findLibManga(track: Track, userid: Int): Track? {
+    suspend fun findLibManga(track: Track, userid: Int): Track? =
+        findLibMangaItem(track, userid)?.toALUserManga()?.toTrack()
+
+    // chimahon: the same entry + its progressVolumes (Track has no field for it)
+    suspend fun findLibMangaWithVolumes(track: Track, userid: Int): Pair<Track, Int>? =
+        findLibMangaItem(track, userid)?.let { it.toALUserManga().toTrack() to (it.progressVolumes ?: 0) }
+
+    private suspend fun findLibMangaItem(track: Track, userid: Int): ALUserListItem? {
         return withIOContext {
             val query = $$"""
             |query ($id: Int!, $manga_id: Int!) {
@@ -423,6 +474,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                         |status
                         |scoreRaw: score(format: POINT_100)
                         |progress
+                        |progressVolumes
                         |private
                         |startedAt {
                             |year
@@ -489,9 +541,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                     // KMK <--
                     .parseAs<ALUserListMangaQueryResult>()
                     .data.page.mediaList
-                    .map { it.toALUserManga() }
                     .firstOrNull()
-                    ?.toTrack()
             }
         }
     }

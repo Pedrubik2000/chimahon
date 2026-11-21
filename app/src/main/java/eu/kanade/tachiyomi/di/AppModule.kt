@@ -25,6 +25,7 @@ import eu.kanade.tachiyomi.animesource.AndroidAnimeSourceManager
 import eu.kanade.tachiyomi.data.BackupRestoreStatus
 import eu.kanade.tachiyomi.data.LibraryUpdateStatus
 import eu.kanade.tachiyomi.data.SyncStatus
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadProvider
@@ -38,6 +39,7 @@ import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.data.download.MokuroSidecarCopier
+import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.ocr.LocalOcrBridge
 import eu.kanade.tachiyomi.data.ocr.ModelDownloader
 import eu.kanade.tachiyomi.data.ocr.OcrManager
@@ -252,6 +254,8 @@ class AppModule(val app: Application) : InjektModule {
         addSingletonFactory { AnimeDownloadCache(app) }
 
         addSingletonFactory { TrackerManager() }
+        addSingletonFactory { AniListLibrary(app) }
+        addSingletonFactory { VolumeCovers(app) }
         addSingletonFactory { DelayedTrackingStore(app) }
         addSingletonFactory { DelayedAnimeTrackingStore(app) }
 

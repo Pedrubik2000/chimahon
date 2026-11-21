@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.hippo.unifile.UniFile
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
@@ -38,7 +39,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
+import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.storage.service.StorageManager
+import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -126,6 +129,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 .firstNotNullOfOrNull { runCatching { aniList(it) }.getOrNull() }
             found?.let { runCatching { writeMetadata(mangaDir, it) } }
             ImportHandler.addMangaToLibrary(folder)
+            found?.let { bindAniList(folder, it) }
             done("Added $folder (${files.size} files)")
             Result.success()
         } catch (e: Exception) {
@@ -242,10 +246,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         bundle.delete()
     }
 
+    /** AniList track row for the series (also puts it on Pedro's AniList list), unless it has one or he is logged out. */
+    private suspend fun bindAniList(folder: String, media: JSONObject) {
+        val mediaId = media.optLong("id").takeIf { it > 0 } ?: return
+        runCatching {
+            val manga = Injekt.get<GetManga>().await(folder, LocalSource.ID) ?: return
+            val title = media.getJSONObject("title").let { it.str("romaji") ?: it.str("native") } ?: folder
+            Injekt.get<AniListLibrary>().link(manga.id, mediaId, title, media.optLong("chapters"))
+        }.onFailure { logcat(LogPriority.WARN, it) { "AniList track row failed: $folder" } }
+    }
+
     /** AniList's best match for a manga title, or null. */
     private fun aniList(title: String): JSONObject? {
         val query = """query(${'$'}q: String) { Media(search: ${'$'}q, type: MANGA) {
-            title { romaji native english } description(asHtml: false) status genres
+            id chapters title { romaji native english } description(asHtml: false) status genres
             staff(perPage: 6) { edges { role node { name { full } } } } coverImage { extraLarge } } }"""
         val body = JSONObject().put("query", query).put("variables", JSONObject().put("q", title)).toString()
         val req = Request.Builder().url("https://graphql.anilist.co")

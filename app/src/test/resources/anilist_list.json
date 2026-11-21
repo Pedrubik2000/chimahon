@@ -1,0 +1,405 @@
+{
+ "data": {
+  "MediaListCollection": {
+   "lists": [
+    {
+     "isCustomList": false,
+     "entries": [
+      {
+       "status": "CURRENT",
+       "progress": 138,
+       "progressVolumes": 17,
+       "score": 80,
+       "updatedAt": 1790542514,
+       "media": {
+        "id": 59211,
+        "title": {
+         "native": "月刊少女野崎くん",
+         "romaji": "Gekkan Shoujo Nozaki-kun",
+         "english": "Monthly Girls' Nozaki-kun"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx59211-ltc4FW9inrms.jpg",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx59211-ltc4FW9inrms.jpg"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/59211-qSzLKVzlnhGR.jpg",
+        "volumes": null,
+        "chapters": null,
+        "status": "RELEASING",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Romance"
+        ],
+        "tags": [
+         {
+          "name": "Drawing",
+          "rank": 95,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Parody",
+          "rank": 91,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "4-koma",
+          "rank": 87,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 82,
+        "popularity": 26395,
+        "startDate": {
+         "year": 2011
+        }
+       }
+      },
+      {
+       "status": "CURRENT",
+       "progress": 237,
+       "progressVolumes": 28,
+       "score": 80,
+       "updatedAt": 1782627956,
+       "media": {
+        "id": 58533,
+        "title": {
+         "native": "私がモテないのはどう考えてもお前らが悪い!",
+         "romaji": "Watashi ga Motenai no wa Dou Kangaete mo Omaera ga Warui!",
+         "english": "No Matter How I Look at It, It's You Guys' Fault I'm Not Popular!"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx58533-svgTPMaF3J7y.png",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx58533-svgTPMaF3J7y.png"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/58533-RmwUQdhoAjS8.jpg",
+        "volumes": null,
+        "chapters": null,
+        "status": "RELEASING",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Slice of Life"
+        ],
+        "tags": [
+         {
+          "name": "School",
+          "rank": 95,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Female Protagonist",
+          "rank": 92,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Rehabilitation",
+          "rank": 90,
+          "isMediaSpoiler": true,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 74,
+        "popularity": 20020,
+        "startDate": {
+         "year": 2011
+        }
+       }
+      }
+     ]
+    },
+    {
+     "isCustomList": false,
+     "entries": [
+      {
+       "status": "COMPLETED",
+       "progress": 188,
+       "progressVolumes": 20,
+       "score": 80,
+       "updatedAt": 1732961700,
+       "media": {
+        "id": 100664,
+        "title": {
+         "native": "イジらないで、長瀞さん",
+         "romaji": "Ijiranaide, Nagatoro-san",
+         "english": "Don't Toy With Me, Miss Nagatoro"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx100664-uzN5998CDxPJ.jpg",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx100664-uzN5998CDxPJ.jpg"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/100664-G1MIUsSTupjq.jpg",
+        "volumes": 20,
+        "chapters": 189,
+        "status": "FINISHED",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Ecchi",
+         "Romance",
+         "Slice of Life"
+        ],
+        "tags": [
+         {
+          "name": "Bullying",
+          "rank": 89,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Heterosexual",
+          "rank": 82,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Female Protagonist",
+          "rank": 81,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 73,
+        "popularity": 76522,
+        "startDate": {
+         "year": 2017
+        }
+       }
+      },
+      {
+       "status": "COMPLETED",
+       "progress": 135,
+       "progressVolumes": 15,
+       "score": 70,
+       "updatedAt": 1714408565,
+       "media": {
+        "id": 116266,
+        "title": {
+         "native": "カノジョも彼女",
+         "romaji": "Kanojo mo Kanojo",
+         "english": "Girlfriend, Girlfriend"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx116266-VouBBsn4mVHc.jpg",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116266-VouBBsn4mVHc.jpg"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/116266-yrqxvevsxEUt.jpg",
+        "volumes": 16,
+        "chapters": 144,
+        "status": "FINISHED",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Ecchi",
+         "Romance",
+         "Slice of Life"
+        ],
+        "tags": [
+         {
+          "name": "Female Harem",
+          "rank": 93,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Surreal Comedy",
+          "rank": 92,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Heterosexual",
+          "rank": 92,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 68,
+        "popularity": 22768,
+        "startDate": {
+         "year": 2020
+        }
+       }
+      }
+     ]
+    },
+    {
+     "isCustomList": false,
+     "entries": [
+      {
+       "status": "PLANNING",
+       "progress": 0,
+       "progressVolumes": 0,
+       "score": 0,
+       "updatedAt": 1707689316,
+       "media": {
+        "id": 33082,
+        "title": {
+         "native": "日常",
+         "romaji": "Nichijou",
+         "english": "Nichijou"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx33082-YrGJ9Tj3UJ3a.png",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33082-YrGJ9Tj3UJ3a.png"
+        },
+        "bannerImage": null,
+        "volumes": null,
+        "chapters": null,
+        "status": "RELEASING",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Slice of Life"
+        ],
+        "tags": [
+         {
+          "name": "Slapstick",
+          "rank": 94,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Surreal Comedy",
+          "rank": 94,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Episodic",
+          "rank": 92,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 83,
+        "popularity": 17261,
+        "startDate": {
+         "year": 2006
+        }
+       }
+      },
+      {
+       "status": "PLANNING",
+       "progress": 0,
+       "progressVolumes": 0,
+       "score": 0,
+       "updatedAt": 1707689316,
+       "media": {
+        "id": 108556,
+        "title": {
+         "native": "SPY×FAMILY",
+         "romaji": "SPY×FAMILY",
+         "english": "SPY x FAMILY"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx108556-NHjkz0BNJhLx.jpg",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx108556-NHjkz0BNJhLx.jpg"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108556-iCiPfU0GU4OM.jpg",
+        "volumes": null,
+        "chapters": null,
+        "status": "RELEASING",
+        "format": "MANGA",
+        "genres": [
+         "Action",
+         "Comedy",
+         "Slice of Life",
+         "Supernatural"
+        ],
+        "tags": [
+         {
+          "name": "Family Life",
+          "rank": 97,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Espionage",
+          "rank": 96,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Found Family",
+          "rank": 91,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 83,
+        "popularity": 161586,
+        "startDate": {
+         "year": 2019
+        }
+       }
+      }
+     ]
+    },
+    {
+     "isCustomList": true,
+     "entries": [
+      {
+       "status": "CURRENT",
+       "progress": 138,
+       "progressVolumes": 17,
+       "score": 80,
+       "updatedAt": 1790542514,
+       "media": {
+        "id": 59211,
+        "title": {
+         "native": "月刊少女野崎くん",
+         "romaji": "Gekkan Shoujo Nozaki-kun",
+         "english": "Monthly Girls' Nozaki-kun"
+        },
+        "coverImage": {
+         "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx59211-ltc4FW9inrms.jpg",
+         "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx59211-ltc4FW9inrms.jpg"
+        },
+        "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/59211-qSzLKVzlnhGR.jpg",
+        "volumes": null,
+        "chapters": null,
+        "status": "RELEASING",
+        "format": "MANGA",
+        "genres": [
+         "Comedy",
+         "Romance"
+        ],
+        "tags": [
+         {
+          "name": "Drawing",
+          "rank": 95,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "Parody",
+          "rank": 91,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         },
+         {
+          "name": "4-koma",
+          "rank": 87,
+          "isMediaSpoiler": false,
+          "isGeneralSpoiler": false
+         }
+        ],
+        "averageScore": 82,
+        "popularity": 26395,
+        "startDate": {
+         "year": 2011
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

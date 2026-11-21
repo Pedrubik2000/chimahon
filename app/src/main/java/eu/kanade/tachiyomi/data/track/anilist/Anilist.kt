@@ -384,4 +384,32 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     // KMK -->
     override fun hasNotStartedReading(status: Long): Boolean = status == PLAN_TO_READ
     // KMK <--
+
+    // chimahon -->
+    /** Raw `MediaListCollection` response of the signed-in user's manga list. */
+    suspend fun fetchMangaList(): String = api.getMangaListCollection(getUsername().toInt())
+
+    /**
+     * Local-source manga: a chapter is a volume, so a finished volume sets AniList's progressVolumes (never lowers
+     * it) and leaves chapter progress as it is on AniList. Returns the track with last_chapter_read = volumes read.
+     */
+    // ponytail: never sets COMPLETED (Track has no volume total); finish a series by hand on AniList
+    suspend fun updateVolumes(track: Track, volume: Int): Track {
+        val (remote, remoteVolumes) = api.findLibMangaWithVolumes(track, getUsername().toInt())
+            ?: return track // not on the list (removed on AniList): nothing to update
+        track.copyPersonalFrom(remote) // fresh status, score, dates; last_chapter_read = AniList chapter progress
+        track.library_id = remote.library_id
+        if (volume > remoteVolumes) {
+            if (track.status != COMPLETED && track.status != REREADING) {
+                if (track.status == PLAN_TO_READ && track.started_reading_date == 0L) {
+                    track.started_reading_date = System.currentTimeMillis()
+                }
+                track.status = READING
+            }
+            api.updateLibManga(track, progressVolumes = volume)
+        }
+        track.last_chapter_read = maxOf(volume, remoteVolumes).toDouble()
+        return track
+    }
+    // chimahon <--
 }

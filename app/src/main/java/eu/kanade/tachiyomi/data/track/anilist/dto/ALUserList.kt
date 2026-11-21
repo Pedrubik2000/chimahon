@@ -29,6 +29,8 @@ data class ALUserListItem(
     val completedAt: ALFuzzyDate,
     val media: ALSearchItem,
     val private: Boolean,
+    // chimahon: only the manga entry query asks for it
+    val progressVolumes: Int? = null,
 ) {
     fun toALUserManga(): ALUserManga {
         return ALUserManga(
