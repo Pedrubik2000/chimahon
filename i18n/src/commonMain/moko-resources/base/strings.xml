@@ -778,6 +778,32 @@
     <string name="anilist_link_unmatched">%1$d local series with no match</string>
     <string name="anilist_link_confirm">Confirm</string>
     <string name="anilist_link_done">Linked %1$d series</string>
+    <!-- chimahon: Real-Debrid account and the source coverage debug dialog (Settings > Downloads) -->
+    <string name="rd_account_premium">Real-Debrid: Premium · %1$d days left</string>
+    <string name="rd_account_free">Real-Debrid: not premium</string>
+    <string name="rd_account_no_key">Real-Debrid: No key</string>
+    <string name="rd_account_rejected">Real-Debrid: Key not accepted</string>
+    <string name="rd_account_error">Real-Debrid: account check failed (%1$s)</string>
+    <string name="rd_coverage_test">Source coverage test</string>
+    <string name="rd_coverage_test_summary">Which Real-Debrid sources have a title\'s volumes (debug)</string>
+    <string name="rd_coverage_hint">AniList media id or title</string>
+    <string name="rd_coverage_check">Check</string>
+    <string name="rd_coverage_refetch">Refetch</string>
+    <string name="rd_coverage_not_in_list">Not in your AniList list (refresh it in Settings > Tracking)</string>
+    <string name="rd_coverage_found">%1$s · %2$s · %3$s</string>
+    <string name="rd_coverage_not_found">%1$s · not found</string>
+    <string name="rd_coverage_needs_visit">%1$s · needs a visit (open the source once)</string>
+    <string name="rd_coverage_error">%1$s · error: %2$s</string>
+    <string name="rd_coverage_fetch">Fetch vol. 1</string>
+    <string name="rd_coverage_no_volume">No source has vol. 1</string>
+    <string name="rd_row">Vol. %1$s · %2$s · %3$s</string>
+    <string name="rd_row_queued">Queued</string>
+    <string name="rd_row_done">Done</string>
+    <string name="rd_row_failed">Failed: %1$s</string>
+    <string name="rd_step_waiting">Waiting for Real-Debrid</string>
+    <string name="rd_step_downloading">Downloading</string>
+    <string name="rd_step_unpacking">Unpacking</string>
+    <string name="rd_step_adding">Adding to the library</string>
     <string name="track_activity_name">Tracker login</string>
 
       <!-- Browse section -->

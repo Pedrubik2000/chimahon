@@ -1,6 +1,7 @@
 package tachiyomi.domain.download.service
 
 import tachiyomi.core.common.preference.PreferenceStore
+import tachiyomi.core.common.preference.getLongArray
 
 class DownloadPreferences(
     private val preferenceStore: PreferenceStore,
@@ -12,6 +13,12 @@ class DownloadPreferences(
     )
 
     fun realDebridToken() = preferenceStore.getString("real_debrid_token", "")
+
+    /** Real-Debrid source ids in the order to try them; empty / missing ones follow the built-in order. */
+    fun realDebridSourceOrder() = preferenceStore.getLongArray("real_debrid_source_order", emptyList())
+
+    /** Real-Debrid source ids switched off for coverage and downloads. */
+    fun realDebridSourcesOff() = preferenceStore.getLongArray("real_debrid_sources_off", emptyList())
 
     fun saveChaptersAsCBZ() = preferenceStore.getBoolean("save_chapter_as_cbz", true)
 

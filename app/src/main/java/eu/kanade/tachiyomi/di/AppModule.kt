@@ -35,10 +35,12 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.cache.PagePreviewCache
 import eu.kanade.tachiyomi.data.connections.ConnectionsManager
+import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.download.DownloadCache
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.DownloadProvider
 import eu.kanade.tachiyomi.data.download.MokuroSidecarCopier
+import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.ocr.LocalOcrBridge
 import eu.kanade.tachiyomi.data.ocr.ModelDownloader
@@ -256,6 +258,8 @@ class AppModule(val app: Application) : InjektModule {
         addSingletonFactory { TrackerManager() }
         addSingletonFactory { AniListLibrary(app) }
         addSingletonFactory { VolumeCovers(app) }
+        addSingletonFactory { SourceCoverage(app) }
+        addSingletonFactory { RealDebridQueue(app) }
         addSingletonFactory { DelayedTrackingStore(app) }
         addSingletonFactory { DelayedAnimeTrackingStore(app) }
 

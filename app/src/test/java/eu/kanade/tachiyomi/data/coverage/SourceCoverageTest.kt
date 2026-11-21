@@ -1,0 +1,81 @@
+package eu.kanade.tachiyomi.data.coverage
+
+import eu.kanade.tachiyomi.source.online.all.ExcnnParser
+import eu.kanade.tachiyomi.source.online.all.NyaaParser
+import eu.kanade.tachiyomi.source.online.all.X3dlParser
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Test
+
+class SourceCoverageTest {
+
+    private fun fixture(name: String) = javaClass.getResource("/$name")!!.readText()
+
+    @Test
+    fun `post titles match the entry, nothing else`() {
+        // Excnn: romanized title, the Japanese one in parentheses
+        val excnn = ExcnnParser.parseList(fixture("excnn/list.html")).first.map { it.title }
+        val konyakusha = listOf("婚約者に浮気された令嬢は異国の強面盟主に溺愛される", "Konyakusha ni Uwaki Sareta Reijou")
+        excnn.count { CoverageMatch.matches(konyakusha, it) } shouldBe 1
+        CoverageMatch.matches(konyakusha, excnn[6]) shouldBe true
+
+        // X3DL: "[author] title"
+        val x3dl = X3dlParser.parseList(fixture("x3dl/list.html")).first.map { it.title }
+        CoverageMatch.matches(listOf("ドラフトキング", "Draft King"), x3dl[0]) shouldBe true
+        CoverageMatch.matches(listOf("ドラフト"), x3dl[0]) shouldBe false
+
+        // Nyaa: "title 第01-06巻 [romaji vol 01-06]"
+        val nyaa = NyaaParser.parseRss(fixture("nyaa_rss.xml")).map { it.title }
+        nyaa.count { CoverageMatch.matches(listOf("スタジオカバナ"), it) } shouldBe 1
+        nyaa.count { CoverageMatch.matches(listOf("Aoi Hana"), it) } shouldBe 1
+        // a trailing number is part of the title: ACT 4 is not ACT 3
+        nyaa.count { CoverageMatch.matches(listOf("DEAR BOYS ACT 4"), it) } shouldBe 1
+        nyaa.count { CoverageMatch.matches(listOf("DEAR BOYS ACT 3"), it) } shouldBe 0
+        nyaa.count { CoverageMatch.matches(listOf("DEAR BOYS"), it) } shouldBe 0
+    }
+
+    @Test
+    fun `volumes from chapters, single files before batches`() {
+        val volumes = CoverageMatch.volumes(
+            listOf(
+                "15-21 20-21s" to "d",
+                "01-14 01-04別スキャン" to "a",
+                "02" to "c",
+                "01" to "b",
+                "Shonen_Jump_2026-04-05" to "x",
+            ),
+        )
+        volumes[1] shouldBe "b"
+        volumes[2] shouldBe "c"
+        (3..14).all { volumes[it] == "a" } shouldBe true
+        (15..21).all { volumes[it] == "d" } shouldBe true
+        volumes.keys shouldBe (1..21).toSet()
+    }
+
+    @Test
+    fun `merge follows the source order`() {
+        val x3dl = Coverage(1, "X3DL", Coverage.State.FOUND, volumes = (1..14).associateWith { "x-batch" } + (15 to "x15"))
+        val excnn = Coverage(2, "Excnn", Coverage.State.FOUND, volumes = mapOf(1 to "e1", 2 to "e2", 16 to "e16"))
+        val nyaa = Coverage(3, "Nyaa", Coverage.State.NOT_FOUND)
+        val gated = Coverage(4, "Gated", Coverage.State.NEEDS_VISIT, volumes = mapOf(1 to "g1"))
+        val inOrder = CoverageMatch.ordered(listOf(nyaa, excnn, gated, x3dl), listOf(1L, 2L, 3L))
+        inOrder.map { it.sourceId } shouldBe listOf(1L, 2L, 3L, 4L)
+
+        CoverageMatch.links(1, inOrder) shouldBe listOf(1L to "x-batch", 2L to "e1")
+        CoverageMatch.links(16, inOrder) shouldBe listOf(2L to "e16")
+        CoverageMatch.links(17, inOrder) shouldBe emptyList()
+        CoverageMatch.firstSource(inOrder) shouldBe (1..15).associateWith { 1L } + (16 to 2L)
+
+        // the other order: Excnn first
+        val excnnFirst = CoverageMatch.ordered(inOrder, listOf(2L, 1L))
+        CoverageMatch.links(1, excnnFirst) shouldBe listOf(2L to "e1", 1L to "x-batch")
+        CoverageMatch.firstSource(excnnFirst)[3] shouldBe 1L
+    }
+
+    @Test
+    fun ranges() {
+        CoverageMatch.ranges((1..26).toList() + 28) shouldBe "1–26, 28"
+        CoverageMatch.ranges(listOf(3)) shouldBe "3"
+        CoverageMatch.ranges(listOf(5, 1, 2)) shouldBe "1–2, 5"
+        CoverageMatch.ranges(emptyList()) shouldBe ""
+    }
+}
