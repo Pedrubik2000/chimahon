@@ -35,9 +35,9 @@ object X3dlParser {
     }
 
     /**
-     * Post page -> one volume per Uploady link (`link/n?url=` = plain base64 of the hoster link). RapidGator and
-     * Hexload links are obfuscated and skipped; an `n?url=` value that isn't an http(s) link (the "Premium"
-     * redirector) is skipped too.
+     * Post page -> one volume per (label paragraph, file), in page order. Each hoster link belongs to the nearest
+     * "第…巻" paragraph above it. Uploady (`link/n?url=` = plain base64) wins, else RapidGator (`wp-ads3?url=`,
+     * see [rapidGator]). Hexload, other `link/n` hosts and the "Premium" redirector are skipped.
      */
     fun parsePost(html: String): Details {
         val doc = Jsoup.parse(html, "$BASE/wp/")
@@ -45,24 +45,51 @@ object X3dlParser {
             ?: doc.title().substringBefore(" | ")
         val content = doc.selectFirst("div.entry-content") ?: doc.body()
         var label: String? = null
-        val volumes = mutableListOf<Volume>()
-        // document order: a "第27巻" paragraph names the links after it
-        content.select("p, a[href*=link.x3dl.net/wp/link/n?url=]").forEach { el ->
+        // (label, file) -> links found, Uploady and RapidGator
+        val found = linkedMapOf<Pair<String?, String>, MutableList<String>>()
+        content.select("p, a[href*=link.x3dl.net/wp/link/n?url=], a[href*=/wp/zip/wp-ads3?url=]").forEach { el ->
             if (el.tagName() == "p") {
                 labelLine.find(el.text().trim())?.let { label = "${it.groupValues[1]} ${it.groupValues[2]}".trim() }
                 return@forEach
             }
-            val link = decode(el.absUrl("href").substringAfter("url=")) ?: return@forEach
-            if (!link.startsWith("https://") && !link.startsWith("http://")) return@forEach
+            val value = el.attr("href").substringAfter("url=")
+            val link = if ("wp-ads3" in el.attr("href")) {
+                rapidGator(value)
+            } else {
+                base64(value)?.let(::String)?.takeIf { it.startsWith("https://uploady.io/") }
+            } ?: return@forEach
             val file = size.replace(el.text().trim(), "").ifBlank { link.trimEnd('/').substringAfterLast('/') }
-            volumes += Volume(label ?: file, link)
-            label = null
+            found.getOrPut(label to file) { mutableListOf() } += link
+        }
+        val perLabel = found.keys.groupingBy { it.first }.eachCount()
+        val volumes = found.map { (key, links) ->
+            val (label, file) = key
+            val name = when {
+                label == null -> file
+                perLabel.getValue(label) > 1 -> "$label $file"
+                else -> label
+            }
+            Volume(name, links.firstOrNull { it.startsWith("https://uploady.io/") } ?: links.first())
         }
         val cover = content.selectFirst("figure.entry-thumbnail img[src]")?.absUrl("src")
         return Details(seriesTitle(title), cover, volumes)
     }
 
-    private fun decode(value: String) = runCatching {
-        String(Base64.getDecoder().decode(java.net.URLDecoder.decode(value, "UTF-8")))
+    private val rapidGatorLink = Regex("""^https://(rg\.to|rapidgator\.net)/file/[0-9a-f]{32}""")
+
+    // ponytail: fixed site key (same on every post seen 2026-11-21); if the site changes it these links fail the
+    // check and their RapidGator-only volumes just disappear again
+    private val key = "f91f4d061c663e30e058cb62bd7e4ec5".toByteArray()
+
+    /** wp-ads3 value: base64, then each byte minus the key byte (mod 256) -> https://rg.to/file/<id>, else null. */
+    fun rapidGator(value: String): String? {
+        val c = base64(value) ?: return null
+        val plain = String(ByteArray(c.size) { i -> (c[i] - key[i % key.size]).toByte() }, Charsets.ISO_8859_1)
+        return rapidGatorLink.find(plain)?.value
+    }
+
+    // either alphabet ("-" shows up in wp-ads3 values), padding optional
+    private fun base64(value: String) = runCatching {
+        Base64.getDecoder().decode(java.net.URLDecoder.decode(value, "UTF-8").replace('-', '+').replace('_', '/'))
     }.getOrNull()
 }
