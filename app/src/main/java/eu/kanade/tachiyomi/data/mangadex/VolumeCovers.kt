@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.mangadex
 
 import android.app.Application
+import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -83,8 +84,14 @@ class VolumeCovers(private val app: Application) {
         return Saved(System.currentTimeMillis(), mangaDexId, volumeCovers(mangaDexId, covers))
     }
 
-    private suspend fun text(request: Request) =
-        network.client.newCall(request).awaitSuccess().use { it.body.string() }
+    // MangaDex's API wants the client's own User-Agent; the app's default browser-like one gets its bot challenge
+    private suspend fun text(request: Request) = network.client
+        .newCall(
+            request.newBuilder()
+                .header("User-Agent", "Chimahon/v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})")
+                .build(),
+        )
+        .awaitSuccess().use { it.body.string() }
 
     data class Cover(val volume: String?, val locale: String?, val fileName: String)
 
