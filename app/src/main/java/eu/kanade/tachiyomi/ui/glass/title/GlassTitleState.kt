@@ -4,6 +4,8 @@ import eu.kanade.tachiyomi.data.coverage.Coverage
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.track.anilist.Anilist
+import eu.kanade.tachiyomi.ui.browse.source.MangaImportUtil
+import tachiyomi.domain.chapter.model.Chapter
 
 /** One local-source chapter of the title (= one volume). [number] is the volume, from "Vol. NN". */
 data class LocalVolume(val chapterId: Long, val number: Int, val read: Boolean, val lastPageRead: Long)
@@ -33,6 +35,14 @@ object GlassTitleState {
     /** A chapter number as a volume box: integers ≥ 1 only ("Vol. 3.5" or an unnumbered file is not a box). */
     fun volumeNumber(chapterNumber: Double): Int? =
         chapterNumber.takeIf { it >= 1 && it % 1.0 == 0.0 }?.toInt()
+
+    /**
+     * A local chapter's volume, read from its file name as imports read it (url = "folder/file"), not the row's number:
+     * a ComicInfo <Number> inside the archive overrides that one, so a cell could open another volume's file.
+     */
+    fun volumeNumber(chapter: Chapter): Int? =
+        MangaImportUtil.volumeNumber(chapter.url.substringBeforeLast('/'), chapter.url.substringAfterLast('/'))
+            ?.takeIf { it >= 1 }
 
     /** One per number (an unread copy wins), by number. */
     fun dedupe(volumes: List<LocalVolume>): List<LocalVolume> =

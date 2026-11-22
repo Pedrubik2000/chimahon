@@ -976,8 +976,9 @@
     <string name="glass_title_legend_here">on tablet</string>
     <string name="glass_title_legend_downloading">downloading</string>
     <string name="glass_title_fetch_n">Fetch %1$d</string>
-    <string name="glass_title_fetch_confirm">Fetch %1$d volumes?</string>
+    <string name="glass_title_fetch_confirm">Fetch vol. %1$s?</string>
     <string name="glass_title_pack">Vol. %1$s comes as one pack · %2$s</string>
+    <string name="glass_title_pack_here">Pack of vol. %1$s · %2$s: adds %3$s, %4$s already here</string>
     <string name="glass_title_single">Vol. %1$s · %2$s</string>
     <string name="glass_title_fetch">Fetch</string>
     <string name="glass_title_failed">Vol. %1$s failed: %2$s</string>

@@ -113,7 +113,7 @@ class GlassTitleScreenModel(
             } else {
                 chapterRepository.getChapterByMangaIdAsFlow(pair.first.id).map { chapters ->
                     val volumes = chapters.mapNotNull { c ->
-                        GlassTitleState.volumeNumber(c.chapterNumber)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
+                        GlassTitleState.volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
                     }
                     Local(pair.first, pair.second, chapters, GlassTitleState.dedupe(volumes))
                 }

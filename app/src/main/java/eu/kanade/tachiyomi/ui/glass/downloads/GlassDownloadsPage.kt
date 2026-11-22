@@ -121,7 +121,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
             val chapters = Injekt.get<ChapterRepository>()
             localIds.associate { (mediaId, mangaId) ->
                 mediaId to runCatching { chapters.getChapterByMangaId(mangaId) }.getOrDefault(emptyList())
-                    .mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it.chapterNumber) }
+                    .mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it) }
             }
         }
     }

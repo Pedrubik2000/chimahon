@@ -31,7 +31,6 @@ import coil3.util.DebugLogger
 import com.elvishew.xlog.LogConfiguration
 import com.elvishew.xlog.LogLevel
 import com.elvishew.xlog.XLog
-import com.elvishew.xlog.printer.AndroidPrinter
 import com.elvishew.xlog.printer.Printer
 import com.elvishew.xlog.printer.file.backup.NeverBackupStrategy
 import com.elvishew.xlog.printer.file.naming.DateFileNameGenerator
@@ -392,7 +391,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             .disableBorder()
             .build()
 
-        val printers = mutableListOf<Printer>(AndroidPrinter())
+        // No AndroidPrinter: logcat() already reaches logcat through AndroidLogcatLogger, and
+        // XLogLogcatLogger feeds XLog too, so an AndroidPrinter here printed every line twice.
+        // ponytail: with no logs folder XLog falls back to its default AndroidPrinter (doubles again).
+        val printers = mutableListOf<Printer>()
 
         val logFolder = Injekt.get<StorageManager>().getLogsDirectory()
 

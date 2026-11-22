@@ -139,15 +139,12 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val sourceName = { id: Long -> sources.firstOrNull { it.id == id }?.name ?: coverage[id]?.sourceName.orEmpty() }
 
         var confirm by remember { mutableStateOf<List<Int>?>(null) }
-        /** Single volume from one link: queued at once; anything with a pack, or [ask]: the confirm dialog first. */
-        val request = { vols: List<Int>, ask: Boolean ->
-            val plan = GlassTitleState.plan(vols, order)
-            if (plan.isEmpty()) {
+        /** Any fetch, a single volume too: the confirm dialog first (what it adds, from which source). */
+        val request = { vols: List<Int> ->
+            if (GlassTitleState.plan(vols, order).isEmpty()) {
                 model.message.value = context.stringResource(MR.strings.glass_title_no_source, CoverageMatch.ranges(vols))
-            } else if (ask || plan.any { it.volumes.size > 1 }) {
-                confirm = vols
             } else {
-                model.fetch(vols, order)
+                confirm = vols
             }
             Unit
         }
@@ -177,7 +174,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         is Primary.Fetch -> if (entry != null) {
                             Pill(
                                 stringResource(MR.strings.glass_title_fetch_vol, primary.volume),
-                                onClick = { request(listOf(primary.volume), false) },
+                                onClick = { request(listOf(primary.volume)) },
                                 primary = true,
                                 icon = "download",
                             )
@@ -267,7 +264,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
                         Pill(
                             stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
-                            onClick = { request(fetchable, true) },
+                            onClick = { request(fetchable) },
                             icon = "download",
                             small = true,
                         )
@@ -287,7 +284,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         )
                         Pill(
                             stringResource(MR.strings.glass_title_try_again),
-                            onClick = { request(r.volumes.filter { it !in here && it !in active }, false) },
+                            onClick = { request(r.volumes.filter { it !in here && it !in active }) },
                             small = true,
                         )
                     }
@@ -304,7 +301,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     seriesCover = entry?.let { it.coverLarge ?: it.cover },
                     current = cell.number == current,
                     onOpen = openVolume,
-                    onFetch = { request(listOf(cell.number), false) },
+                    onFetch = { request(listOf(cell.number)) },
                     onCancel = { model.cancel(cell.number) },
                     onSetRead = model::setRead,
                 )
@@ -381,6 +378,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         confirm?.let { vols ->
             FetchDialog(
                 packs = GlassTitleState.plan(vols, order),
+                here = here,
                 sourceName = sourceName,
                 onConfirm = {
                     if (!model.fetch(vols, order)) {
@@ -781,6 +779,7 @@ private fun VolumeCellView(
 @Composable
 private fun FetchDialog(
     packs: List<Pack>,
+    here: Set<Int>,
     sourceName: (Long) -> String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -792,7 +791,9 @@ private fun FetchDialog(
         titleContentColor = Color.White,
         textContentColor = Color.White,
         title = {
-            Text(stringResource(MR.strings.glass_title_fetch_confirm, packs.sumOf { it.volumes.size }), fontSize = Glass.heading)
+            // what the jobs add: a pack's volumes already on the tablet are skipped by the import
+            val adds = packs.flatMap { p -> p.volumes.filter { it !in here } }
+            Text(stringResource(MR.strings.glass_title_fetch_confirm, CoverageMatch.ranges(adds)), fontSize = Glass.heading)
         },
         text = {
             Column(
@@ -800,12 +801,23 @@ private fun FetchDialog(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 packs.forEach { p ->
+                    val (already, adds) = p.volumes.partition { it in here }
                     Text(
-                        stringResource(
-                            if (p.volumes.size > 1) MR.strings.glass_title_pack else MR.strings.glass_title_single,
-                            CoverageMatch.ranges(p.volumes),
-                            sourceName(p.sourceId),
-                        ),
+                        if (already.isNotEmpty()) {
+                            stringResource(
+                                MR.strings.glass_title_pack_here,
+                                CoverageMatch.ranges(p.volumes),
+                                sourceName(p.sourceId),
+                                CoverageMatch.ranges(adds),
+                                CoverageMatch.ranges(already),
+                            )
+                        } else {
+                            stringResource(
+                                if (p.volumes.size > 1) MR.strings.glass_title_pack else MR.strings.glass_title_single,
+                                CoverageMatch.ranges(p.volumes),
+                                sourceName(p.sourceId),
+                            )
+                        },
                         fontSize = Glass.body,
                     )
                 }
