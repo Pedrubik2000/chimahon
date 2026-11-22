@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -271,7 +272,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             fullSpan {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
-                    Legend(Modifier.weight(1f), notFound = cells.any { it.state == VolState.FAILED })
+                    // scrolls sideways on a phone, where it does not fit next to the Fetch pill
+                    Legend(Modifier.weight(1f).horizontalScroll(rememberScrollState()), notFound = cells.any { it.state == VolState.FAILED })
                     if (fetchable.isNotEmpty()) {
                         // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
                         Pill(
