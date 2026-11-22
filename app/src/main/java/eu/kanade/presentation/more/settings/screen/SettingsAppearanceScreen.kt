@@ -263,6 +263,18 @@ object SettingsAppearanceScreen : SearchableSettings {
                         true
                     },
                 ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = uiPreferences.glassPhone(),
+                    title = stringResource(MR.strings.pref_glass_phone),
+                    subtitle = stringResource(MR.strings.pref_glass_phone_summary),
+                    onValueChanged = {
+                        uiPreferences.glassPhone().set(it)
+                        (context as? Activity)?.let { activity ->
+                            activity.startActivity(Intent.makeRestartActivityTask(activity.componentName))
+                        }
+                        true
+                    },
+                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.dateFormat(),
                     entries = DateFormats

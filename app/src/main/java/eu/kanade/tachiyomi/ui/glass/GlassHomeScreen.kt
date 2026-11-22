@@ -24,20 +24,24 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassPage
+import eu.kanade.presentation.glass.GlassPhoneBar
 import eu.kanade.presentation.glass.GlassRail
 import eu.kanade.presentation.glass.GlassRailButton
 import eu.kanade.presentation.glass.GlassRailItems
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.util.Screen
+import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.download.LocalSeriesSync
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverModel
 import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverPage
+import eu.kanade.tachiyomi.ui.glass.discover.GlassPhoneDiscoverPage
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloadsPage
 import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
 import eu.kanade.tachiyomi.ui.glass.home.GlassHomePage
+import eu.kanade.tachiyomi.ui.glass.home.GlassPhoneHomePage
 import eu.kanade.tachiyomi.ui.glass.library.GlassLibraryPage
 import eu.kanade.tachiyomi.ui.glass.problems.GlassProblems
 import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsModel
@@ -85,8 +89,32 @@ object GlassHomeScreen : Screen() {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
 
+        // canvas `PhoneHero-2`: on a phone (pref glassPhone) the pages are the phone ones and the rail is a bar
+        val phone = !isTabletUi()
         GlassPage {
-            when (page) {
+            when {
+                !phone -> Unit
+                page == "home" -> GlassPhoneHomePage(
+                    model,
+                    navigator,
+                    problems = problems.size,
+                    onProblems = { problemsOpen = true },
+                    onSeeAll = { page = "library" },
+                )
+                page == "discover" -> GlassPhoneDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
+                // ponytail: Library, Downloads and Settings have no phone layout yet (Library waits for Pedro's pick)
+                else -> Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        GlassRailItems.first { it.first == page }.second,
+                        color = Color.White,
+                        fontSize = Glass.heading,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(stringResource(MR.strings.glass_phone_not_yet), color = Glass.secondary, fontSize = Glass.label)
+                    Pill(stringResource(MR.strings.glass_classic_view), onClick = { navigator.push(HomeScreen) })
+                }
+            }
+            if (!phone) when (page) {
                 "home" -> GlassHomePage(model, navigator)
                 "library" -> GlassLibraryPage(model, navigator)
                 // created on the first Discover visit, then kept with the shell (no AniList call before that)
@@ -146,8 +174,19 @@ object GlassHomeScreen : Screen() {
                     }
                 }
             }
+            if (phone) {
+                GlassPhoneBar(
+                    active = page,
+                    onSelect = {
+                        page = it
+                        problemsOpen = false
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                    dots = GlassProblems.areas(problems),
+                )
+            }
             // last, so it draws over the pages (Home's banner scrolls under it) and keeps its touches
-            GlassRail(
+            if (!phone) GlassRail(
                 active = page,
                 onSelect = {
                     page = it
@@ -158,7 +197,8 @@ object GlassHomeScreen : Screen() {
                 dots = GlassProblems.areas(problems),
             )
             // canvas Err-3: only while something needs attention (or the panel is still open on an empty list)
-            if (problems.isNotEmpty() || problemsOpen) {
+            // (on a phone the way in is Home's "Needs attention" pill; the bar shows the dots)
+            if (!phone && (problems.isNotEmpty() || problemsOpen)) {
                 GlassRailButton(
                     icon = "alert",
                     label = stringResource(MR.strings.glass_problems_alert, problems.size),

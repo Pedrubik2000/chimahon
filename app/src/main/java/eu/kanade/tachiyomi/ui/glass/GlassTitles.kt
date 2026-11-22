@@ -195,13 +195,16 @@ object GlassTitles {
      * title (no Resume).
      */
     fun hero(list: List<GlassTitle>): Hero? {
-        list.filter { it.localMangaId != null && it.next != null }
-            .maxByOrNull { it.lastRead ?: 0 }
-            ?.let { return Hero(it, resume = true) }
+        heroes(list).firstOrNull()?.let { return Hero(it, resume = true) }
         return list.filter { ListFilter.READING.matches(it) }
             .maxByOrNull { it.entry.updatedAt }
             ?.let { Hero(it, resume = false) }
     }
+
+    /** Titles with a next volume here, last read first: the hero, and the phone Home's pager. */
+    fun heroes(list: List<GlassTitle>): List<GlassTitle> =
+        list.filter { it.localMangaId != null && it.next != null }
+            .sortedWith(compareByDescending<GlassTitle> { it.lastRead ?: 0L }.thenByDescending { it.entry.updatedAt })
 
     /**
      * Hero candidates in order: titles here with unread volumes left that were read here, latest first; then

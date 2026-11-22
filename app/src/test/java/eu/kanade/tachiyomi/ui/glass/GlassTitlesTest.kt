@@ -50,6 +50,9 @@ class GlassTitlesTest {
     fun hero() {
         // title 2 was read later but has no next volume: title 1 resumes
         GlassTitles.hero(list) shouldBe Hero(list[0], resume = true)
+        // the phone pager: every title with a next volume, last read first
+        val later = list[1].copy(next = list[0].next)
+        GlassTitles.heroes(listOf(list[0], later)) shouldBe listOf(later, list[0])
         // nothing to resume → the most recently updated Reading title, no Resume
         GlassTitles.hero(list.map { it.copy(next = null) }) shouldBe Hero(list[4], resume = false)
         GlassTitles.hero(list.filter { it.entry.status == "PLANNING" }) shouldBe null

@@ -109,7 +109,9 @@ class GlassTitlesModel(
             }
         val list = GlassTitles.build(entries, linked)
 
-        // ponytail: the next volume is read for the hero only (one chapter query); per title if a screen needs it
+        // ponytail: the next volume is read for the first 5 candidates (the phone Home's pager; the tablet hero is
+        // the first), one chapter query each; per title if a screen needs it
+        val next = mutableMapOf<Long, NextVolume>()
         val candidates = GlassTitles.heroCandidates(list) { t ->
             t.localMangaId?.let { local[it] }?.let { it.readCount < it.totalChapters } == true
         }
@@ -119,9 +121,9 @@ class GlassTitlesModel(
                 .sortedWith(getChapterSort(manga, sortDescending = false))
                 .firstOrNull { !it.read }
                 ?: continue
-            val next = NextVolume(chapter.id, chapter.name, chapter.chapterNumber, chapter.lastPageRead)
-            return list.map { if (it.mediaId == c.mediaId) it.copy(next = next) else it }
+            next[c.mediaId] = NextVolume(chapter.id, chapter.name, chapter.chapterNumber, chapter.lastPageRead)
+            if (next.size == 5) break
         }
-        return list
+        return if (next.isEmpty()) list else list.map { t -> next[t.mediaId]?.let { t.copy(next = it) } ?: t }
     }
 }

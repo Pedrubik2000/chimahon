@@ -82,7 +82,7 @@ fun openDiscoverTitle(navigator: Navigator, entry: Entry) {
     openTitle(navigator, GlassTitle(entry))
 }
 
-private val ON_HOME = setOf("CURRENT", "REPEATING", "PLANNING")
+internal val ON_HOME = setOf("CURRENT", "REPEATING", "PLANNING")
 
 /** Canvas `Discover-D`, `Discover-D-ThisOrThat`, `Browse-2`, without the known meters and the SOURCE group. */
 @Composable
@@ -120,7 +120,7 @@ private fun Tabs(model: GlassDiscoverModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun NeedsList(text: String, navigator: Navigator) {
+internal fun NeedsList(text: String, navigator: Navigator) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(text, fontSize = Glass.label)
         Pill(
@@ -132,7 +132,7 @@ private fun NeedsList(text: String, navigator: Navigator) {
 }
 
 @Composable
-private fun ErrorLine(model: GlassDiscoverModel) {
+internal fun ErrorLine(model: GlassDiscoverModel) {
     model.error?.let { Text(stringResource(MR.strings.glass_discover_error, it), color = Glass.secondary, fontSize = Glass.body) }
 }
 
@@ -146,10 +146,10 @@ private fun Header(model: GlassDiscoverModel, right: String?) {
     }
 }
 
-private fun Entry.name() = NextVolumeRanking.name(this)
+internal fun Entry.name() = NextVolumeRanking.name(this)
 
 @Composable
-private fun reasonText(r: Reason): String = when (r) {
+internal fun reasonText(r: Reason): String = when (r) {
     is Reason.Recommended -> stringResource(MR.strings.glass_discover_why_recs, r.by)
     is Reason.Taste -> if (r.titles.isEmpty()) {
         stringResource(MR.strings.glass_discover_why_taste_plain, r.features.joinToString(" + "))
@@ -162,7 +162,7 @@ private fun reasonText(r: Reason): String = when (r) {
 
 /** "Comedy · Romance · 26 vols · Finished" */
 @Composable
-private fun metaLine(e: Entry): String = listOfNotNull(
+internal fun metaLine(e: Entry): String = listOfNotNull(
     e.genres.take(3).joinToString(" · ").takeIf { it.isNotEmpty() },
     e.volumes?.let { stringResource(MR.strings.glass_discover_vols, it) },
     when (e.mediaStatus) {
@@ -182,7 +182,7 @@ private fun Score(avg: Int?, size: Int = 16) {
 }
 
 @Composable
-private fun HomeButton(model: GlassDiscoverModel, entry: Entry, primary: Boolean = true) {
+internal fun HomeButton(model: GlassDiscoverModel, entry: Entry, primary: Boolean = true) {
     if (entry.status in ON_HOME) {
         Pill(stringResource(MR.strings.glass_discover_on_home), onClick = {}, icon = "check")
     } else {
@@ -515,14 +515,7 @@ private fun BrowseTab(model: GlassDiscoverModel, open: (Entry) -> Unit) {
             .collect { (last, total) -> if (last >= total - 12) model.loadMore() }
     }
     // the tag hint list = the most frequent tags of the current results
-    val hints = remember(b.entries, f.tagsIn, f.tagsOut) {
-        b.entries.flatMap { e -> e.tags.filter { it.rank >= 60 && !it.spoiler }.map { it.name } }
-            .groupingBy { it }.eachCount()
-            .filterKeys { it !in f.tagsIn && it !in f.tagsOut }
-            .entries.sortedByDescending { it.value }
-            .take(8)
-            .map { it.key to it.value }
-    }
+    val hints = remember(b.entries, f.tagsIn, f.tagsOut) { tagHints(b, f) }
 
     GlassFilterScaffold(
         panel = { BrowseGroups(model, hints) },
@@ -568,7 +561,7 @@ private fun BrowseTab(model: GlassDiscoverModel, open: (Entry) -> Unit) {
 }
 
 @Composable
-private fun summary(b: BrowseState, f: BrowseFilters): String {
+internal fun summary(b: BrowseState, f: BrowseFilters): String {
     val count = when {
         b.loading && b.entries.isEmpty() -> stringResource(MR.strings.glass_discover_loading)
         b.hasNext -> stringResource(MR.strings.glass_discover_count_more, b.entries.size)
@@ -585,56 +578,75 @@ private fun summary(b: BrowseState, f: BrowseFilters): String {
     return (listOf(count) + f.genres + listOfNotNull(status, length, myList) + f.tagsIn + without).joinToString(" · ")
 }
 
-private fun myListLabel(m: MyList) = when (m) {
+internal fun myListLabel(m: MyList) = when (m) {
     MyList.HIDE -> MR.strings.glass_discover_hide_list
     MyList.ONLY_PLANNING -> MR.strings.glass_discover_only_planning
 }
 
+/** A Browse filter group: one panel section on the tablet, one chip + sheet on the phone. */
+internal enum class BrowseFacet { GENRES, STATUS, LENGTH, MY_LIST, TAGS }
+
 /** The Browse panel groups; the "Filters" heading and Clear come from [GlassFilterScaffold]. */
 @Composable
 private fun BrowseGroups(model: GlassDiscoverModel, hints: List<Pair<String, Int>>) {
+    listOf(
+        BrowseFacet.GENRES to MR.strings.glass_discover_genres,
+        BrowseFacet.STATUS to MR.strings.glass_discover_status,
+        BrowseFacet.LENGTH to MR.strings.glass_discover_length,
+        BrowseFacet.MY_LIST to MR.strings.glass_discover_my_list,
+        BrowseFacet.TAGS to MR.strings.glass_discover_tags,
+    ).forEach { (facet, name) -> FilterGroup(stringResource(name)) { BrowseChips(model, hints, facet) } }
+    Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
+}
+
+/** The chips of one group, for a FlowRow. */
+@Composable
+internal fun BrowseChips(model: GlassDiscoverModel, hints: List<Pair<String, Int>>, facet: BrowseFacet) {
     val f = model.filters
     val set: (BrowseFilters) -> Unit = { model.filters = it }
-    FilterGroup(stringResource(MR.strings.glass_discover_genres)) {
-        BrowseFilters.GENRES.forEach { g ->
+    when (facet) {
+        BrowseFacet.GENRES -> BrowseFilters.GENRES.forEach { g ->
             GlassChip(g, selected = g in f.genres, onClick = {
                 set(f.copy(genres = if (g in f.genres) f.genres - g else f.genres + g))
             })
         }
-    }
-    FilterGroup(stringResource(MR.strings.glass_discover_status)) {
-        listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
-            .forEach { (s, label) ->
-                GlassChip(stringResource(label), selected = f.status == s, onClick = {
-                    set(f.copy(status = if (f.status == s) null else s))
-                })
-            }
-    }
-    FilterGroup(stringResource(MR.strings.glass_discover_length)) {
-        Length.entries.forEach { l ->
+        BrowseFacet.STATUS ->
+            listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
+                .forEach { (s, label) ->
+                    GlassChip(stringResource(label), selected = f.status == s, onClick = {
+                        set(f.copy(status = if (f.status == s) null else s))
+                    })
+                }
+        BrowseFacet.LENGTH -> Length.entries.forEach { l ->
             GlassChip(stringResource(lengthLabel(l)), selected = f.length == l, onClick = {
                 set(f.copy(length = if (f.length == l) null else l))
             })
         }
-    }
-    FilterGroup(stringResource(MR.strings.glass_discover_my_list)) {
-        MyList.entries.forEach { m ->
+        BrowseFacet.MY_LIST -> MyList.entries.forEach { m ->
             GlassChip(stringResource(myListLabel(m)), selected = f.myList == m, onClick = {
                 set(f.copy(myList = if (f.myList == m) null else m))
             })
         }
+        BrowseFacet.TAGS -> {
+            f.tagsIn.forEach { TagChip(it, TagState.IN, null) { set(f.cycleTag(it)) } }
+            f.tagsOut.forEach { TagChip(it, TagState.OUT, null) { set(f.cycleTag(it)) } }
+            hints.forEach { (name, count) -> TagChip(name, TagState.OFF, count) { set(f.cycleTag(name)) } }
+        }
     }
-    FilterGroup(stringResource(MR.strings.glass_discover_tags)) {
-        f.tagsIn.forEach { TagChip(it, TagState.IN, null) { set(f.cycleTag(it)) } }
-        f.tagsOut.forEach { TagChip(it, TagState.OUT, null) { set(f.cycleTag(it)) } }
-        hints.forEach { (name, count) -> TagChip(name, TagState.OFF, count) { set(f.cycleTag(name)) } }
-    }
-    Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
 }
+
+/** The most frequent tags of the current results that are not chosen yet: the tag hint list. */
+internal fun tagHints(b: BrowseState, f: BrowseFilters): List<Pair<String, Int>> =
+    b.entries.flatMap { e -> e.tags.filter { it.rank >= 60 && !it.spoiler }.map { it.name } }
+        .groupingBy { it }.eachCount()
+        .filterKeys { it !in f.tagsIn && it !in f.tagsOut }
+        .entries.sortedByDescending { it.value }
+        .take(8)
+        .map { it.key to it.value }
 
 /** Cover with the AniList score (top) and volume count (bottom), title, strongest non-spoiler tag. */
 @Composable
-private fun BrowseCell(e: Entry, onClick: () -> Unit) {
+internal fun BrowseCell(e: Entry, onClick: () -> Unit) {
     val shape = RoundedCornerShape(Glass.r10)
     val tag = e.tags.filter { !it.spoiler }.maxByOrNull { it.rank }
     Column(Modifier.clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -167,14 +167,6 @@ private fun HeroText(hero: Hero, navigator: Navigator) {
     val context = LocalContext.current
     val t = hero.title
     val next = t.next
-    val total = t.total
-    val where = when {
-        hero.resume && next != null && next.lastPageRead > 0 ->
-            stringResource(MR.strings.glass_hero_vol_page, GlassTitles.volumeLabel(next), next.lastPageRead + 1)
-        hero.resume && next != null -> stringResource(MR.strings.glass_hero_vol, GlassTitles.volumeLabel(next))
-        total != null -> stringResource(MR.strings.glass_n_volumes, total)
-        else -> statusLabel(t.entry.status)
-    }
     Column(
         // end 340: clear of the 220dp cover at 80dp from the right
         Modifier.padding(start = 108.dp, top = 160.dp, end = 340.dp).widthIn(max = 560.dp),
@@ -187,13 +179,7 @@ private fun HeroText(hero: Hero, navigator: Navigator) {
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        // the bar below is volume progress, not page progress: the resume line says so
-        val read = if (hero.resume && next != null && total != null) {
-            " · " + stringResource(MR.strings.glass_hero_volumes_read, t.volumesRead.coerceAtMost(total), total)
-        } else {
-            ""
-        }
-        Text(where + read, color = Glass.secondary, fontSize = Glass.label, modifier = Modifier.padding(top = 8.dp))
+        Text(heroLine(hero), color = Glass.secondary, fontSize = Glass.label, modifier = Modifier.padding(top = 8.dp))
         t.readFraction?.let { Meter(it, Modifier.padding(top = 14.dp).width(380.dp), color = Glass.ice) }
         Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (hero.resume && next != null) {
@@ -207,6 +193,28 @@ private fun HeroText(hero: Hero, navigator: Navigator) {
             Pill(stringResource(MR.strings.glass_volumes), onClick = { openTitle(navigator, t) }, primary = !hero.resume)
         }
     }
+}
+
+/** "Vol. 3 · page 41 · 2 of 18 volumes read" for a title to resume; else its volume count or list status. */
+@Composable
+internal fun heroLine(hero: Hero): String {
+    val t = hero.title
+    val next = t.next
+    val total = t.total
+    val where = when {
+        hero.resume && next != null && next.lastPageRead > 0 ->
+            stringResource(MR.strings.glass_hero_vol_page, GlassTitles.volumeLabel(next), next.lastPageRead + 1)
+        hero.resume && next != null -> stringResource(MR.strings.glass_hero_vol, GlassTitles.volumeLabel(next))
+        total != null -> stringResource(MR.strings.glass_n_volumes, total)
+        else -> statusLabel(t.entry.status)
+    }
+    // the bar below is volume progress, not page progress: the resume line says so
+    val read = if (hero.resume && next != null && total != null) {
+        " · " + stringResource(MR.strings.glass_hero_volumes_read, t.volumesRead.coerceAtMost(total), total)
+    } else {
+        ""
+    }
+    return where + read
 }
 
 @Composable
