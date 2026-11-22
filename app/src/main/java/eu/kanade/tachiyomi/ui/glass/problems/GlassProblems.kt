@@ -13,7 +13,7 @@ enum class ProblemAction { CHANGE_KEY, HIDE, OPEN_TITLE, TRY_AGAIN, RETRY_ANILIS
 /**
  * One card of the Needs attention panel. [id] is stable (what Hide for now remembers); [area] is the rail id that
  * gets the dot. DOWNLOAD_FAILED: [mediaId] the title, [caption] its name, [volumes] the failed ones, [detail] the
- * rows' stored reasons ("dead link: Rawxt").
+ * rows' stored reasons as [GlassDownloads.shownReason] shows them ("Dead link: Rawxt"), null when none says more.
  */
 data class Problem(
     val id: String,
@@ -63,7 +63,8 @@ object GlassProblems {
                     mediaId = id,
                     caption = names[id],
                     volumes = g.failedVolumes,
-                    detail = failed.mapNotNull { it.reason?.ifBlank { null } }.distinct().joinToString(" · ").ifEmpty { null },
+                    detail = failed.map { GlassDownloads.shownReason(it.reason) }.filter { it.isNotEmpty() }.distinct()
+                        .joinToString(" · ").ifEmpty { null },
                 ),
             )
         }

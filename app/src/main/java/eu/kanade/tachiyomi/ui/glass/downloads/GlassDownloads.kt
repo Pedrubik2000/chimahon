@@ -53,6 +53,9 @@ data class TitleGroup(val mediaId: Long?, val rows: List<RealDebridQueue.Row>, v
             val covered = coveredVolumes
             return failed.flatMap { stillFailed(it, covered) }.distinct().sorted()
         }
+
+    /** One failed row's volumes still to get (its label on the expanded card). */
+    fun failedVolumesOf(row: RealDebridQueue.Row): List<Int> = stillFailed(row, coveredVolumes).sorted()
 }
 
 object GlassDownloads {
@@ -85,6 +88,23 @@ object GlassDownloads {
     fun volumeCount(aniListVolumes: Int?, read: Int, here: Int, rows: List<RealDebridQueue.Row>): Int =
         aniListVolumes?.takeIf { it > 0 }
             ?: maxOf(read, here, rows.flatMap { it.volumes }.maxOrNull() ?: 0)
+
+    private val notFoundClause =
+        Regex("""Vol\. [\d, ]+ (?:was|were) (not found|not in the pack)(?: \(([^)]*)\))?(?:; (.*))?""")
+
+    /**
+     * A stored failure reason as the detail next to a "Vol. n–m" label: the leading "Vol. 1, 2 were not found" /
+     * "… not in the pack (X3DL)" clause (RealDebridImportJob.missingReason) only restates the label, so it goes,
+     * keeping its sources; the rest starts with a capital. "Vol. 1, 2 were not in the pack (X3DL); dead link: Rawxt"
+     * → "Not in the pack (X3DL); dead link: Rawxt"; nothing left → ""; any other reason as it is, capitalized.
+     */
+    fun shownReason(reason: String?): String {
+        val r = reason.orEmpty().trim()
+        val m = notFoundClause.matchEntire(r) ?: return r.replaceFirstChar { it.uppercase() }
+        val (what, sources, rest) = m.destructured
+        return listOfNotNull(sources.ifEmpty { null }?.let { "$what ($it)" }, rest.ifEmpty { null })
+            .joinToString("; ").replaceFirstChar { it.uppercase() }
+    }
 
     /** A row's failed volumes: those its links did not hold, else all it was queued for. */
     fun failedOf(row: RealDebridQueue.Row): List<Int> = row.missing.ifEmpty { row.volumes }
@@ -149,8 +169,8 @@ object GlassDownloads {
                 v in here -> if (v <= read) Cell.READ else Cell.HERE
                 v in running -> Cell.DOWNLOADING
                 v in queued -> Cell.QUEUED
+                v in failed -> Cell.FAILED // not here and its fetch failed: before AniList's read
                 v <= read -> Cell.READ
-                v in failed -> Cell.FAILED
                 else -> Cell.NONE
             }
         }

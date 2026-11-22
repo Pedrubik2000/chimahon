@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -81,7 +80,7 @@ object GlassHomeScreen : Screen() {
         LaunchedEffect(Unit) { LocalSeriesSync.syncAll() }
         val problemsModel = rememberScreenModel { GlassProblemsModel() }
         val problems by problemsModel.problems.collectAsStateWithLifecycle()
-        var problemsOpen by remember { mutableStateOf(false) }
+        var problemsOpen by problemsModel.open // the model outlives a rotation
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
 

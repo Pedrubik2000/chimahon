@@ -316,7 +316,16 @@ private fun TitleCard(
                         }
                     } else {
                         val (line, color) = titleLine(group, sourceNames, here)
-                        Text(line, color = color, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            line,
+                            // shares the row with the name and ellipsizes; clear of the Try again pill
+                            Modifier.weight(1f, fill = false)
+                                .then(if (failed.isNotEmpty() && group.mediaId != null) Modifier.padding(end = 14.dp) else Modifier),
+                            color = color,
+                            fontSize = Glass.caption,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
                 if (group.mediaId != null) {
@@ -347,13 +356,17 @@ private fun TitleCard(
             group.rows
                 .filter { it.state != State.FAILED || it in failed }
                 .sortedBy { order.indexOf(it.state) }
-                .forEach { VolumeRow(it, onCancel) }
+                .forEach { r ->
+                    // a failed row: only its volumes still to get (the card's "Vol. 1–2", not the pack's 1–4)
+                    val vols = if (r.state == State.FAILED) group.failedVolumesOf(r).ifEmpty { r.volumes } else r.volumes
+                    VolumeRow(r, vols, onCancel)
+                }
         }
     }
 }
 
 @Composable
-private fun VolumeRow(row: RealDebridQueue.Row, onCancel: (RealDebridQueue.Row) -> Unit) {
+private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, onCancel: (RealDebridQueue.Row) -> Unit) {
     val context = LocalContext.current
     Row(
         Modifier
@@ -365,8 +378,9 @@ private fun VolumeRow(row: RealDebridQueue.Row, onCancel: (RealDebridQueue.Row) 
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            if (row.volumes.isEmpty()) "—" else stringResource(MR.strings.glass_dl_vol, CoverageMatch.ranges(row.volumes)),
-            Modifier.widthIn(min = 60.dp),
+            if (volumes.isEmpty()) "—" else stringResource(MR.strings.glass_dl_vol, CoverageMatch.ranges(volumes)),
+            // ponytail: one width so every row's text starts at the same x; a longer label still pushes it
+            Modifier.widthIn(min = 88.dp),
             fontSize = Glass.body,
             fontWeight = FontWeight.SemiBold,
         )
@@ -410,7 +424,8 @@ private fun titleLine(g: TitleGroup, sourceNames: Map<Long, String>, here: Set<I
         queuedVolumes > 0 -> stringResource(MR.strings.glass_dl_n_queued, queuedVolumes) to Glass.secondary
         g.failed.isNotEmpty() -> g.failed.first().let { f ->
             val vols = g.failedVolumes
-            (if (vols.isEmpty()) f.reason.orEmpty() else stringResource(MR.strings.glass_dl_failed_line, CoverageMatch.ranges(vols), f.reason.orEmpty())) to Color.White
+            val why = GlassDownloads.shownReason(f.reason).ifEmpty { stringResource(MR.strings.glass_dl_not_found) }
+            (if (vols.isEmpty()) f.reason.orEmpty() else stringResource(MR.strings.glass_dl_failed_line, CoverageMatch.ranges(vols), why)) to Color.White
         }
         else -> stringResource(MR.strings.glass_dl_done) to Glass.secondary
     }
@@ -429,7 +444,14 @@ private fun stepLabel(row: RealDebridQueue.Row): String = when (row.step) {
 private fun rowLine(row: RealDebridQueue.Row, context: Context): String = when (row.state) {
     State.QUEUED -> stringResource(MR.strings.glass_dl_queued)
     State.DONE -> stringResource(MR.strings.glass_dl_done)
-    State.FAILED -> row.reason.orEmpty()
+    // "Not found" when the reason is the volumes-not-found one (a "Failed: HTTP 503" stays as it is)
+    State.FAILED -> GlassDownloads.shownReason(row.reason).let { why ->
+        if (why.isNotEmpty() && why.equals(row.reason?.trim(), ignoreCase = true)) {
+            why
+        } else {
+            listOf(stringResource(MR.strings.glass_dl_not_found), why).filter { it.isNotEmpty() }.joinToString(" · ")
+        }
+    }
     State.RUNNING -> when {
         // waiting: bytes = Real-Debrid's torrent percent of 100
         row.step == RealDebridImportJob.STEP_WAITING && row.total == 100L -> "${stepLabel(row)} · ${row.bytes}%"

@@ -124,8 +124,12 @@ class GlassDownloadsTest {
         val g = GlassDownloads.group(rows, mapOf(1L to (3..18).toSet())).single()
         g.failed shouldBe listOf(rows[3])
         g.failedVolumes shouldBe listOf(1, 2)
+        g.failedVolumesOf(rows[3]) shouldBe listOf(1, 2) // the expanded row's label, not the pack's 1-4
         GlassDownloads.cells(18, read = 0, here = (3..18).toSet(), rows = rows).take(3) shouldBe
             listOf(Cell.FAILED, Cell.FAILED, Cell.HERE)
+        // AniList says 1-3 were read, but 1-2 are not here and their fetch failed: failed, not read
+        GlassDownloads.cells(18, read = 3, here = (3..18).toSet(), rows = rows).take(3) shouldBe
+            listOf(Cell.FAILED, Cell.FAILED, Cell.READ)
         // all on the tablet: nothing failed
         GlassDownloads.group(rows, mapOf(1L to (1..18).toSet())).single().let {
             it.failed shouldBe emptyList()
@@ -154,6 +158,23 @@ class GlassDownloadsTest {
         TitleGroup(1, done + dead.copy(missing = listOf(1, 2))).failedVolumes shouldBe listOf(1, 2)
         // a done row from before jobs reported what they delivered still covers what it was queued for
         TitleGroup(1, listOf(row(1, State.DONE, 1, 2), dead)).failedVolumes shouldBe listOf(3, 4)
+    }
+
+    @Test
+    fun `a stored reason without the clause that restates the volumes`() {
+        val shown = GlassDownloads::shownReason
+        // every shape of RealDebridImportJob.missingReason
+        shown("Vol. 1, 2, 3, 4 were not found; dead link: Rawxt") shouldBe "Dead link: Rawxt"
+        shown("Vol. 1, 2 were not found; dead link: X3DL, Rawxt") shouldBe "Dead link: X3DL, Rawxt"
+        shown("Vol. 1, 2 were not in the pack (X3DL); dead link: Rawxt") shouldBe "Not in the pack (X3DL); dead link: Rawxt"
+        shown("Vol. 3 was not in the pack (X3DL, Excnn)") shouldBe "Not in the pack (X3DL, Excnn)"
+        shown("Vol. 1, 2 were not in the pack") shouldBe ""
+        shown("Vol. 1 was not in the pack; dead link: Rawxt") shouldBe "Dead link: Rawxt"
+        // anything else as it is, capitalized
+        shown("dead link: Rawxt") shouldBe "Dead link: Rawxt"
+        shown("Failed: Real-Debrid /unrestrict/link: HTTP 503 busy") shouldBe "Failed: Real-Debrid /unrestrict/link: HTTP 503 busy"
+        shown("Nothing added") shouldBe "Nothing added"
+        shown(null) shouldBe ""
     }
 
     @Test

@@ -79,6 +79,7 @@ import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
+import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
@@ -282,7 +283,14 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
                             // chimahon: only the row's volumes not on the tablet (a pack of 1-4 for 1-2 failed 1-2)
-                            stringResource(MR.strings.glass_title_failed, CoverageMatch.ranges(r.volumes.filter { it !in here }), r.reason.orEmpty()),
+                            GlassDownloads.shownReason(r.reason).let { why ->
+                                val vols = CoverageMatch.ranges(r.volumes.filter { it !in here })
+                                if (why.isEmpty()) {
+                                    stringResource(MR.strings.glass_title_failed_bare, vols)
+                                } else {
+                                    stringResource(MR.strings.glass_title_failed, vols, why)
+                                }
+                            },
                             color = Glass.secondary,
                             fontSize = Glass.body,
                             maxLines = 2,

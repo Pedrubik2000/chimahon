@@ -891,6 +891,7 @@
     <string name="glass_dl_more_queued">%1$d more queued</string>
     <string name="glass_dl_done">In the library</string>
     <string name="glass_dl_failed_line">Vol. %1$s: %2$s</string>
+    <string name="glass_dl_not_found">Not found</string>
     <string name="glass_dl_try_again">Try again</string>
     <string name="glass_dl_nothing">Nothing is downloading</string>
     <string name="glass_dl_ocr">OCR queue</string>
@@ -1069,6 +1070,7 @@
     <string name="glass_title_single">Vol. %1$s · %2$s</string>
     <string name="glass_title_fetch">Fetch</string>
     <string name="glass_title_failed">Vol. %1$s failed: %2$s</string>
+    <string name="glass_title_failed_bare">Vol. %1$s failed</string>
     <string name="glass_title_try_again">Try again</string>
     <string name="glass_title_mark_read">Mark read</string>
     <string name="glass_title_mark_unread">Mark unread</string>

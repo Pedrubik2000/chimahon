@@ -67,7 +67,7 @@ class GlassProblemsTest {
             it.kind shouldBe ProblemKind.DOWNLOAD_FAILED
             it.caption shouldBe "神のみぞ知るセカイ"
             it.volumes shouldBe listOf(1, 2)
-            it.detail shouldBe "dead link: Rawxt · not on X3DL"
+            it.detail shouldBe "Dead link: Rawxt · Not on X3DL"
             it.actions shouldBe listOf(ProblemAction.OPEN_TITLE, ProblemAction.TRY_AGAIN)
         }
     }
@@ -84,8 +84,11 @@ class GlassProblemsTest {
         build(rows = rows, here = mapOf(1L to (3..18).toSet())).single().let {
             it.mediaId shouldBe 1L
             it.volumes shouldBe listOf(1, 2)
-            it.detail shouldBe "Vol. 1, 2, 3, 4 were not found; dead link: Rawxt"
+            it.detail shouldBe "Dead link: Rawxt" // the label already says which volumes
         }
+        // a reason that only restates the volumes: no detail line
+        build(rows = listOf(row(1, State.FAILED, 1, 2, reason = "Vol. 1, 2 were not in the pack")), here = mapOf(1L to emptySet()))
+            .single().detail shouldBe null
         build(rows = rows, here = mapOf(1L to (1..18).toSet())) shouldBe emptyList()
     }
 

@@ -132,7 +132,7 @@ private fun ProblemCard(problem: Problem, first: Boolean, onAction: (ProblemActi
         GlassIcon("alert", size = 24.dp, modifier = Modifier.padding(top = 2.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             caption(problem)?.let {
-                Text(it, color = Glass.ice, fontSize = Glass.caption, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(it, color = Glass.ice, fontSize = Glass.body, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
             Text(title(problem), fontSize = Glass.label, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold)
             detail(problem)?.let { Text(it, color = Glass.secondary, fontSize = Glass.body, lineHeight = 20.sp) }

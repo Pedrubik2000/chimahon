@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.glass.problems
 
+import androidx.compose.runtime.mutableStateOf
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
@@ -70,4 +71,7 @@ class GlassProblemsModel(
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())
 
     fun hide(problem: Problem) = hidden.update { it + problem.id }
+
+    /** The panel is open; here (not remember) so it stays open when the tablet rotates. */
+    val open = mutableStateOf(false)
 }
