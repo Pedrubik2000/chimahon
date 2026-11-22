@@ -73,20 +73,27 @@ class ReleaseServiceImpl(
     }
     // KMK <--
 
-    private fun getDownloadLink(release: GithubRelease, isFoss: Boolean): String? {
-        val assets = release.assets.filter { it.name.endsWith(".apk") }
-        val map = assets.associate { asset ->
-            BUILD_TYPES.find { "-$it" in asset.name } to asset.downloadLink
-        }
-
-        return if (!isFoss) {
-            map[Build.SUPPORTED_ABIS[0]] ?: map[null]
-        } else {
-            map[FOSS]
-        }
-    }
+    private fun getDownloadLink(release: GithubRelease, isFoss: Boolean): String? =
+        // chimahon: pure part split out so it can be unit tested
+        pickDownloadLink(release.assets, Build.SUPPORTED_ABIS[0], isFoss)
 
     companion object {
+        /**
+         * The APK for [abi] (e.g. "kumahon-1.2.0-arm64-v8a.apk"), else a universal APK (no ABI in its name),
+         * else null: a release without a fitting APK is not offered.
+         */
+        internal fun pickDownloadLink(assets: List<GitHubAsset>, abi: String, isFoss: Boolean): String? {
+            val map = assets.filter { it.name.endsWith(".apk") }.associate { asset ->
+                BUILD_TYPES.find { "-$it" in asset.name } to asset.downloadLink
+            }
+
+            return if (!isFoss) {
+                map[abi] ?: map[null]
+            } else {
+                map[FOSS]
+            }
+        }
+
         private const val FOSS = "foss"
         private val BUILD_TYPES = listOf(FOSS, "arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 

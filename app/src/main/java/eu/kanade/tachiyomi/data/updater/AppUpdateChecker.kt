@@ -95,7 +95,8 @@ class AppUpdateChecker(
 
 val GITHUB_REPO: String by lazy { getGithubRepo() }
 
-fun getGithubRepo(peekIntoPreview: Boolean = false): String = "sohilsayed/chimahon"
+// chimahon: kumahon checks its own releases (tags like v1.2.0, APKs like kumahon-1.2.0-arm64-v8a.apk)
+fun getGithubRepo(peekIntoPreview: Boolean = false): String = "Pedrubik2000/kumahon"
 
 val RELEASE_TAG: String by lazy { getReleaseTag() }
 

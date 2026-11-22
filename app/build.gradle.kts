@@ -53,7 +53,9 @@ android {
             proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
 
             buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = true)}\"")
-            buildConfigField("boolean", "UPDATER_ENABLED", enableUpdater.toString())
+            // chimahon: a versioned kumahon release (release.py passes -PreleaseVersionName) checks its own GitHub
+            // releases without -Penable-updater; debug stays off above
+            buildConfigField("boolean", "UPDATER_ENABLED", (enableUpdater || releaseVersionName != null).toString())
         }
 
         val commonMatchingFallbacks = listOf(release.name)

@@ -90,6 +90,8 @@ class GetApplicationRelease(
         } else {
             // Release builds: based on releases in "chimahon/chimahon" repo
             // tagged as something like "v0.1.2"
+            // chimahon: only plain "v1.2.0" / "1.2.0" tags count; "dev-1.1.0-10997" would otherwise read as 1.1.10997
+            if (!stableTagRegex.matches(versionTag)) return false
             val oldVersion = versionName.replace("[^\\d.]".toRegex(), "")
 
             val newSemVer = parseSemVerParts(newVersion)
@@ -108,6 +110,9 @@ class GetApplicationRelease(
             false
         }
     }
+
+    // chimahon
+    private val stableTagRegex = Regex("""v?\d+(\.\d+)*""")
 
     private fun parseSemVerParts(version: String): List<Int> {
         return version
