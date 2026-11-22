@@ -1108,6 +1108,7 @@
     <string name="glass_classic_view">Classic view</string>
     <string name="glass_refresh">Refresh</string>
     <string name="glass_refreshing">Refreshing…</string>
+    <string name="glass_adopting">Linking your folders to AniList: %1$d of %2$d</string>
     <string name="glass_refresh_failed">AniList: %1$s</string>
     <string name="glass_empty">Your AniList list isn\'t here yet: log in to AniList, then refresh.</string>
     <string name="glass_open_tracking">Open tracking settings</string>

@@ -7,11 +7,15 @@ import eu.kanade.domain.track.interactor.SyncChapterProgressWithTrack
 import eu.kanade.domain.track.model.toDbTrack
 import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.anilist.AniListPacing
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -48,11 +52,12 @@ object LocalSeriesSync {
     private val locks = ConcurrentHashMap<Long, Mutex>()
     private val allDone = AtomicBoolean(false)
 
-    suspend fun sync(mangaId: Long) {
-        withIOContext { syncLocked(mangaId) }
+    /** [refreshTracks] false = read marks from the stored track, no AniList call (adoption has just written it). */
+    suspend fun sync(mangaId: Long, refreshTracks: Boolean = true) {
+        withIOContext { syncLocked(mangaId, refreshTracks) }
     }
 
-    private suspend fun syncLocked(mangaId: Long) {
+    private suspend fun syncLocked(mangaId: Long, refreshTracks: Boolean) {
         locks.getOrPut(mangaId) { Mutex() }.withLock {
             try {
                 val manga = Injekt.get<GetManga>().await(mangaId)?.takeIf { it.source == LocalSource.ID }
@@ -67,7 +72,7 @@ object LocalSeriesSync {
                 }
                 Injekt.get<SyncChaptersWithSource>().await(chapters, manga, source)
                 // read marks follow the tracker: for a local series AniList's volume count (fresh from AniList)
-                pullTracks(mangaId)
+                pullTracks(mangaId, refreshTracks)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -81,7 +86,7 @@ object LocalSeriesSync {
      * AniList, an AniList write on a mere page open that bumps the entry's updatedAt (the glass "Last read" key of a
      * title not read here), so opening a title moved it to the front. Reading a volume pushes progress itself.
      */
-    private suspend fun pullTracks(mangaId: Long) {
+    private suspend fun pullTracks(mangaId: Long, refresh: Boolean) {
         val trackerManager = Injekt.get<TrackerManager>()
         // as SyncChapterProgressWithTrack counts it: continuous reading only
         val readHere = Injekt.get<GetChaptersByMangaId>().await(mangaId)
@@ -92,8 +97,12 @@ object LocalSeriesSync {
         for (track in Injekt.get<GetTracks>().await(mangaId)) {
             val tracker = trackerManager.get(track.trackerId)?.takeIf { it.isLoggedIn } ?: continue
             try {
-                val remote = tracker.refresh(track.toDbTrack()).toDomainTrack() ?: continue
-                Injekt.get<InsertTrack>().await(remote)
+                val remote = if (refresh) {
+                    tracker.refresh(track.toDbTrack()).toDomainTrack()?.also { Injekt.get<InsertTrack>().await(it) }
+                        ?: continue
+                } else {
+                    track
+                }
                 // progress never below what is read here: sync then only marks chapters read, it never writes back
                 Injekt.get<SyncChapterProgressWithTrack>()
                     .sync(mangaId, remote.copy(lastChapterRead = maxOf(remote.lastChapterRead, readHere)), tracker)
@@ -110,18 +119,20 @@ object LocalSeriesSync {
      * its AniList title ([adopt]); once per app run every local series' volumes are re-read (listing opens each
      * archive for its ComicInfo). So a series removed from the classic library, or one whose import never finished
      * its bookkeeping, still shows as on the tablet. Then, as long as the caller runs (the glass shell), adoption runs
-     * again when the list gains or loses titles or the storage folder changes, and a minute after links that failed:
-     * a fresh install binds every folder at once and AniList answers 429 past ~30 requests a minute.
+     * again when the list gains or loses titles or the storage folder changes, and after links that failed. AniList
+     * allows ~30 requests a minute: its client paces itself ([AniListPacing]), a pass stops at the first 429 and the
+     * next waits out its Retry-After, and one pass runs at a time (a trigger during one is conflated into one more).
      */
     suspend fun syncAll() {
         if (allDone.compareAndSet(false, true)) {
-            adopt()
+            val adopted = AniListPacing.onePass(passing) { adopt() }
             val local = withIOContext {
                 runCatching { Injekt.get<GetFavorites>().await().filter { it.source == LocalSource.ID } }
                     .onFailure { logcat(LogPriority.WARN, it) { "Local series sync: library read failed" } }
                     .getOrDefault(emptyList())
             }
-            local.forEach { sync(it.id) }
+            // a series this pass linked has a fresh track: no second AniList call for it
+            local.forEach { sync(it.id, refreshTracks = adopted?.linked?.contains(it.id) != true) }
         }
         // the list's current titles count as a change too: the pass above may have run before the list arrived
         merge(
@@ -129,19 +140,41 @@ object LocalSeriesSync {
                 .map { },
             Injekt.get<StorageManager>().changes,
         )
-            .collectLatest {
-                // ponytail: three tries a minute apart; the next trigger (list refresh, next app run) tries again
-                repeat(3) { i ->
-                    if (i > 0) delay(61_000)
-                    val adopted = adopt()
-                    adopted.changed.forEach { sync(it) }
-                    if (adopted.failed == 0) return@collectLatest
+            .conflate()
+            .collect {
+                AniListPacing.onePass(passing) {
+                    try {
+                        // ponytail: three tries; the next trigger (list refresh, next app run) tries again
+                        for (i in 0 until 3) {
+                            val now = System.currentTimeMillis()
+                            delay(AniListPacing.waitBeforePass(i, AniListPacing.blockedUntil, now))
+                            val adopted = adopt()
+                            adopted.changed.forEach { sync(it, refreshTracks = it !in adopted.linked) }
+                            if (adopted.failed == 0) break
+                        }
+                    } finally {
+                        _adopting.value = null
+                    }
                 }
             }
     }
 
-    /** [changed] = local series added to the library or linked by this pass; [failed] = links AniList refused. */
-    private class Adopted(val changed: List<Long> = emptyList(), val failed: Int = 0)
+    private val passing = AtomicBoolean(false)
+
+    private val _adopting = MutableStateFlow<Pair<Int, Int>?>(null)
+
+    /** (linked, of) local series while adoption links folders to AniList, else null: Home's header shows it. */
+    val adopting: StateFlow<Pair<Int, Int>?> = _adopting.asStateFlow()
+
+    /**
+     * [changed] = local series added to the library or linked by this pass; [linked] = linked by it; [failed] = links
+     * that failed, or were not tried after a 429.
+     */
+    private class Adopted(
+        val changed: List<Long> = emptyList(),
+        val linked: List<Long> = emptyList(),
+        val failed: Int = 0,
+    )
 
     /**
      * Every series folder in the library, and each one without an AniList track linked to its list entry
@@ -165,10 +198,11 @@ object LocalSeriesSync {
             val tracks = Injekt.get<GetTracks>().await(local.map { it.id })
             val linked = mutableListOf<Long>()
             var failed = 0
-            for (m in local) {
-                if (!anilist.isLoggedIn || entries.isEmpty()) break
-                if (tracks[m.id].orEmpty().any { it.trackerId == anilist.id }) continue
-                val folder = folders[m.url] ?: continue
+            val unlinked = local.filter { m -> tracks[m.id].orEmpty().none { it.trackerId == anilist.id } }
+            // (series, folder, entry, id from its ComicInfo) for every unlinked folder that matches a list entry
+            val ready = anilist.isLoggedIn && entries.isNotEmpty()
+            val todo = unlinked.takeIf { ready }.orEmpty().mapNotNull { m ->
+                val folder = folders[m.url] ?: return@mapNotNull null
                 val text = folder.findFile(COMIC_INFO_FILE)?.let { f ->
                     runCatching { f.openInputStream().use { it.readBytes().decodeToString() } }.getOrNull()
                 }
@@ -176,19 +210,31 @@ object LocalSeriesSync {
                 val id = AniListLibrary.aniListId(info?.web?.value)
                 val (native, english) = AniListLibrary.summaryTitles(info?.summary?.value)
                 val names = listOfNotNull(m.url, m.title, info?.series?.value, english)
-                val entry = AniListLibrary.matchFolder(id, native, names, entries) ?: continue
+                val entry = AniListLibrary.matchFolder(id, native, names, entries) ?: return@mapNotNull null
+                Todo(m.id, m.url, m.title, folder, entry, id)
+            }
+            val done = local.size - unlinked.size
+            for ((i, t) in todo.withIndex()) {
+                _adopting.value = done + i to done + todo.size
                 try {
-                    val title = entry.romaji ?: entry.native ?: m.title
-                    if (library.link(m.id, entry.mediaId, title, (entry.chapters ?: 0).toLong())) linked += m.id
-                    if (id == null) writeAniListId(folder, entry.mediaId)
+                    val title = t.entry.romaji ?: t.entry.native ?: t.title
+                    val chapters = (t.entry.chapters ?: 0).toLong()
+                    if (library.link(t.mangaId, t.entry.mediaId, title, chapters)) linked += t.mangaId
+                    if (t.id == null) writeAniListId(t.folder, t.entry.mediaId)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
                     failed++
-                    logcat(LogPriority.WARN, e) { "AniList link failed: ${m.url} -> ${entry.mediaId}" }
+                    logcat(LogPriority.WARN, e) { "AniList link failed: ${t.url} -> ${t.entry.mediaId}" }
+                    // refused for the rate (a 429 set the wait): the rest waits for the next pass, after Retry-After
+                    if (AniListPacing.blockedUntil > System.currentTimeMillis()) {
+                        failed += todo.size - i - 1
+                        break
+                    }
                 }
             }
-            Adopted((local.map { it.id } - before + linked).distinct(), failed)
+            if (failed == 0) _adopting.value = null
+            Adopted((local.map { it.id } - before + linked).distinct(), linked, failed)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -211,6 +257,15 @@ object LocalSeriesSync {
             file.openOutputStream().use { it.write(new.toByteArray()) }
         }.onFailure { logcat(LogPriority.WARN, it) { "AniList id not written: ${dir.name}" } }
     }
+
+    private class Todo(
+        val mangaId: Long,
+        val url: String,
+        val title: String,
+        val folder: UniFile,
+        val entry: AniListLibrary.Entry,
+        val id: Long?,
+    )
 
     private val xml by lazy { Injekt.get<XML>() }
 }

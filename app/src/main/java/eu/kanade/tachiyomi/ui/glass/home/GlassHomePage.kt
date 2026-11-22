@@ -45,6 +45,7 @@ import eu.kanade.presentation.glass.CoverCard
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
+import eu.kanade.tachiyomi.data.download.LocalSeriesSync
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitles
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
@@ -108,6 +109,11 @@ private fun Header(model: GlassTitlesModel, navigator: Navigator) {
         }
         // ponytail: way back to Novels/Anime/Dictionary until the new screens exist
         Pill(stringResource(MR.strings.glass_classic_view), onClick = { navigator.push(HomeScreen) }, small = true)
+        // chimahon: a fresh install over an existing folder links its series one by one, paced for AniList
+        val adopting by LocalSeriesSync.adopting.collectAsStateWithLifecycle()
+        adopting?.let { (done, of) ->
+            Text(stringResource(MR.strings.glass_adopting, done, of), color = Glass.secondary, fontSize = Glass.body)
+        }
         // chimahon: a failed refresh is in the Needs attention panel (rail), not here
     }
 }

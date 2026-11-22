@@ -300,8 +300,15 @@ class LocalSource(
                 file.openInputStream().use { block(it, /* SY --> */ null /* SY <-- */) }
             }
         } else {
-            return chapter.archiveReader(context).use { reader ->
-                reader.getInputStream(COMIC_INFO_FILE)?.use { block(it, /* SY --> */ reader /* SY <-- */) }
+            // chimahon: an archive that cannot be opened (empty, half copied) loses only its ComicInfo; the volume
+            // stays listed by its file name and the rest of the series is read
+            return try {
+                chapter.archiveReader(context).use { reader ->
+                    reader.getInputStream(COMIC_INFO_FILE)?.use { block(it, /* SY --> */ reader /* SY <-- */) }
+                }
+            } catch (e: Exception) {
+                logcat(LogPriority.WARN, e) { "Unreadable archive, listed by its name: ${chapter.name}" }
+                null
             }
         }
     }
@@ -381,8 +388,13 @@ class LocalSource(
 
                     val format = Format.valueOf(chapterFile)
                     if (format is Format.Epub) {
-                        format.file.epubReader(context).use { epub ->
-                            epub.fillMetadata(manga, this)
+                        // chimahon: as getComicInfoForChapter, a broken EPUB loses only its metadata
+                        try {
+                            format.file.epubReader(context).use { epub ->
+                                epub.fillMetadata(manga, this)
+                            }
+                        } catch (e: Exception) {
+                            logcat(LogPriority.WARN, e) { "Unreadable EPUB, listed by its name: ${chapterFile.name}" }
                         }
                     } else {
                         getComicInfoForChapter(chapterFile) { stream, /* SY --> */ _ /* SY <-- */ ->

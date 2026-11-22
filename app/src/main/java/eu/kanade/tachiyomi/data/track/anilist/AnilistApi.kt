@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.track.anilist
 
 import android.net.Uri
 import androidx.core.net.toUri
+import eu.kanade.tachiyomi.data.anilist.AniListPacing
 import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.data.database.models.anime.AnimeTrack
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALAddMangaResult
@@ -50,7 +51,9 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
 
     private val authClient = client.newBuilder()
         .addInterceptor(interceptor)
-        .rateLimit(permits = 85, period = 1.minutes)
+        // chimahon: AniList allows 30 a minute now (85 got 429s in bursts); a 429's Retry-After is waited out
+        .rateLimit(permits = AniListPacing.PER_MINUTE, period = 1.minutes)
+        .addInterceptor(AniListPacing.interceptor)
         .build()
 
     // KMK -->

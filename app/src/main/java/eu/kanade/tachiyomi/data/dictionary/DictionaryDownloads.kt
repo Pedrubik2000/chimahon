@@ -43,14 +43,14 @@ suspend fun downloadAndImportDictionary(
     try {
         // a part left by a killed process may be from an older release: start over
         zip.delete()
+        val progress = ResumedProgress { zip.length() }
         try {
             Injekt.get<NetworkHelper>().downloadFileWithResume(
                 url = entry.url,
                 outputFile = zip,
                 progressListener = object : ProgressListener {
                     override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
-                        // the file, not bytesRead: that restarts at 0 on each resumed attempt
-                        val got = zip.length()
+                        val got = progress.bytes(bytesRead)
                         onProgress(got, maxOf(entry.bytes, got))
                     }
                 },
@@ -65,6 +65,22 @@ suspend fun downloadAndImportDictionary(
         importDictionaryFromStream(context, zip.inputStream(), profile)
     } finally {
         zip.delete()
+    }
+}
+
+/**
+ * Bytes downloaded so far across resumed attempts. The listener's count restarts at 0 on each attempt, so the bytes
+ * already on disk when an attempt starts ([onDisk] at its first callback, before it writes) are added. The file's
+ * length alone stayed at 0 MB for a whole 6 s download on the tablet.
+ */
+internal class ResumedProgress(private val onDisk: () -> Long) {
+    private var start = 0L
+    private var last = -1L
+
+    fun bytes(bytesRead: Long): Long {
+        if (last < 0 || bytesRead < last) start = onDisk()
+        last = bytesRead
+        return start + bytesRead
     }
 }
 
