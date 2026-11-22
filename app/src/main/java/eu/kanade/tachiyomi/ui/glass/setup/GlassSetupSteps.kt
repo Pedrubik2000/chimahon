@@ -250,56 +250,69 @@ internal fun DictionaryStep(model: GlassSetupModel) {
     val others by DictionaryDownloads.others.collectAsStateWithLifecycle()
     val states = model.downloads
     val busy = model.dictionaryDownloading
-    // canvas Dict-1: rows with switches, one Download pill; the pill's label follows the switches
-    DictionaryPanel(states, others, Modifier.width(520.dp)) { entry ->
-        if (busy) {
-            Status(stringResource(MR.strings.glass_dict_not_chosen))
-        } else {
-            val on = entry.id in model.picked
-            val label = stringResource(MR.strings.glass_dict_switch, entry.name)
-            GlassToggle(
-                on,
-                onCheckedChange = { model.picked = if (it) model.picked + entry.id else model.picked - entry.id },
-                modifier = Modifier.semantics { contentDescription = label },
-            )
-        }
-    }
-    val idle = RecommendedDictionaries.all.filter { states[it.id] == null }
-    val importing = if (model.importing) stringResource(MR.strings.glass_setup_importing) else null
-    if (!busy && idle.isNotEmpty()) {
-        val chosen = idle.filter { it.id in model.picked }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            SetupButton(
-                if (chosen.isEmpty()) {
-                    stringResource(MR.strings.glass_setup_dict_download_none)
+    // canvas Dict-1: rows with switches, one Download pill; the pill's label follows the switches. 12dp, not the
+    // frame's 16dp, so the panel, own line, actions and licence fit a landscape tablet screen with no scroll.
+    Column(Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            DictionaryPanel(states) { entry ->
+                if (busy) {
+                    Status(stringResource(MR.strings.glass_dict_not_chosen))
                 } else {
-                    stringResource(MR.strings.glass_setup_dict_download, chosen.size, RecommendedDictionaries.totalMb(chosen))
-                },
-                model::downloadPicked,
-                enabled = chosen.isNotEmpty(),
-                leading = "download",
-            )
-            QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import), pickZip, enabled = !model.importing)
-            QuietButton(stringResource(MR.strings.glass_setup_not_now), model::skipDictionary)
+                    val on = entry.id in model.picked
+                    val label = stringResource(MR.strings.glass_dict_switch, entry.name)
+                    GlassToggle(
+                        on,
+                        onCheckedChange = { model.picked = if (it) model.picked + entry.id else model.picked - entry.id },
+                        modifier = Modifier.semantics { contentDescription = label },
+                    )
+                }
+            }
+            // the person's own, count first so the ellipsis only cuts the name
+            RecommendedDictionaries.ownSummary(others)?.let {
+                Text(
+                    it,
+                    Modifier.padding(horizontal = 20.dp),
+                    color = Glass.secondary,
+                    fontSize = Glass.body,
+                    lineHeight = 20.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-    } else {
-        QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import_too), pickZip, enabled = !model.importing, leading = "plus")
-    }
-    val error = model.importError
-    when {
-        error != null -> Note(stringResource(MR.strings.glass_setup_dictionary_failed, error))
-        model.dictionarySkipped && model.dictionary == null && !busy -> Note(stringResource(MR.strings.glass_setup_dictionary_skipped))
-    }
-    Text(
-        stringResource(MR.strings.glass_setup_dict_licence, RecommendedDictionaries.names(RecommendedDictionaries.all.map { it.name })),
-        Modifier.width(520.dp),
-        color = Glass.secondary,
-        fontSize = Glass.caption,
-        lineHeight = 16.sp,
-    )
-    Column(Modifier.width(520.dp)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Glass.line))
-        Note(stringResource(MR.strings.glass_setup_dictionary_more), Modifier.padding(top = 8.dp))
+        val idle = RecommendedDictionaries.all.filter { states[it.id] == null }
+        val importing = if (model.importing) stringResource(MR.strings.glass_setup_importing) else null
+        if (!busy && idle.isNotEmpty()) {
+            val chosen = idle.filter { it.id in model.picked }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                SetupButton(
+                    if (chosen.isEmpty()) {
+                        stringResource(MR.strings.glass_setup_dict_download_none)
+                    } else {
+                        stringResource(MR.strings.glass_setup_dict_download, chosen.size, RecommendedDictionaries.totalMb(chosen))
+                    },
+                    model::downloadPicked,
+                    enabled = chosen.isNotEmpty(),
+                    leading = "download",
+                )
+                QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import), pickZip, enabled = !model.importing)
+                QuietButton(stringResource(MR.strings.glass_setup_not_now), model::skipDictionary)
+            }
+        } else {
+            QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import_too), pickZip, enabled = !model.importing, leading = "plus")
+        }
+        val error = model.importError
+        when {
+            error != null -> Note(stringResource(MR.strings.glass_setup_dictionary_failed, error))
+            model.dictionarySkipped && model.dictionary == null && !busy -> Note(stringResource(MR.strings.glass_setup_dictionary_skipped))
+        }
+        // one line; mining and word colours are left to Settings (no room here)
+        Text(
+            stringResource(MR.strings.glass_setup_dict_licence),
+            color = Glass.secondary,
+            fontSize = Glass.caption,
+            lineHeight = 16.sp,
+        )
     }
 }
 

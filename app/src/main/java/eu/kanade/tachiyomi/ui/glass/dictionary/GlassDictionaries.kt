@@ -47,14 +47,12 @@ import tachiyomi.presentation.core.i18n.stringResource
 // Settings › Japanese, and the licences screen.
 
 /**
- * One panel: one row per [RecommendedDictionaries.all] then, when [others] is not empty, one summary row for the
- * person's own dictionaries (Settings passes none: its classic list is on the same page). A row with no state shows
- * [idle] (the setup's switch, Settings' Download button). At most 4 rows: no inner scroll.
+ * One panel: one row per [RecommendedDictionaries.all] (the setup puts the person's own dictionaries in a line under
+ * it). A row with no state shows [idle] (the setup's switch, Settings' Download button). No inner scroll.
  */
 @Composable
 internal fun DictionaryPanel(
     states: Map<String, State>,
-    others: List<String>,
     modifier: Modifier = Modifier,
     idle: @Composable (RecommendedDictionary) -> Unit,
 ) {
@@ -63,34 +61,21 @@ internal fun DictionaryPanel(
             if (i > 0) Line()
             DictionaryRow(entry, states[entry.id], idle)
         }
-        RecommendedDictionaries.ownSummary(others)?.let { summary ->
-            Line()
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 20.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(MR.strings.glass_dict_own), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Installed()
-            }
-        }
     }
 }
 
 @Composable
 private fun DictionaryRow(entry: RecommendedDictionary, state: State?, idle: @Composable (RecommendedDictionary) -> Unit) {
     val mb = RecommendedDictionaries.mb(entry.bytes)
+    // 52dp with set line heights: the setup's Dictionary step fits one landscape tablet screen with no scroll
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 20.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 20.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(entry.name, fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(entry.name, fontSize = Glass.label, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 if (entry.main) {
                     Text(
                         stringResource(MR.strings.glass_dict_main),
@@ -120,6 +105,7 @@ private fun DictionaryRow(entry: RecommendedDictionary, state: State?, idle: @Co
                     stringResource(MR.strings.glass_dict_what_size, entry.what, mb),
                     color = Glass.secondary,
                     fontSize = Glass.body,
+                    lineHeight = 18.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -183,7 +169,7 @@ private fun Line() {
 internal fun UsualDictionariesSettings() {
     LaunchedEffect(Unit) { DictionaryDownloads.refresh() }
     val states by DictionaryDownloads.states.collectAsStateWithLifecycle()
-    DictionaryPanel(states, emptyList(), Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { entry ->
+    DictionaryPanel(states, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { entry ->
         SetupButton(
             stringResource(MR.strings.glass_dict_download),
             { DictionaryDownloads.start(listOf(entry)) },

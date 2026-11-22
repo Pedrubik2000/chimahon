@@ -60,13 +60,42 @@ class RecommendedDictionariesTest {
     }
 
     @Test
-    fun `own summary names two and counts the rest`() {
+    fun `the tablet's 13 dictionaries are 3 usual and 10 own`() {
+        val own = listOf(
+            "daijirin4-gpt-6-luna es-jp",
+            "sankoku8-gpt-5.6-luna es-jp",
+            "JMdict (Spanish) [2026-10-30]",
+            "精選版 日本国語大辞典 es-jp",
+            "精選版 日本国語大辞典 en-jp",
+            "TMW Club v2",
+            "形容詞・動詞のイラスト素材辞典",
+            "素材辞典",
+            "新世紀ビジュアル大辞典",
+            "Bee's Characters (books & manga)",
+        )
+        val types = listOf("term", "frequency", "pitch", "kanji")
+        val found = listOf(
+            Found("term", "Jitendex.org [2026-10-03]", null),
+            Found("kanji", "KANJIDIC [2026-326]", null),
+            Found("term", "JMnedict [2026-11-22]", null),
+            // a usual one's copy in another type folder is still the usual one
+            Found("frequency", "Jitendex.org [2026-10-03]", null),
+            // one dictionary copied into two type folders counts once
+            Found("pitch", "daijirin4-gpt-6-luna es-jp", null),
+        ) + own.mapIndexed { i, name -> Found(types[i % types.size], name, null) }
+        RecommendedDictionaries.installedIds(found) shouldBe setOf("jitendex", "jmnedict", "kanjidic")
+        RecommendedDictionaries.others(found, own) shouldBe own
+        RecommendedDictionaries.ownSummary(RecommendedDictionaries.others(found, own)) shouldBe
+            "Also installed: 10 of your own (daijirin4-gpt-6-luna es-jp, …)"
+    }
+
+    @Test
+    fun `own summary puts the count first and names one`() {
         val names = (1..11).map { "d$it" }
         RecommendedDictionaries.ownSummary(emptyList()) shouldBe null
-        RecommendedDictionaries.ownSummary(names.take(1)) shouldBe "d1"
-        RecommendedDictionaries.ownSummary(names.take(2)) shouldBe "d1 and d2"
-        RecommendedDictionaries.ownSummary(names.take(3)) shouldBe "d1, d2 and 1 more"
-        RecommendedDictionaries.ownSummary(names) shouldBe "d1, d2 and 9 more"
+        RecommendedDictionaries.ownSummary(names.take(1)) shouldBe "Also installed: 1 of your own (d1)"
+        RecommendedDictionaries.ownSummary(names.take(2)) shouldBe "Also installed: 2 of your own (d1, …)"
+        RecommendedDictionaries.ownSummary(names) shouldBe "Also installed: 11 of your own (d1, …)"
     }
 
     @Test

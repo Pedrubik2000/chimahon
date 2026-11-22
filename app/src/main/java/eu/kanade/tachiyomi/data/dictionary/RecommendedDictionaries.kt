@@ -69,7 +69,7 @@ object RecommendedDictionaries {
         RecommendedDictionary(
             id = "kanjidic",
             name = "KANJIDIC",
-            what = "Kanji · readings, meanings, grade, JLPT level",
+            what = "Kanji · readings and meanings",
             type = "kanji",
             url = "https://github.com/yomidevs/jmdict-yomitan/releases/latest/download/KANJIDIC_english.zip",
             bytes = 721_032,
@@ -108,16 +108,21 @@ object RecommendedDictionaries {
     fun installedIds(found: List<Found>): Set<String> =
         all.filter { e -> found.any { matches(e, it) } }.map { it.id }.toSet()
 
-    /** The person's own dictionaries (folder names), not one of [all], in the profile's [order] (unknown ones last). */
-    fun others(found: List<Found>, order: List<String> = emptyList()): List<String> =
-        found.filter { f -> all.none { matches(it, f) } }.map { it.folder }.distinct()
+    /**
+     * The person's own dictionaries (folder names from every type folder: term, kanji, frequency, pitch), not one of
+     * [all], in the profile's [order] (unknown ones last). A folder that matches a usual one in any type is that one.
+     */
+    fun others(found: List<Found>, order: List<String> = emptyList()): List<String> {
+        val usual = found.filter { f -> all.any { matches(it, f) } }.map { it.folder }.toSet()
+        return found.map { it.folder }.distinct().filter { it !in usual }
             .sortedBy { order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }
+    }
 
-    /** The own-dictionaries row's line: "A", "A and B", "A, B and 9 more"; null for none (no row). */
+    /** The line under the panel, count first so an ellipsis only cuts the name; null for none (no line). */
     fun ownSummary(own: List<String>): String? = when (own.size) {
         0 -> null
-        1, 2 -> names(own)
-        else -> "${own[0]}, ${own[1]} and ${own.size - 2} more"
+        1 -> "Also installed: 1 of your own (${own[0]})"
+        else -> "Also installed: ${own.size} of your own (${own[0]}, …)"
     }
 
     fun scan(dictionariesDir: File): List<Found> =

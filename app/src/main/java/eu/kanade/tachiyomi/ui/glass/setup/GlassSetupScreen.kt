@@ -183,8 +183,9 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                     Modifier
                         // above the keyboard (the activity is edge-to-edge), so the focused key field can scroll into view
                         .imePadding()
-                        // padding, not offset: the column must end above the buttons to scroll there (behind the keyboard: no)
-                        .padding(start = 80.dp, top = 136.dp, bottom = if (imeOpen) 0.dp else 140.dp)
+                        // padding, not offset: the column must end above the buttons (64 + 48dp) to scroll there
+                        // (behind the keyboard: no); 116 leaves 4dp, room the Dictionary step needs on a tablet
+                        .padding(start = 80.dp, top = 136.dp, bottom = if (imeOpen) 0.dp else 116.dp)
                         .width(if (coversShown) leftWidth.coerceAtMost(520.dp) else 520.dp)
                         .verticalScroll(rememberScrollState()),
                 ) {
@@ -241,7 +242,8 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         fontSize = Glass.label,
                         lineHeight = 24.sp,
                     )
-                    Column(Modifier.padding(top = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // the Dictionary step is the tallest: 24dp there so it needs no scroll on a landscape tablet
+                    Column(Modifier.padding(top = if (step == 4) 24.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         when (step) {
                             0 -> AniListStep(model, signedIn, entries)
                             1 -> RealDebridStep(model)

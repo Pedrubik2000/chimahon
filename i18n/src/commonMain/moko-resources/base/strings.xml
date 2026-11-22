@@ -995,7 +995,6 @@
     <string name="glass_setup_dictionary_skipped">Skipped. You can get one later in Settings.</string>
     <string name="glass_setup_dictionary_sub">Yomitan dictionary · imported</string>
     <string name="glass_setup_dictionary_failed">Import failed: %1$s</string>
-    <string name="glass_setup_dictionary_more">Mining and word colours (kumapie, kuma3) are in Settings.</string>
     <string name="glass_setup_not_done">Not done yet</string>
     <string name="glass_setup_not_set">Not set</string>
     <string name="glass_setup_notifications_skip_row">Skipped · turn on in Settings</string>
@@ -1014,7 +1013,7 @@
     <string name="glass_setup_dict_import_too">Import a .zip too</string>
     <string name="glass_setup_dict_keeps">You can go on: it keeps downloading</string>
     <string name="glass_setup_dict_downloading_row">Downloading…</string>
-    <string name="glass_setup_dict_licence">%1$s are free dictionaries (CC BY-SA), from jitendex.org and the EDRDG. Their licences are in Settings › Japanese.</string>
+    <string name="glass_setup_dict_licence">Free, CC BY-SA, from jitendex.org and the EDRDG. Licences in Settings › Japanese.</string>
     <string name="glass_dict_main">MAIN</string>
     <string name="glass_dict_what_size">%1$s · about %2$s MB</string>
     <string name="glass_dict_progress">%1$s of %2$s MB</string>
@@ -1025,7 +1024,6 @@
     <string name="glass_dict_failed_download">Could not download %1$s. Check the connection.</string>
     <string name="glass_dict_failed_install">Could not install %1$s: %2$s</string>
     <string name="glass_dict_try_again">Try again</string>
-    <string name="glass_dict_own">Your own dictionaries</string>
     <string name="glass_dict_switch">Download %1$s</string>
     <string name="glass_dict_download">Download</string>
     <string name="glass_dict_usual">Usual dictionaries</string>
