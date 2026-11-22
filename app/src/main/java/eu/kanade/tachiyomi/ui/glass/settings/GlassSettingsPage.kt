@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -89,9 +90,19 @@ private val Sections = listOf(
  * Canvas `Settings-1.dc.html`: the 9 sections on the left, the section on the right. Every pane re-hosts the
  * classic screens' own [Preference] items (their getPreferences()), regrouped; the only new UI is the source order.
  */
+/** A section to open next (the Needs attention panel's "Change key" sets "sources"); taken once, then null. */
+val glassSettingsSection = mutableStateOf<String?>(null)
+
 @Composable
 fun GlassSettingsPage(navigator: Navigator) {
     var section by rememberSaveable { mutableStateOf(Sections.first().id) }
+    val asked by glassSettingsSection
+    LaunchedEffect(asked) {
+        asked?.let { id ->
+            if (Sections.any { it.id == id }) section = id
+            glassSettingsSection.value = null
+        }
+    }
     val narrow = LocalConfiguration.current.screenWidthDp < 900
     val prefs = remember { Injekt.get<DownloadPreferences>() }
     val coverage = remember { Injekt.get<SourceCoverage>() }

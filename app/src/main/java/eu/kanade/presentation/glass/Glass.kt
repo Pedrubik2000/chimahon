@@ -121,6 +121,8 @@ fun GlassRail(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     onBearLongClick: () -> Unit = {},
+    /** rail ids with an ice dot (an area that needs attention, canvas `Err-3`) */
+    dots: Set<String> = emptySet(),
 ) {
     Column(
         modifier.width(Glass.rail),
@@ -140,15 +142,70 @@ fun GlassRail(
             Text("熊", color = Color.Black, fontSize = Glass.heading, fontWeight = FontWeight.Bold)
         }
         GlassRailItems.forEach { (id, label, icon) ->
-            val on = id == active
+            val dot = id in dots
+            GlassRailButton(
+                icon = icon,
+                label = if (dot) "$label, needs attention" else label,
+                on = id == active,
+                onClick = { onSelect(id) },
+                dot = dot,
+            )
+        }
+    }
+}
+
+/** One 56dp round rail button: white when [on]; [dot] = 14dp ice dot top right; [badge] = ice count top right. */
+@Composable
+fun GlassRailButton(
+    icon: String,
+    label: String,
+    on: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    dot: Boolean = false,
+    badge: String? = null,
+) {
+    // the dot and badge sit outside the button's circle clip
+    Box(modifier.size(Glass.rail)) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .then(if (on) Modifier.clip(CircleShape).background(Color.White) else Modifier.outlined(CircleShape))
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            GlassIcon(icon, size = 24.dp, tint = if (on) Color.Black else Color.White, contentDescription = label)
+        }
+        // 2dp page-coloured ring around both, as on the canvas
+        if (dot) {
             Box(
                 Modifier
-                    .size(Glass.rail)
-                    .then(if (on) Modifier.clip(CircleShape).background(Color.White) else Modifier.outlined(CircleShape))
-                    .clickable { onSelect(id) },
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-1).dp, y = 1.dp)
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(Glass.page)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(Glass.ice),
+            )
+        }
+        badge?.let {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp)
+                    .heightIn(min = 24.dp)
+                    .widthIn(min = 24.dp)
+                    .clip(CircleShape)
+                    .background(Glass.page)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(Glass.ice)
+                    .padding(horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                GlassIcon(icon, size = 24.dp, tint = if (on) Color.Black else Color.White, contentDescription = label)
+                Text(it, color = Color.Black, fontSize = Glass.caption, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }

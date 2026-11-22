@@ -9,29 +9,53 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.GlassRail
+import eu.kanade.presentation.glass.GlassRailButton
 import eu.kanade.presentation.glass.GlassRailItems
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.download.LocalSeriesSync
+import eu.kanade.tachiyomi.data.download.RealDebridQueue
+import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverModel
 import eu.kanade.tachiyomi.ui.glass.discover.GlassDiscoverPage
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloadsPage
+import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
 import eu.kanade.tachiyomi.ui.glass.home.GlassHomePage
 import eu.kanade.tachiyomi.ui.glass.library.GlassLibraryPage
+import eu.kanade.tachiyomi.ui.glass.problems.GlassProblems
+import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsModel
+import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsPanel
+import eu.kanade.tachiyomi.ui.glass.problems.ProblemAction
 import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
+import eu.kanade.tachiyomi.ui.glass.settings.glassSettingsSection
+import eu.kanade.tachiyomi.ui.glass.title.GlassTitleScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
+import eu.kanade.tachiyomi.util.system.openInBrowser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.i18n.stringResource
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 // The rail's page. Top level, not rememberSaveable (rotating the tablet sent the shell back to Home) and not a
 // field of the screen object (Voyager serializes screens).
@@ -55,6 +79,11 @@ object GlassHomeScreen : Screen() {
         BackHandler(enabled = page != "home") { page = "home" }
         // volumes put in a series folder outside the app (or by an older import) get their chapter rows
         LaunchedEffect(Unit) { LocalSeriesSync.syncAll() }
+        val problemsModel = rememberScreenModel { GlassProblemsModel() }
+        val problems by problemsModel.problems.collectAsStateWithLifecycle()
+        var problemsOpen by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
 
         GlassPage {
             when (page) {
@@ -78,13 +107,64 @@ object GlassHomeScreen : Screen() {
                     Pill("Classic view", onClick = { navigator.push(HomeScreen) }, small = true)
                 }
             }
+            if (problemsOpen) {
+                // composed after the pages' own BackHandlers, so it wins while the panel is open
+                BackHandler { problemsOpen = false }
+                GlassProblemsPanel(problems, onClose = { problemsOpen = false }) { p, action ->
+                    when (action) {
+                        ProblemAction.CHANGE_KEY -> {
+                            glassSettingsSection.value = "sources"
+                            page = "settings"
+                            problemsOpen = false
+                        }
+                        ProblemAction.HIDE -> problemsModel.hide(p)
+                        ProblemAction.OPEN_TITLE -> p.mediaId?.let { navigator.push(GlassTitleScreen(it)) }
+                        ProblemAction.TRY_AGAIN -> p.mediaId?.let { id ->
+                            // the Downloads card's Try again: cached coverage, else the title page fetches it
+                            scope.launch {
+                                val entry = Injekt.get<AniListLibrary>().get(id)
+                                val queued = if (entry == null) {
+                                    emptySet()
+                                } else {
+                                    withContext(Dispatchers.IO) {
+                                        val cached = cachedCoverage(context, id)
+                                        if (cached.isEmpty()) emptySet() else Injekt.get<RealDebridQueue>().enqueueAll(entry, p.volumes, cached)
+                                    }
+                                }
+                                if (queued.isEmpty()) navigator.push(GlassTitleScreen(id))
+                            }
+                        }
+                        ProblemAction.RETRY_ANILIST -> model.refresh()
+                        ProblemAction.OPEN_LIBRARY -> {
+                            page = "library"
+                            problemsOpen = false
+                        }
+                        ProblemAction.SIGN_IN -> context.openInBrowser(AnilistApi.authUrl(), forceDefaultBrowser = true)
+                    }
+                }
+            }
             // last, so it draws over the pages (Home's banner scrolls under it) and keeps its touches
             GlassRail(
                 active = page,
-                onSelect = { page = it },
+                onSelect = {
+                    page = it
+                    problemsOpen = false
+                },
                 onBearLongClick = { navigator.push(GlassKitScreen()) },
                 modifier = Modifier.padding(start = 20.dp, top = 24.dp),
+                dots = GlassProblems.areas(problems),
             )
+            // canvas Err-3: only while something needs attention (or the panel is still open on an empty list)
+            if (problems.isNotEmpty() || problemsOpen) {
+                GlassRailButton(
+                    icon = "alert",
+                    label = stringResource(MR.strings.glass_problems_alert, problems.size),
+                    on = problemsOpen,
+                    onClick = { problemsOpen = !problemsOpen },
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 24.dp),
+                    badge = problems.size.takeIf { it > 0 }?.toString(),
+                )
+            }
         }
     }
 }

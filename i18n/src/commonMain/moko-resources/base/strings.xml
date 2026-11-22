@@ -1006,6 +1006,30 @@
     <string name="glass_setup_open_home">Open Home</string>
     <string name="glass_setup_finish">Done</string>
     <string name="glass_setup_another_folder">Choose another folder</string>
+    <!-- Glass Needs attention panel (canvas Err-3) -->
+    <string name="glass_problems_title">Needs attention</string>
+    <string name="glass_problems_sub">Reading keeps working while these wait.</string>
+    <string name="glass_problems_none">Nothing needs attention right now.</string>
+    <string name="glass_problems_footer">The dot on the rail shows where each problem is. Hidden ones come back if they happen again.</string>
+    <string name="glass_problems_alert">Needs attention, %1$d</string>
+    <string name="glass_problems_close">Close</string>
+    <string name="glass_problems_rd_rejected">Real-Debrid no longer accepts your key</string>
+    <string name="glass_problems_rd_rejected_detail">Downloads are paused. Reading still works.</string>
+    <string name="glass_problems_rd_free">Your Real-Debrid account is not Premium</string>
+    <string name="glass_problems_rd_free_detail">Downloads need Premium.</string>
+    <string name="glass_problems_not_found">Vol. %1$s were not found</string>
+    <string name="glass_problems_not_found_one">Vol. %1$s was not found</string>
+    <string name="glass_problems_failed">The download failed</string>
+    <string name="glass_problems_offline">No connection</string>
+    <string name="glass_problems_offline_detail">Browse needs AniList. Your Library and what is on this tablet still work.</string>
+    <string name="glass_problems_signed_out">AniList is signed out</string>
+    <string name="glass_problems_signed_out_detail">Home, Library and Browse need AniList. What is on this tablet still works.</string>
+    <string name="glass_problems_change_key">Change key</string>
+    <string name="glass_problems_hide">Hide for now</string>
+    <string name="glass_problems_open_title">Open title</string>
+    <string name="glass_problems_try_again">Try again</string>
+    <string name="glass_problems_open_library">Open Library</string>
+    <string name="glass_problems_sign_in">Sign in</string>
     <!-- Glass title page (UI rebuild phase 4) -->
     <string name="glass_title_vols">%1$d vols</string>
     <string name="glass_title_finished">finished</string>

@@ -746,7 +746,7 @@ private val coverageJson = Json { ignoreUnknownKeys = true }
 // ponytail: reads SourceCoverage's cache file itself (its reader is private, file not to be touched here);
 // move into SourceCoverage as a public cached() if a second caller appears
 /** The title's cached coverage of the sources that are on, in the preferred order, whatever its age. */
-private fun cachedCoverage(context: Context, mediaId: Long): List<Coverage> {
+internal fun cachedCoverage(context: Context, mediaId: Long): List<Coverage> {
     val list = runCatching {
         coverageJson.decodeFromString<List<Coverage>>(File(context.filesDir, "coverage/$mediaId.json").readText())
     }.getOrDefault(emptyList())
