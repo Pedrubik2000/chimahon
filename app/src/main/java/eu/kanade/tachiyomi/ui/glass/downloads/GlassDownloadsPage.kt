@@ -1,6 +1,9 @@
 package eu.kanade.tachiyomi.ui.glass.downloads
 
+import android.app.Application
 import android.content.Context
+import android.provider.DocumentsContract
+import android.provider.DocumentsContract.Document
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,6 +82,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import logcat.LogPriority
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.storage.service.StorageManager
@@ -646,9 +651,35 @@ private object StorageCache {
         }.getOrNull()?.also { value = it } ?: value
     }
 
-    // ponytail: one SAF query per entry (slow on folders of loose pages); one children query with _size per folder if it drags
-    private fun treeSize(f: UniFile): Long =
-        if (f.isDirectory) (f.listFiles()?.sumOf { treeSize(it) } ?: 0L) else f.length()
+    // chimahon: one children query per folder with _size (UniFile's isDirectory/length per entry opened every .rar
+    // through MediaProvider: "Measuring…" for over a minute); a folder whose query fails counts as 0, logged once
+    private fun treeSize(f: UniFile): Long {
+        val uri = f.uri
+        val resolver = Injekt.get<Application>().contentResolver
+        var total = 0L
+        var logged = false
+        val folders = ArrayDeque(listOf(DocumentsContract.getDocumentId(uri)))
+        while (folders.isNotEmpty()) {
+            val id = folders.removeFirst()
+            try {
+                resolver.query(
+                    DocumentsContract.buildChildDocumentsUriUsingTree(uri, id),
+                    arrayOf(Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE, Document.COLUMN_SIZE),
+                    null,
+                    null,
+                    null,
+                )?.use { c ->
+                    while (c.moveToNext()) {
+                        if (c.getString(1) == Document.MIME_TYPE_DIR) folders.add(c.getString(0)) else total += c.getLong(2)
+                    }
+                }
+            } catch (e: Exception) {
+                if (!logged) logcat(LogPriority.WARN, e) { "Storage: can't list $id" }
+                logged = true
+            }
+        }
+        return total
+    }
 }
 
 private val coverageJson = Json { ignoreUnknownKeys = true }
