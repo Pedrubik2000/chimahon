@@ -49,6 +49,15 @@ object ManualDownload {
         )
     }
 
+    /**
+     * Does a hoster's answer to a plain request for a file's page say the file is gone? [landed] = the address
+     * after redirects.
+     */
+    // ponytail: only what was seen on 2026-11-22: 404 / 410 (Uploady), and Rapidgator sending a missing file to
+    // its premium page. Katfile and Hexload answer 200 either way: not detected; add their marker text if needed.
+    fun gone(code: Int, landed: String): Boolean =
+        code == 404 || code == 410 || (host(landed) == "rapidgator.net" && "/article/premium" in landed)
+
     /** "rapidgator.net" from a link, without "www."; "" when it has no host. */
     fun host(link: String): String {
         val rest = link.substringAfter("://", "").takeIf { it.isNotEmpty() } ?: return ""

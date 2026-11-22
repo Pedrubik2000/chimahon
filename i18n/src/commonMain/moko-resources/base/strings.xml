@@ -1186,6 +1186,8 @@
     <string name="glass_manual_delete_ask">Delete %1$s from this device? This cannot be undone.</string>
     <string name="glass_manual_delete_failed">Could not delete it</string>
     <string name="glass_manual_deleted">Deleted</string>
+    <string name="glass_manual_checking">Checking the links…</string>
+    <string name="glass_manual_gone">Link is gone</string>
     <string name="glass_phone_genres">Genres</string>
     <string name="glass_phone_status">Status</string>
     <string name="glass_phone_length">Length</string>

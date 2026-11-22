@@ -77,4 +77,13 @@ class ManualDownloadTest {
         RealDebridImportJob.localName("Vol 01.rar", "content://x/1") shouldBe "Vol 01.rar"
         RealDebridImportJob.localName(null, "content://x/document/primary%3ADownload%2FVol%2001.rar") shouldBe "Vol 01.rar"
     }
+
+    @Test
+    fun `a hoster page that says the file is gone`() {
+        ManualDownload.gone(404, "https://uploady.io/abc") shouldBe true
+        ManualDownload.gone(200, "https://rapidgator.net/article/premium") shouldBe true
+        ManualDownload.gone(200, "https://rapidgator.net/file/abc/x.rar.html") shouldBe false
+        ManualDownload.gone(200, "https://katfile.com/abc/x.rar.html") shouldBe false
+        ManualDownload.gone(503, "https://uploady.io/abc") shouldBe false // down for now is not gone
+    }
 }

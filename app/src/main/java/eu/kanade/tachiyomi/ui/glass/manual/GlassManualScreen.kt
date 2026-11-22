@@ -61,15 +61,21 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.ManualDownload
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
+import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Request
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.concurrent.TimeUnit
 import java.util.UUID
 
 /**
@@ -90,7 +96,7 @@ class GlassManualScreen(
         val model = rememberScreenModel { ManualModel(mediaId, volumes, here) }
         val step = model.step
         val options = model.options
-        val option = options?.getOrNull(model.selected)
+        val option = options?.getOrNull(model.selected)?.takeIf { !model.isGone(it) }
         val many = (option?.files?.size ?: 0) > 1
 
         // ponytail: no "Watching Downloads" (needs all-files access or a MediaStore scan); the person picks the file
@@ -118,7 +124,11 @@ class GlassManualScreen(
                         Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
                     ) {
                         when (step) {
-                            Step.PICK -> if (options != null) PickBody(model, options)
+                            Step.PICK -> if (options != null) {
+                                PickBody(model, options)
+                            } else {
+                                Dim(stringResource(MR.strings.glass_manual_checking))
+                            }
                             Step.STEPS -> if (option != null) StepsBody(model, option, context)
                             Step.FOUND -> FoundBody(model, context)
                             Step.DONE -> DoneBody(model, context) { confirmDelete = true }
@@ -234,6 +244,27 @@ private class ManualModel(
 
     var options by mutableStateOf<List<ManualDownload.Option>?>(null)
     var selected by mutableIntStateOf(0)
+
+    /** links whose hoster page says the file is gone ([ManualDownload.gone]) */
+    var gone by mutableStateOf<Set<String>>(emptySet())
+
+    fun isGone(o: ManualDownload.Option) = o.files.any { it.link in gone }
+
+    /** One plain page request per link, all at once, 8 s each; an answer that does not say "gone" (or none) = not gone. */
+    private suspend fun deadLinks(links: List<String>): Set<String> = coroutineScope {
+        val client = Injekt.get<NetworkHelper>().client.newBuilder().callTimeout(8, TimeUnit.SECONDS).build()
+        links.map { link ->
+            async {
+                link.takeIf {
+                    runCatching {
+                        client.newCall(Request.Builder().url(link).build()).execute().use { r ->
+                            ManualDownload.gone(r.code, r.request.url.toString())
+                        }
+                    }.getOrDefault(false)
+                }
+            }
+        }.awaitAll().filterNotNull().toSet()
+    }
     var step by mutableStateOf(Step.PICK)
     var opened by mutableStateOf(false)
     var picks by mutableStateOf<List<Picked>>(emptyList())
@@ -250,9 +281,13 @@ private class ManualModel(
         // The file read is off the main thread, the write on it: this model is made during composition, and a
         // write from another thread before that composition is applied is lost (the list stayed empty for good).
         screenModelScope.launch {
-            options = withContext(Dispatchers.IO) {
-                ManualDownload.options(volumes, here.toSet(), cachedCoverage(app, mediaId))
+            val (list, dead) = withContext(Dispatchers.IO) {
+                val list = ManualDownload.options(volumes, here.toSet(), cachedCoverage(app, mediaId))
+                list to deadLinks(list.flatMap { o -> o.files.map { it.link } }.distinct())
             }
+            gone = dead
+            // an option with a dead file goes last and is never the suggestion (sortedBy is stable)
+            options = list.sortedBy { isGone(it) }
         }
         screenModelScope.launch {
             queue.rows.collect { rows ->
@@ -365,17 +400,18 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
     }
     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEachIndexed { i, o ->
-            val on = i == model.selected
+            val dead = model.isGone(o)
+            val on = i == model.selected && !dead
             Column(
                 Modifier
                     .fillMaxWidth()
                     .glassPanel()
                     .then(if (on) Modifier.border(1.dp, Glass.ice, RoundedCornerShape(Glass.r16)) else Modifier)
-                    .clickable { model.selected = i }
+                    .clickable(enabled = !dead) { model.selected = i }
                     .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (i == 0) {
+                if (i == 0 && !dead) {
                     Column(Modifier.padding(end = 8.dp)) {
                         CapsLabel(stringResource(MR.strings.glass_manual_suggested), Glass.ice)
                         Dim(
@@ -389,19 +425,31 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(o.sourceName, fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            o.sourceName,
+                            color = if (dead) Glass.secondary else Color.White,
+                            fontSize = Glass.label,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         Dim(optionLine(o), Modifier)
                     }
                     Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
                         Box(
-                            Modifier.size(22.dp).border(2.dp, if (on) Glass.ice else Color.White, CircleShape),
+                            Modifier.size(22.dp).border(2.dp, if (on) Glass.ice else if (dead) Glass.line else Color.White, CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             if (on) Box(Modifier.size(10.dp).clip(CircleShape).background(Glass.ice))
                         }
                     }
                 }
-                if (o.adds.isNotEmpty()) {
+                if (dead) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        GlassIcon("alert", size = 18.dp)
+                        Text(stringResource(MR.strings.glass_manual_gone), fontSize = Glass.body)
+                    }
+                } else if (o.adds.isNotEmpty()) {
                     val already = if (o.alreadyHere.isEmpty()) "" else " · " + stringResource(MR.strings.glass_manual_already, CoverageMatch.ranges(o.alreadyHere))
                     Text(stringResource(MR.strings.glass_manual_adds, CoverageMatch.ranges(o.adds)) + already, fontSize = Glass.body, modifier = Modifier.padding(end = 8.dp))
                 }
