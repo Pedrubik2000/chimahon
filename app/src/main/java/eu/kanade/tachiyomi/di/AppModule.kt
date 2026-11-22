@@ -26,6 +26,7 @@ import eu.kanade.tachiyomi.data.BackupRestoreStatus
 import eu.kanade.tachiyomi.data.LibraryUpdateStatus
 import eu.kanade.tachiyomi.data.SyncStatus
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.anilist.VolumeCounts
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadProvider
@@ -257,6 +258,7 @@ class AppModule(val app: Application) : InjektModule {
 
         addSingletonFactory { TrackerManager() }
         addSingletonFactory { AniListLibrary(app) }
+        addSingletonFactory { VolumeCounts(app) }
         addSingletonFactory { VolumeCovers(app) }
         addSingletonFactory { SourceCoverage(app) }
         addSingletonFactory { RealDebridQueue(app) }

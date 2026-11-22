@@ -154,6 +154,33 @@ class GlassTitlesTest {
     }
 
     @Test
+    fun `total from AniList, else the learned count, never below what is here`() {
+        val releasing = GlassTitle(entry(7, "CURRENT"), localMangaId = 17, volumesHere = 4, volumesRead = 2)
+        releasing.total shouldBe null // what is here is a floor, never a total
+        releasing.copy(countSoFar = 12).total shouldBe 12
+        releasing.copy(countSoFar = 3).total shouldBe 4
+        releasing.copy(countSoFar = 12).readFraction shouldBe 2f / 12f
+        GlassTitle(entry(8, "CURRENT", volumes = 6), countSoFar = 9).total shouldBe 6
+    }
+
+    @Test
+    fun `learned counts feed every volume here and length`() {
+        // title 4: 5 here, AniList count unknown
+        GlassTitles.here(GlassTitles.withCounts(list, mapOf(4L to 5))[3]) shouldBe Here.EVERY
+        GlassTitles.here(GlassTitles.withCounts(list, mapOf(4L to 8))[3]) shouldBe Here.SOME
+        val learned = GlassTitles.withCounts(facets, mapOf(4L to 8))
+        ids(GlassTitles.filter(learned, "", TitleFilters(length = Length.MEDIUM))) shouldBe listOf(1L, 2L, 4L)
+        GlassTitles.view(learned, "", TitleFilters(), GlassSort.TITLE).lengthCounts[Length.MEDIUM] shouldBe 3
+    }
+
+    @Test
+    fun `fill order - Reading, then here, then Plan to read`() {
+        GlassTitles.fillOrder(list).map { it.mediaId } shouldBe listOf(4L) // only unknown AniList counts
+        val unknown = list.map { it.copy(entry = it.entry.copy(volumes = null)) }
+        GlassTitles.fillOrder(unknown).map { it.mediaId } shouldBe listOf(1L, 2L, 5L, 4L, 3L)
+    }
+
+    @Test
     fun `volume label`() {
         GlassTitles.volumeLabel(next) shouldBe "3"
         GlassTitles.volumeLabel(next.copy(number = 3.5)) shouldBe "3.5"

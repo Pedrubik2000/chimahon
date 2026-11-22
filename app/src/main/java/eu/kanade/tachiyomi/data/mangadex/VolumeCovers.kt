@@ -38,8 +38,11 @@ class VolumeCovers(private val app: Application) {
 
     private fun file(mediaId: Long) = File(app.filesDir, "anilist/covers/$mediaId.json")
 
-    /** Volume number → cover url (256 px). Cached for 30 days; [force] fetches again. Empty when MangaDex has none. */
-    suspend fun get(entry: AniListLibrary.Entry, force: Boolean = false): Map<Double, String> = withIOContext {
+    /**
+     * Volume number → cover url (256 px). Cached for 30 days; [force] fetches again. Empty when MangaDex has none.
+     * [rethrow]: a failed fetch throws instead of falling back to the old cache (the volume-count filler stops on it).
+     */
+    suspend fun get(entry: AniListLibrary.Entry, force: Boolean = false, rethrow: Boolean = false): Map<Double, String> = withIOContext {
         val file = file(entry.mediaId)
         val cached = runCatching { json.decodeFromString<Saved>(file.readText()) }.getOrNull()
         if (!force && cached != null && System.currentTimeMillis() - cached.fetchedAt < MAX_AGE) {
@@ -53,6 +56,7 @@ class VolumeCovers(private val app: Application) {
             tmp.renameTo(file)
             saved.covers
         } catch (e: Exception) {
+            if (rethrow) throw e
             logcat(LogPriority.WARN, e) { "MangaDex covers failed: ${entry.mediaId}" }
             cached?.covers.orEmpty()
         }

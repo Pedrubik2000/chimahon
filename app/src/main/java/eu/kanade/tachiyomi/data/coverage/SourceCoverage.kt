@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.coverage
 
 import android.app.Application
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.anilist.VolumeCounts
 import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.source.online.all.RealDebridSource
@@ -55,6 +56,7 @@ class SourceCoverage(private val app: Application) {
 
     private val sourceManager: SourceManager by injectLazy()
     private val prefs: DownloadPreferences by injectLazy()
+    private val volumeCounts: VolumeCounts by injectLazy()
     private val fileLock = Mutex()
 
     /** Installed Real-Debrid sources in the preferred order (pref ids first, then the built-in order); on ones only. */
@@ -77,7 +79,9 @@ class SourceCoverage(private val app: Application) {
         sources().forEach { source ->
             launch {
                 val hit = cached[source.id]?.takeIf { now - it.fetchedAt < TTL }
-                send(hit ?: gate.withPermit { fetch(entry, source) }.also { save(entry.mediaId, it) })
+                val c = hit ?: gate.withPermit { fetch(entry, source) }.also { save(entry.mediaId, it) }
+                maxVolume(c)?.let { volumeCounts.put(entry.mediaId, it, VolumeCounts.SOURCE_COVERAGE) }
+                send(c)
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -111,6 +115,15 @@ class SourceCoverage(private val app: Application) {
 
     private fun file(mediaId: Long) = File(app.filesDir, "coverage/$mediaId.json")
 
+    /** Media id → highest volume any cached FOUND coverage has (any age), for seeding [VolumeCounts]. */
+    fun cachedMaxVolumes(): Map<Long, Int> =
+        File(app.filesDir, "coverage").listFiles { f -> f.name.endsWith(".json") }.orEmpty()
+            .mapNotNull { f ->
+                val id = f.name.removeSuffix(".json").toLongOrNull() ?: return@mapNotNull null
+                read(id).values.mapNotNull { maxVolume(it) }.maxOrNull()?.let { id to it }
+            }
+            .toMap()
+
     private fun read(mediaId: Long): Map<Long, Coverage> =
         runCatching { json.decodeFromString<List<Coverage>>(file(mediaId).readText()) }.getOrDefault(emptyList())
             .associateBy { it.sourceId }
@@ -135,6 +148,9 @@ class SourceCoverage(private val app: Application) {
         private const val MAX_POSTS = 5
         private const val TTL = 24 * 60 * 60 * 1000L
         private val json = Json { ignoreUnknownKeys = true }
+
+        private fun maxVolume(c: Coverage): Int? =
+            c.volumes.keys.maxOrNull()?.takeIf { c.state == Coverage.State.FOUND && it > 0 }
 
         /** Built-in order (Source.name) when the preference has no say. */
         val DEFAULT_ORDER = listOf("X3DL", "Excnn", "Rawxt", "Manga Zone", "Nyaa (raw manga)", "BsZip", "A-Z Manga")

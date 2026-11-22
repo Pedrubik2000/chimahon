@@ -170,11 +170,12 @@ private fun HeroText(hero: Hero, navigator: Navigator) {
     val context = LocalContext.current
     val t = hero.title
     val next = t.next
+    val total = t.total
     val where = when {
         hero.resume && next != null && next.lastPageRead > 0 ->
             stringResource(MR.strings.glass_hero_vol_page, GlassTitles.volumeLabel(next), next.lastPageRead + 1)
         hero.resume && next != null -> stringResource(MR.strings.glass_hero_vol, GlassTitles.volumeLabel(next))
-        t.entry.volumes != null -> stringResource(MR.strings.glass_n_volumes, t.entry.volumes)
+        total != null -> stringResource(MR.strings.glass_n_volumes, total)
         else -> statusLabel(t.entry.status)
     }
     Column(

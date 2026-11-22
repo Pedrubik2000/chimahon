@@ -216,7 +216,7 @@ private fun sortLabel(s: GlassSort): String = when (s) {
 @Composable
 private fun Cell(t: GlassTitle, onClick: () -> Unit) {
     val shape = RoundedCornerShape(Glass.r10)
-    val total = t.entry.volumes
+    val total = t.total
     val badge = when {
         total != null -> "${t.volumesHere} / $total"
         t.volumesHere > 0 -> t.volumesHere.toString()

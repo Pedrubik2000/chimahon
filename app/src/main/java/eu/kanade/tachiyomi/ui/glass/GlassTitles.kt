@@ -21,13 +21,22 @@ data class GlassTitle(
     val lastRead: Long? = null,
     /** filled only for the hero candidate (see [GlassTitlesModel]) */
     val next: NextVolume? = null,
+    /** volumes out so far learned from sources / MangaDex ([eu.kanade.tachiyomi.data.anilist.VolumeCounts]) */
+    val countSoFar: Int? = null,
 ) {
     val mediaId: Long get() = entry.mediaId
     val name: String get() = entry.native ?: entry.romaji ?: entry.english ?: ""
 
-    /** volumes read ÷ AniList volumes; null when AniList doesn't know the volume count. */
+    /**
+     * AniList volumes, else the learned count so far (never below the volumes here); null = unknown. What is here is
+     * a floor, never a total by itself.
+     */
+    val total: Int?
+        get() = entry.volumes?.takeIf { it > 0 } ?: countSoFar?.takeIf { it > 0 }?.coerceAtLeast(volumesHere)
+
+    /** volumes read ÷ [total]; null when the volume count is unknown. */
     val readFraction: Float?
-        get() = entry.volumes?.takeIf { it > 0 }?.let { (volumesRead.toFloat() / it).coerceIn(0f, 1f) }
+        get() = total?.let { (volumesRead.toFloat() / it).coerceIn(0f, 1f) }
 
     /** Last read on the tablet, else the AniList entry's last update (both millis). */
     val lastTouched: Long get() = lastRead ?: (entry.updatedAt * 1000)
@@ -98,10 +107,10 @@ data class Hero(val title: GlassTitle, val resume: Boolean)
 object GlassTitles {
 
     fun here(t: GlassTitle): Here {
-        val total = t.entry.volumes
+        val total = t.total // for a releasing title: every volume out so far
         return when {
             t.volumesHere == 0 -> Here.NOTHING
-            total != null && total > 0 && t.volumesHere >= total -> Here.EVERY
+            total != null && t.volumesHere >= total -> Here.EVERY
             else -> Here.SOME
         }
     }
@@ -132,7 +141,7 @@ object GlassTitles {
             (skip == Facet.HERE || f.here == null || here(t) == f.here) &&
             (skip == Facet.GENRES || e.genres.containsAll(f.genres)) &&
             (skip == Facet.PUBLISHED || f.published == null || e.mediaStatus == f.published) &&
-            (skip == Facet.LENGTH || f.length == null || inLength(e.volumes, f.length)) &&
+            (skip == Facet.LENGTH || f.length == null || inLength(t.total, f.length)) &&
             (skip == Facet.TAGS || (f.tagsIn.isEmpty() && f.tagsOut.isEmpty()) ||
                 tagNames(t).let { n -> n.containsAll(f.tagsIn) && f.tagsOut.none { it in n } })
     }
@@ -162,7 +171,7 @@ object GlassTitles {
             hereCounts = without(Facet.HERE).groupingBy { here(it) }.eachCount(),
             genres = genres.map { it to (genreCounts[it] ?: 0) },
             publishedCounts = without(Facet.PUBLISHED).groupingBy { it.entry.mediaStatus }.eachCount(),
-            lengthCounts = Length.entries.associateWith { l -> byLength.count { inLength(it.entry.volumes, l) } },
+            lengthCounts = Length.entries.associateWith { l -> byLength.count { inLength(it.total, l) } },
             tags = chosen.map { it to (tagCounts[it] ?: 0) } + top.map { it.key to it.value },
         )
     }
@@ -215,6 +224,23 @@ object GlassTitles {
                 )
             }
         }
+
+    /** [counts] = [eu.kanade.tachiyomi.data.anilist.VolumeCounts.counts]. */
+    fun withCounts(list: List<GlassTitle>, counts: Map<Long, Int>): List<GlassTitle> =
+        list.map { it.copy(countSoFar = counts[it.mediaId]) }
+
+    /** Titles AniList gives no volume count for, in the order to ask: Reading, something here, Plan to read, rest. */
+    fun fillOrder(list: List<GlassTitle>): List<AniListLibrary.Entry> =
+        list.filter { (it.entry.volumes ?: 0) <= 0 }
+            .sortedBy {
+                when {
+                    ListFilter.READING.matches(it) -> 0
+                    it.volumesHere > 0 -> 1
+                    ListFilter.PLANNING.matches(it) -> 2
+                    else -> 3
+                }
+            }
+            .map { it.entry }
 
     /** A local-source manga as [build] needs it. */
     data class Local(val mangaId: Long, val volumes: Int, val read: Int, val lastRead: Long)

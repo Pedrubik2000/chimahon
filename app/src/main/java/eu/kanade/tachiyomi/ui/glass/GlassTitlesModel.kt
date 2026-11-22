@@ -7,16 +7,21 @@ import androidx.compose.runtime.snapshotFlow
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.anilist.VolumeCounts
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.chapter.service.getChapterSort
@@ -34,17 +39,29 @@ class GlassTitlesModel(
     private val trackRepository: TrackRepository = Injekt.get(),
     private val getLibraryManga: GetLibraryManga = Injekt.get(),
     private val getChaptersByMangaId: GetChaptersByMangaId = Injekt.get(),
+    private val volumeCounts: VolumeCounts = Injekt.get(),
 ) : ScreenModel {
 
     /** null until the first load. */
     val titles: StateFlow<List<GlassTitle>?> = combine(
-        flow { emitAll(aniList.entries) }, // first access reads the cache file: keep it off the main thread
-        trackRepository.getTracksAsFlow(),
-        getLibraryManga.subscribe(),
-    ) { entries, tracks, library -> load(entries, tracks, library) }
+        combine(
+            flow { emitAll(aniList.entries) }, // first access reads the cache file: keep it off the main thread
+            trackRepository.getTracksAsFlow(),
+            getLibraryManga.subscribe(),
+        ) { entries, tracks, library -> load(entries, tracks, library) },
+        // the background filler learns a count every ~2 s: recompute the grid at most once a second
+        flow { emitAll(volumeCounts.counts) }.conflate().transform { emit(it); delay(1_000) },
+    ) { list, counts -> GlassTitles.withCounts(list, counts) }
         .flowOn(Dispatchers.IO)
         // stops 5 s after the UI stops collecting (reader open), so page turns don't re-run this
         .stateIn(screenModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    init {
+        // volume counts AniList doesn't give (releasing titles), from MangaDex; once per app run, ends with this model
+        screenModelScope.launch(Dispatchers.IO) {
+            volumeCounts.fill(GlassTitles.fillOrder(titles.filterNotNull().first()))
+        }
+    }
 
     val error: StateFlow<String?> get() = aniList.error
 
