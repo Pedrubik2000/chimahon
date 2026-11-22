@@ -282,6 +282,8 @@ internal fun DictionaryStep(model: GlassSetupModel) {
         }
         val idle = RecommendedDictionaries.all.filter { states[it.id] == null }
         val importing = if (model.importing) stringResource(MR.strings.glass_setup_importing) else null
+        // the action row and the licence sit together, no gap: 12dp more and the licence falls under Back / Continue
+        Column {
         if (!busy && idle.isNotEmpty()) {
             val chosen = idle.filter { it.id in model.picked }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -301,18 +303,20 @@ internal fun DictionaryStep(model: GlassSetupModel) {
         } else {
             QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import_too), pickZip, enabled = !model.importing, leading = "plus")
         }
-        val error = model.importError
-        when {
-            error != null -> Note(stringResource(MR.strings.glass_setup_dictionary_failed, error))
-            model.dictionarySkipped && model.dictionary == null && !busy -> Note(stringResource(MR.strings.glass_setup_dictionary_skipped))
-        }
         // one line; mining and word colours are left to Settings (no room here)
         Text(
             stringResource(MR.strings.glass_setup_dict_licence),
             color = Glass.secondary,
             fontSize = Glass.caption,
             lineHeight = 16.sp,
+            modifier = Modifier.padding(start = 20.dp),
         )
+        }
+        val error = model.importError
+        when {
+            error != null -> Note(stringResource(MR.strings.glass_setup_dictionary_failed, error))
+            model.dictionarySkipped && model.dictionary == null && !busy -> Note(stringResource(MR.strings.glass_setup_dictionary_skipped))
+        }
     }
 }
 
