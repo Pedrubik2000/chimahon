@@ -2,7 +2,9 @@ package eu.kanade.tachiyomi.data.download
 
 import android.content.Context
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.Build
+import android.provider.OpenableColumns
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
@@ -56,6 +58,7 @@ import tachiyomi.domain.track.repository.TrackRepository
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.UUID
 
 /**
  * A magnet, real-debrid.com or hoster link shared to the app -> Real-Debrid -> the series' folder in local manga
@@ -118,13 +121,25 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private val isRerun get() = runAttemptCount > 0
     // chimahon <--
 
-    override suspend fun getForegroundInfo() = foreground("Real-Debrid")
+    /** Files the person downloaded by hand ([KEY_URIS]): no Real-Debrid anywhere in this job. */
+    private val local get() = inputData.getStringArray(KEY_URIS) != null
+
+    /** Local mode, one wanted volume and one picked file: the volume a name without a number is. */
+    private var lone: Int? = null
+
+    /** The first name without a number that took [lone]: other unnumbered names (another folder) keep theirs. */
+    private var loneSource: String? = null
+
+    /** Notification title: neutral in local mode. */
+    private fun heading() = if (local) "Importing ${inputData.getString(KEY_NAME).orEmpty()}".trim() else "Real-Debrid"
+
+    override suspend fun getForegroundInfo() = foreground(if (local) "Reading the files" else "Real-Debrid")
 
     private fun foreground(text: String) = ForegroundInfo(
         // torrents run in their own queue next to hoster links: their own notification
         if (inputData.getString(KEY_LINK)?.startsWith("magnet:") == true) ID_TORRENT_PROGRESS else Notifications.ID_REAL_DEBRID_PROGRESS,
         applicationContext.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_PROGRESS) {
-            setContentTitle("Real-Debrid")
+            setContentTitle(heading())
             setContentText(text)
             setSmallIcon(android.R.drawable.stat_sys_download)
             setOngoing(true)
@@ -160,7 +175,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         Notifications.ID_REAL_DEBRID_DONE,
         if (error) Notifications.CHANNEL_DOWNLOADER_ERROR else Notifications.CHANNEL_DOWNLOADER_PROGRESS,
     ) {
-        setContentTitle("Real-Debrid")
+        setContentTitle(heading())
         setContentText(text)
         setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(text))
         setSmallIcon(android.R.drawable.stat_sys_download_done)
@@ -174,14 +189,16 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     // Never Result.failure(): a failed work fails every work chained behind it (RealDebridQueue reads the error).
     override suspend fun doWork(): Result {
         val link = inputData.getString(KEY_LINK) ?: return Result.success(output("No link"))
-        if (token.isEmpty()) {
+        // files the person downloaded by hand (content URIs): no Real-Debrid at all, no fallback links
+        val uris = inputData.getStringArray(KEY_URIS)?.toList()
+        if (uris == null && token.isEmpty()) {
             done("Set the Real-Debrid API token in Settings > Downloads", error = true)
             return Result.success(output("No Real-Debrid token"))
         }
         var titleDir: UniFile? = null // chimahon: outside the try: the dead-link catch reads the volumes already here
         return try {
             checkCancelled()
-            if (ExcnnParser.isPost(link)) { // an excnn.com post: queue each of its volumes under the post's title
+            if (uris == null && ExcnnParser.isPost(link)) { // an excnn.com post: queue each of its volumes under the post's title
                 val html = client.newCall(Request.Builder().url(link).build()).execute().use { it.body.string() }
                 val post = ExcnnParser.parsePost(html)
                 post.volumes.forEach { start(applicationContext, it.link, post.title) }
@@ -206,15 +223,39 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 ) {
                     titleDir.name?.let { syncSeries(it) }
                     done("${titleDir.name}: already on the tablet")
-                    return Result.success(output(note = NOTE_ALREADY_HERE, delivered = wanted))
+                    // local mode: nothing was copied, so nothing delivered (the screen reads that as "already here")
+                    return Result.success(output(note = NOTE_ALREADY_HERE, delivered = if (local) emptyList() else wanted))
                 }
             }
             // chimahon <--
-            status("Adding link")
-            val candidates = candidates(link)
             val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
-            val (first, resolved) = resolve(candidates, mediaId, wanted)
-            val (name, files) = resolved
+            val candidates: List<Candidate>
+            val first: Int
+            val name: String
+            val files: List<Pair<String, String>>
+            if (uris != null) {
+                status("Reading the files")
+                candidates = emptyList()
+                first = 0
+                files = uris.map { u ->
+                    val n = localName(openable(u).first, u)
+                    // the stream must open now: a lost grant ends the job with its own text, not as "not in the pack"
+                    openLocal(u).close()
+                    if (n.substringAfterLast('.', "").lowercase() !in BUNDLES + CHAPTERS) {
+                        error("${n.ifBlank { "The picked file" }} is not a manga archive (${(BUNDLES + CHAPTERS).joinToString(", ")})")
+                    }
+                    n to u
+                }
+                name = files.firstOrNull()?.first.orEmpty()
+                if (files.size == 1 && wanted.size == 1) lone = wanted.first()
+            } else {
+                status("Adding link")
+                candidates = candidates(link)
+                val (i, resolved) = resolve(candidates, mediaId, wanted)
+                first = i
+                name = resolved.first
+                files = resolved.second
+            }
             // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
             // named after AniList's romaji title when AniList knows it
             val guess = MangaImportUtil.seriesTitle(hint ?: name)
@@ -250,9 +291,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             fetch(files, mangaDir, title)
             // chimahon --> a job for given volumes knows what it delivered: a pack can hold less than its label
             var missing = emptySet<Int>()
-            val tried = mutableListOf(candidates[first].source)
+            // local mode: no candidates, so nothing is learned and no fallback loop runs
+            val tried = listOfNotNull(candidates.getOrNull(first)?.source).toMutableList()
             if (wanted.isNotEmpty()) {
-                learn(mediaId, candidates[first], candidates[first].volumes ?: wanted)
+                candidates.getOrNull(first)?.let { learn(mediaId, it, it.volumes ?: wanted) }
                 missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
                 // other sources' links that add nothing but missing volumes (a bigger pack or a torrent waits for the
                 // dialog: the corrected coverage offers it on the next tap); "already here" stops doubles
@@ -283,7 +325,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
             }
             checkCancelled() // chimahon: a cancel during the fetch ends as cancelled, not as "Vol. n missing"
-            val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName), deadSources())
+            val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName), deadSources(), local)
             // a series folder this job made and nothing landed in: gone, and not added to the library
             if (wanted.isNotEmpty() && createdSeries != null && mangaDir.listFiles().isNullOrEmpty()) {
                 mangaDir.delete()
@@ -311,7 +353,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 return Result.success(output(reason, note, delivered = wanted - missing, missing = missing))
             }
             done("Added $folder (${files.size} files)" + note?.let { "; $it" }.orEmpty())
-            Result.success(output(note = note, delivered = wanted))
+            // local mode: a volume skipped as already here was not delivered by this job
+            Result.success(output(note = note, delivered = if (local) wanted - skipped else wanted))
         } catch (e: CancelledException) {
             logcat(LogPriority.INFO) { "Real-Debrid import cancelled: ${inputData.getString(KEY_NAME) ?: id}" }
             // chimahon: cancelled from the queue = leave nothing; stopped by WorkManager alone (system) = keep the volumes
@@ -408,7 +451,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             partFiles += dir to "$fileName.part"
             val file = download(url, dir, fileName, report = true)
                 // a bundle still there: a run killed while unpacking it (unpacking deletes it when done)
-                ?: dir.findFile(fileName)?.takeIf { bundle }
+                // (never in local mode: the file there may be the person's own, picked from this very folder)
+                ?: dir.findFile(fileName)?.takeIf { bundle && !local }
                 ?: return@forEachIndexed
             if (bundle) {
                 status("$label: unpacking")
@@ -546,7 +590,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         return when {
             isVolume -> {
                 originals += name
-                val volume = MangaImportUtil.restyle(MangaImportUtil.volumeName(name), japanese)
+                val styled = MangaImportUtil.restyle(MangaImportUtil.volumeName(name), japanese)
+                // a picked chapter file only: a file inside a bundle is one of a pack
+                val volume = if (inBundle) styled else loneName(styled, name)
                 if (alreadyHere(volume)) null else mangaDir to "$volume.$ext"
             }
             ext in BUNDLES -> mangaDir to name
@@ -554,7 +600,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 val original = parts.getOrNull(parts.size - 2) ?: defaultChapter
                 if (originals.lastOrNull() != original) originals += original
                 val chapter = MangaImportUtil.getSafeFolderName(
-                    MangaImportUtil.restyle(MangaImportUtil.volumeName(original), japanese),
+                    loneName(MangaImportUtil.restyle(MangaImportUtil.volumeName(original), japanese), original),
                 )
                 if (alreadyHere(chapter)) return null // before createDirectory: no empty chapter folder
                 val existed = mangaDir.findFile(chapter) != null
@@ -564,6 +610,16 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             }
             else -> null
         }
+    }
+
+    /** [styled] (a name as the series folder writes it), or the wanted volume's name when this is the one lone picked file's. */
+    private fun loneName(styled: String, source: String): String {
+        val vol = lone ?: return styled
+        // ponytail: a bundle of several unnumbered folders keeps its names; ask which one is the volume if it ever matters
+        if (loneSource != null && loneSource != source) return styled
+        val named = loneVolumeName(styled, seriesTitle, vol, japanese)
+        if (named != styled) loneSource = source
+        return named
     }
 
     // chimahon --> never store a volume twice
@@ -641,7 +697,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         dir.findFile("$name.part")?.delete() // left by a killed run
         val part = dir.createFile("$name.part") ?: error("Can't create $name")
         try {
-            client.newCall(Request.Builder().url(url).build()).execute().use { r ->
+            if (url.startsWith("content://")) { // a file the person picked: copied, never touched
+                val size = openable(url).second
+                openLocal(url).use { part.openOutputStream().use { out -> if (report) copyReporting(it, out, size) else it.copyTo(out) } }
+            } else client.newCall(Request.Builder().url(url).build()).execute().use { r ->
                 if (!r.isSuccessful) error("Download $name: HTTP ${r.code}")
                 part.openOutputStream().use { out ->
                     if (report) copyReporting(r.body.byteStream(), out, r.body.contentLength()) else r.body.byteStream().copyTo(out)
@@ -655,6 +714,30 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         created += part
         return part
     }
+
+    /** The picked file's stream; a grant lost, a file moved or deleted ends the job with a text that says so. */
+    private fun openLocal(uri: String): java.io.InputStream =
+        try {
+            applicationContext.contentResolver.openInputStream(Uri.parse(uri))
+        } catch (e: SecurityException) {
+            null
+        } catch (e: java.io.FileNotFoundException) {
+            null
+        } ?: error("kumahon can no longer read ${openable(uri).first ?: "the picked file"}: pick it again")
+
+    /** Display name (null when unknown) and size (-1 when unknown) of a picked content [uri]. */
+    private fun openable(uri: String): Pair<String?, Long> = runCatching {
+        applicationContext.contentResolver.query(
+            Uri.parse(uri),
+            arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
+            null,
+            null,
+            null,
+        )?.use { c ->
+            if (!c.moveToFirst()) return@use null
+            c.getString(0) to (if (c.isNull(1)) -1L else c.getLong(1))
+        }
+    }.getOrNull() ?: (null to -1L)
 
     /** copyTo, posting bytes done / total / speed to the progress at most twice a second. */
     private fun copyReporting(input: java.io.InputStream, out: java.io.OutputStream, total: Long) {
@@ -830,6 +913,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         private const val KEY_FALLBACKS = "fallbacks"
         private const val KEY_FALLBACK_SOURCES = "fallback_sources"
 
+        /** Content URIs of the files the person downloaded by hand: present = local mode. */
+        private const val KEY_URIS = "uris"
+
         /** chimahon: each fallback link's volumes, "1,2,3" (parallel to [KEY_FALLBACKS]). */
         private const val KEY_FALLBACK_VOLUMES = "fallback_volumes"
         private const val ID_TORRENT_PROGRESS = -2205
@@ -866,6 +952,21 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         const val KEY_DELIVERED = "delivered"
         const val KEY_MISSING = "missing"
 
+        /** A picked file's name: its display name, else the last part of the URI ("primary%3ADownload%2Fx.rar" -> "x.rar"). */
+        internal fun localName(display: String?, uri: String): String = display?.takeIf { it.isNotBlank() }
+            ?: java.net.URLDecoder.decode(uri.replace("+", "%2B"), "UTF-8").substringAfterLast('/').substringAfterLast(':')
+
+        /**
+         * Local mode, one wanted volume ([wanted]) and one picked file: a [styled] name with no volume number is that
+         * volume ("Vol. 03" / "第03巻" in the folder's style); a name with a number, even another, stays.
+         */
+        internal fun loneVolumeName(styled: String, seriesTitle: String, wanted: Int, japanese: Boolean): String =
+            if (MangaImportUtil.volumeNumber(seriesTitle, styled) != null) {
+                styled
+            } else {
+                MangaImportUtil.restyle("Vol. %02d".format(wanted), japanese)
+            }
+
         // chimahon --> pure parts, for RealDebridImportJobTest
         /** [promised] volumes neither [written] nor [skipped] by this job, nor in the folder now ([present]). */
         internal fun missingVolumes(promised: Set<Int>, written: Set<Int>, skipped: Set<Int>, present: Set<Int>): Set<Int> =
@@ -890,9 +991,18 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
          * "Vol. 1, 2 were not in the pack (X3DL); dead link: Rawxt"; no link served at all ([sources] empty, [dead]
          * not): "Vol. 1, 2 were not found; dead link: X3DL, Rawxt".
          */
-        internal fun missingReason(missing: Set<Int>, sources: List<String>, dead: List<String> = emptyList()): String {
+        internal fun missingReason(
+            missing: Set<Int>,
+            sources: List<String>,
+            dead: List<String> = emptyList(),
+            local: Boolean = false,
+        ): String {
             val verb = if (missing.size == 1) "was" else "were"
-            val what = if (sources.isEmpty() && dead.isNotEmpty()) "not found" else "not in the pack"
+            val what = when {
+                local -> if (missing.size == 1) "not in the file" else "not in the files" // picked by hand
+                sources.isEmpty() && dead.isNotEmpty() -> "not found"
+                else -> "not in the pack"
+            }
             return "Vol. ${missing.sorted().joinToString()} $verb $what" +
                 (if (sources.isEmpty()) "" else " (${sources.joinToString()})") +
                 if (dead.isEmpty()) "" else "; dead link: ${dead.joinToString()}"
@@ -979,8 +1089,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             sourceId: Long? = null,
             fallbacks: List<Pair<Long, String>> = emptyList(),
             fallbackVolumes: List<Collection<Int>> = emptyList(),
-        ) {
+            uris: List<String>? = null,
+        ): UUID {
             val input = Data.Builder().putString(KEY_LINK, link).putString(KEY_NAME, name)
+            uris?.let { input.putStringArray(KEY_URIS, it.toTypedArray()) }
             mediaId?.let { input.putLong(KEY_MEDIA_ID, it) }
             if (volumes.isNotEmpty()) input.putIntArray(KEY_VOLUMES, volumes.toIntArray())
             sourceId?.let { input.putLong(KEY_SOURCE, it) }
@@ -997,11 +1109,13 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             sourceId?.let { request.addTag(TAG_SOURCE + it) }
             // One at a time: links shared together often hold the same series (or the same file from two hosters).
             // Magnets (slow torrents) queue apart so they don't hold up hoster links.
+            val work = request.build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 if (link.startsWith("magnet:")) WORK_TORRENTS else WORK_LINKS,
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
-                request.build(),
+                work,
             )
+            return work.id
         }
     }
 }

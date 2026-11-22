@@ -73,4 +73,17 @@ class RealDebridImportJobTest {
             RealDebridImportJob.Account(false, 0, tokenRejected = true)
         shouldThrow<IllegalStateException> { RealDebridImportJob.parseUser(503, "") }
     }
+
+    @Test
+    fun `a lone picked file without a number is the wanted volume, one with a number stays`() {
+        RealDebridImportJob.loneVolumeName("Some Title", "Some Title", 3, japanese = false) shouldBe "Vol. 03"
+        RealDebridImportJob.loneVolumeName("Some Title", "Some Title", 3, japanese = true) shouldBe "第03巻"
+        RealDebridImportJob.loneVolumeName("Vol. 05", "Some Title", 3, japanese = false) shouldBe "Vol. 05"
+    }
+
+    @Test
+    fun `the reason of files picked by hand says file, not pack`() {
+        RealDebridImportJob.missingReason(setOf(3), emptyList(), local = true) shouldBe "Vol. 3 was not in the file"
+        RealDebridImportJob.missingReason(setOf(2, 3), emptyList(), local = true) shouldBe "Vol. 2, 3 were not in the files"
+    }
 }

@@ -2,6 +2,8 @@ package eu.kanade.tachiyomi.data.download
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkQuery
@@ -111,6 +113,20 @@ class RealDebridQueue(private val app: Application) {
         return queued
     }
 
+    /** Imports files the person downloaded by hand ([uris] = content URIs they picked) as [volumes] of [entry]; the row has no source. */
+    fun enqueueLocal(entry: AniListLibrary.Entry, volumes: Collection<Int>, uris: List<Uri>): UUID {
+        // the job may run after the picker's temporary grant ended: keep it (fails quietly for a non-document URI)
+        uris.forEach { runCatching { app.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION) } }
+        return RealDebridImportJob.start(
+            app,
+            LOCAL_LINK,
+            name = entry.native ?: entry.romaji,
+            mediaId = entry.mediaId,
+            volumes = volumes.sorted(),
+            uris = uris.map { it.toString() },
+        )
+    }
+
     /** Cancels one job; the others of its queue keep their place. */
     fun cancel(workId: UUID) = updateCancelled { it + workId.toString() }
 
@@ -152,6 +168,9 @@ class RealDebridQueue(private val app: Application) {
     companion object {
         /** The reason of a cancelled row; the pages hide rows with it. */
         const val CANCELLED = "Cancelled"
+
+        /** The link of a hand-downloaded job (the job reads its URIs instead; the link only fills its logs). */
+        private const val LOCAL_LINK = "local files"
         private const val KEY_CANCELLED = "cancelled"
 
         /**
