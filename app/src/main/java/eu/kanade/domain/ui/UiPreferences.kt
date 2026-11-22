@@ -43,7 +43,7 @@ class UiPreferences(
 
     fun tabletUiMode() = preferenceStore.getEnum("tablet_ui_mode", TabletUiMode.AUTOMATIC)
 
-    fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", false)
+    fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", true)
 
     // chimahon: the new look's first-run setup was finished (or not needed); app state, like onboarding_complete
     fun glassSetupDone() = preferenceStore.getBoolean(Preference.appStateKey("glass_setup_done"), false)
