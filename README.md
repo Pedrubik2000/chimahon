@@ -3,7 +3,7 @@
 <img width="200" height="200" src="./app/src/main/res/drawable/chimahon.png" alt="kumahon icon" />
 <h1 align="center">kumahon</h1>
 
-**Read raw manga on a tablet, straight from your AniList list.**
+**Raw manga from raw-manga websites and nyaa.si, in one tap.**
 
 [![Latest build](https://img.shields.io/github/v/release/Pedrubik2000/kumahon?include_prereleases&label=Latest%20build&labelColor=27303D&color=0D1111&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/Pedrubik2000/kumahon/releases)
 
@@ -11,13 +11,19 @@
 
 ---
 
-kumahon (熊 bear + 本 book) is a fork of [Chimahon](https://github.com/sohilsayed/chimahon), the immersion reader built on Mihon and Komikku. It adds one thing: **a second look for tablets, built around your AniList manga list.**
+kumahon (熊 bear + 本 book) is a fork of [Chimahon](https://github.com/sohilsayed/chimahon) that lets you download manga from raw-manga websites and [nyaa.si](https://nyaa.si) with one tap.
 
-- A title is an AniList entry. Home, Library and Discover come from your list.
-- Its volumes are fetched through **Real-Debrid** from raw-manga sources, one tap per volume.
-- Everything on the tablet lives in plain series folders you can see and move.
+It needs an [AniList](https://anilist.co) account and a [Real-Debrid](https://real-debrid.com) Premium account.
 
-The classic Chimahon screens stay one tap away (Settings › About › Classic view), and phones keep the classic look.
+**Not supported:** light novels (at least for now) and mokuro files.
+
+How it works:
+
+- Your AniList manga list is the library. Home, Library and Discover come from it.
+- Open a title, tap a volume, and it is fetched through Real-Debrid from the source that has it.
+- Volumes land in plain series folders on the tablet.
+
+The new screens are for tablets. The classic Chimahon screens stay one tap away (Settings › About › Classic view), and phones keep the classic look.
 
 ## 🏠 Home and Library
 
@@ -79,17 +85,15 @@ Three ways to find what to read next, based on what you finished:
 
 ## 📥 Download
 
-Tablet builds (arm64) are on the [Releases](https://github.com/Pedrubik2000/kumahon/releases) page. The app installs as "kumahon", next to the original Chimahon.
+Builds are on the [Releases](https://github.com/Pedrubik2000/kumahon/releases) page: arm64 for tablets and phones, armeabi-v7a for older devices and TVs. The app installs as "kumahon", next to the original Chimahon.
 
-You need:
-
-- an Android tablet (Android 8.0 or higher);
-- an [AniList](https://anilist.co) account;
-- a [Real-Debrid](https://real-debrid.com) Premium account.
+You need an Android tablet (Android 8.0 or higher), an AniList account and a Real-Debrid Premium account.
 
 ## 📖 What it keeps from Chimahon
 
-Everything the original does is still here: tap a word on a manga page to look it up (OCR), Yomitan dictionaries with pitch accent, Anki card mining, the novel reader and the anime player. See the [original README](https://github.com/sohilsayed/chimahon#readme) for those.
+The manga side of the original is still here: tap a word on a page to look it up (OCR), Yomitan dictionaries with pitch accent, and Anki card mining. See the [original README](https://github.com/sohilsayed/chimahon#readme) for those.
+
+The original's novel reader, mokuro support and anime player are still in the code, but this fork does not work on them or test them. Light novels on your AniList list are hidden in the new screens. For novels or mokuro, use the original Chimahon.
 
 ## 🤝 Credits
 
