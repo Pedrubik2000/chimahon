@@ -358,15 +358,22 @@ private fun TitleCard(
                 .sortedBy { order.indexOf(it.state) }
                 .forEach { r ->
                     // a failed row: only its volumes still to get (the card's "Vol. 1–2", not the pack's 1–4)
-                    val vols = if (r.state == State.FAILED) group.failedVolumesOf(r).ifEmpty { r.volumes } else r.volumes
-                    VolumeRow(r, vols, onCancel)
+                    // a finished row: the volumes it put on the tablet (not the "1–5" it asked for)
+                    val done = if (r.state == State.DONE) group.doneVolumesOf(r) else emptyList()
+                    val gone = r.state == State.DONE && r.volumes.isNotEmpty() && done.isEmpty()
+                    val vols = when {
+                        r.state == State.FAILED -> group.failedVolumesOf(r).ifEmpty { r.volumes }
+                        r.state == State.DONE && !gone -> done
+                        else -> r.volumes
+                    }
+                    VolumeRow(r, vols, gone, onCancel)
                 }
         }
     }
 }
 
 @Composable
-private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, onCancel: (RealDebridQueue.Row) -> Unit) {
+private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolean, onCancel: (RealDebridQueue.Row) -> Unit) {
     val context = LocalContext.current
     Row(
         Modifier
@@ -392,7 +399,7 @@ private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, onCancel: (R
             }
             Meter(fraction, color = Glass.ice)
             Text(
-                rowLine(row, context),
+                if (gone) stringResource(MR.strings.glass_dl_not_on_tablet) else rowLine(row, context),
                 color = if (row.state == State.FAILED) Color.White else Glass.secondary,
                 fontSize = Glass.caption,
                 maxLines = 2,
@@ -496,12 +503,13 @@ private fun cellColor(c: Cell): Color = when (c) {
     Cell.FAILED -> Color.White.copy(alpha = 0.85f)
 }
 
-private fun Modifier.hatched() = drawBehind {
+/** A failed volume: 10% white under 45° lines in [line]; the bar's segments and the title page's cells (18% white). */
+internal fun Modifier.hatched(line: Color = Glass.have) = drawBehind {
     drawRect(Color.White.copy(alpha = 0.1f))
     val step = 5.dp.toPx()
     var x = -size.height
     while (x < size.width) {
-        drawLine(Glass.have, Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = 2.dp.toPx())
+        drawLine(line, Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = 2.dp.toPx())
         x += step
     }
 }

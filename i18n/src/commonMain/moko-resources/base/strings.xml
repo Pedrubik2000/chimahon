@@ -890,6 +890,7 @@
     <string name="glass_dl_n_queued">%1$d queued</string>
     <string name="glass_dl_more_queued">%1$d more queued</string>
     <string name="glass_dl_done">In the library</string>
+    <string name="glass_dl_not_on_tablet">Not on the tablet</string>
     <string name="glass_dl_failed_line">Vol. %1$s: %2$s</string>
     <string name="glass_dl_not_found">Not found</string>
     <string name="glass_dl_try_again">Try again</string>
@@ -1085,6 +1086,7 @@
     <string name="glass_title_legend_read">read</string>
     <string name="glass_title_legend_here">on tablet</string>
     <string name="glass_title_legend_downloading">downloading</string>
+    <string name="glass_title_legend_not_found">not found</string>
     <string name="glass_title_fetch_n">Fetch %1$d</string>
     <string name="glass_title_fetch_confirm">Fetch vol. %1$s?</string>
     <string name="glass_title_pack">Vol. %1$s comes as one pack · %2$s</string>

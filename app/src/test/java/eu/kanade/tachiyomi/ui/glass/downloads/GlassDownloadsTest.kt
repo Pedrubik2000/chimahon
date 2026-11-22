@@ -193,4 +193,21 @@ class GlassDownloadsTest {
         GlassDownloads.toggle(listOf(1L), 2, on = false) shouldBe listOf(1L, 2L)
         GlassDownloads.toggle(listOf(1L, 2L), 2, on = false) shouldBe listOf(1L, 2L)
     }
+
+    @Test
+    fun `a finished row is labelled with the volumes it put on the tablet`() {
+        // MASHLE: an old row asked for 1-5 (no delivered/missing output), only 3-5 came; 3-18 on the tablet
+        val old = row(7, State.DONE, 1, 2, 3, 4, 5)
+        val pack = row(7, State.DONE, 13, 14, 15, 16)
+        val g = TitleGroup(7, listOf(old, pack, row(7, State.FAILED, 1, 2, 3, 4)), here = (3..18).toSet())
+        g.doneVolumesOf(old) shouldBe listOf(3, 4, 5)
+        g.doneVolumesOf(pack) shouldBe (13..16).toList()
+
+        // the tablet unknown: the requested volumes; a row's own output first
+        TitleGroup(7, listOf(old)).doneVolumesOf(old) shouldBe listOf(1, 2, 3, 4, 5)
+        TitleGroup(7, emptyList()).doneVolumesOf(row(7, State.DONE, 1, 2, 3, missing = listOf(1))) shouldBe listOf(2, 3)
+        TitleGroup(7, emptyList()).doneVolumesOf(row(7, State.DONE, 1, 2, 3, delivered = listOf(3))) shouldBe listOf(3)
+        // none of it on the tablet any more
+        TitleGroup(7, emptyList(), here = setOf(9)).doneVolumesOf(old) shouldBe emptyList()
+    }
 }

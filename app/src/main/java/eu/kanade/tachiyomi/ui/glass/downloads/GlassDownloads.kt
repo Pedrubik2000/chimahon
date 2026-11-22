@@ -56,6 +56,13 @@ data class TitleGroup(val mediaId: Long?, val rows: List<RealDebridQueue.Row>, v
 
     /** One failed row's volumes still to get (its label on the expanded card). */
     fun failedVolumesOf(row: RealDebridQueue.Row): List<Int> = stillFailed(row, coveredVolumes).sorted()
+
+    /**
+     * A finished row's label: the volumes it put on the tablet ([GlassDownloads.coveredBy]), [here] known only those
+     * still there. Empty = none of them is on the tablet any more.
+     */
+    fun doneVolumesOf(row: RealDebridQueue.Row): List<Int> =
+        GlassDownloads.coveredBy(row).filter { here == null || it in here }.distinct().sorted()
 }
 
 object GlassDownloads {

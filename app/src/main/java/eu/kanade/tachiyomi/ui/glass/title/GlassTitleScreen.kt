@@ -80,6 +80,8 @@ import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.mangadex.VolumeCovers
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
+import eu.kanade.tachiyomi.ui.glass.downloads.TitleGroup
+import eu.kanade.tachiyomi.ui.glass.downloads.hatched
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
@@ -138,6 +140,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             active,
             readUpTo = entry?.progressVolumes ?: 0,
             totalKnown = (entry?.volumes ?: 0) > 0,
+            // the Downloads page's rule: a failed, not cancelled row's volumes not here and not queued again
+            failed = remember(rows, here) { TitleGroup(mediaId, rows, here).failedVolumes.toSet() },
         )
         val failed = rows.filter { r ->
             r.state == RealDebridQueue.State.FAILED && r.reason != "Cancelled" &&
@@ -266,7 +270,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             fullSpan {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
-                    Legend(Modifier.weight(1f))
+                    Legend(Modifier.weight(1f), notFound = cells.any { it.state == VolState.FAILED })
                     if (fetchable.isNotEmpty()) {
                         // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
                         Pill(
@@ -652,11 +656,12 @@ private fun AniListPanel(
 }
 
 @Composable
-private fun Legend(modifier: Modifier) {
+private fun Legend(modifier: Modifier, notFound: Boolean) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         LegendItem("check", stringResource(MR.strings.glass_title_legend_read), Glass.secondary)
         LegendItem("dot", stringResource(MR.strings.glass_title_legend_here), Color.White)
         LegendItem("download", stringResource(MR.strings.glass_title_legend_downloading), Glass.ice)
+        if (notFound) LegendItem("alert", stringResource(MR.strings.glass_title_legend_not_found), Color.White)
     }
 }
 
@@ -697,8 +702,10 @@ private fun VolumeCellView(
         VolState.HERE -> "dot" to Color.White
         VolState.DOWNLOADING -> "download" to Glass.ice
         VolState.QUEUED -> "download" to Glass.ice.copy(alpha = 0.55f)
+        VolState.FAILED -> "alert" to Color.White
         VolState.NONE -> null to Color.White
     }
+    val failed = cell.state == VolState.FAILED
     Box {
         Box(
             Modifier
@@ -706,12 +713,14 @@ private fun VolumeCellView(
                 .aspectRatio(2f / 3f)
                 .clip(shape)
                 .background(Glass.panel)
+                // failed: the Downloads bar's hatch instead of a cover
+                .then(if (failed) Modifier.hatched(Color.White.copy(alpha = 0.18f)) else Modifier)
                 .border(if (current) 2.dp else 1.dp, if (current) Glass.ice else Glass.line, shape)
                 .combinedClickable(
                     onClick = {
                         when {
                             local != null -> onOpen(local)
-                            cell.state == VolState.NONE || cell.state == VolState.READ -> onFetch() // READ here = read on AniList, not on the tablet
+                            cell.state == VolState.NONE || cell.state == VolState.READ || failed -> onFetch() // READ here = read on AniList, not on the tablet
                             else -> menu = true
                         }
                     },
@@ -720,7 +729,7 @@ private fun VolumeCellView(
         ) {
             val context = LocalPlatformContext.current
             // hidden = blurred beyond recognition (needs Android 12; older: no image at all)
-            if (!hidden || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) AsyncImage(
+            if (!failed && (!hidden || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) AsyncImage(
                 // the volume's own first page, else MangaDex's cover, else the series cover
                 model = when {
                     localCover != null -> localCover
@@ -758,6 +767,19 @@ private fun VolumeCellView(
                 ) {
                     GlassIcon(it, size = 14.dp, tint = tint)
                 }
+            }
+            if (failed) {
+                Text(
+                    stringResource(MR.strings.glass_dl_not_found),
+                    fontSize = Glass.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 10.dp)
+                        .clip(CircleShape)
+                        .background(Glass.scrim)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
             // ponytail: no reading-progress bar for a half-read volume: chapters keep the last page, not the page count
             val bar = when (cell.state) {

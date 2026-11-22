@@ -16,7 +16,7 @@ data class Active(val sourceId: Long?, val running: Boolean, val fraction: Float
 /** One box of a source card's coverage bar. */
 enum class BoxState { NONE, HAVE, HERE, QUEUED }
 
-enum class VolState { READ, HERE, DOWNLOADING, QUEUED, NONE }
+enum class VolState { READ, HERE, DOWNLOADING, QUEUED, FAILED, NONE }
 
 data class VolumeCell(val number: Int, val state: VolState, val local: LocalVolume?, val fraction: Float?)
 
@@ -99,6 +99,8 @@ object GlassTitleState {
      * [readUpTo] = AniList's volumes read: a volume up to it that is not on the tablet still shows as read.
      * [totalKnown]: [count] is AniList's total, so files numbered above it get no cell (Library's in-range rule,
      * [eu.kanade.tachiyomi.ui.glass.GlassTitles.volumesHere]: a stray "153" in an 18-volume series is no volume).
+     * [failed] = the volumes still failed ([eu.kanade.tachiyomi.ui.glass.downloads.TitleGroup.failedVolumes]): failed
+     * wins over read and empty; on the tablet and queued/running win over failed.
      */
     fun cells(
         count: Int,
@@ -106,6 +108,7 @@ object GlassTitleState {
         active: Map<Int, Active>,
         readUpTo: Int = 0,
         totalKnown: Boolean = false,
+        failed: Set<Int> = emptySet(),
     ): List<VolumeCell> {
         val byNumber = local.associateBy { it.number }
         // extras beyond the count, one each, only when the count is not a known total
@@ -116,6 +119,7 @@ object GlassTitleState {
             when {
                 l != null -> VolumeCell(v, if (l.read) VolState.READ else VolState.HERE, l, null)
                 a != null -> VolumeCell(v, if (a.running) VolState.DOWNLOADING else VolState.QUEUED, null, a.fraction)
+                v in failed -> VolumeCell(v, VolState.FAILED, null, null)
                 v <= readUpTo -> VolumeCell(v, VolState.READ, null, null)
                 else -> VolumeCell(v, VolState.NONE, null, null)
             }

@@ -133,6 +133,20 @@ class GlassTitleStateTest {
     }
 
     @Test
+    fun `a failed volume shows as failed until it is queued again or on the tablet`() {
+        // MASHLE: 18 volumes, 3-18 on the tablet, AniList read 1, vol. 1-2 failed (dead link)
+        val local = (3..18).map { vol(it) }
+        val cells = GlassTitleState.cells(18, local, emptyMap(), readUpTo = 1, totalKnown = true, failed = setOf(1, 2))
+        cells.take(3).map { it.state } shouldBe listOf(VolState.FAILED, VolState.FAILED, VolState.HERE)
+
+        // queued again: downloading wins
+        val queued = mapOf(1 to Active(1, running = true, fraction = null))
+        GlassTitleState.cells(18, local, queued, readUpTo = 1, failed = setOf(1, 2))[0].state shouldBe VolState.DOWNLOADING
+        // now on the tablet: on tablet wins
+        GlassTitleState.cells(18, local + vol(2), emptyMap(), readUpTo = 1, failed = setOf(1, 2))[1].state shouldBe VolState.HERE
+    }
+
+    @Test
     fun `MangaDex only when a volume is missing or the count is unknown`() {
         GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(2), vol(3))) shouldBe false
         GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(3))) shouldBe true
