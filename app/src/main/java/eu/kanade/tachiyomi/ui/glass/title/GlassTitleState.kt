@@ -85,7 +85,8 @@ object GlassTitleState {
         }
     }
 
-    fun cells(count: Int, local: List<LocalVolume>, active: Map<Int, Active>): List<VolumeCell> {
+    /** [readUpTo] = AniList's volumes read: a volume up to it that is not on the tablet still shows as read. */
+    fun cells(count: Int, local: List<LocalVolume>, active: Map<Int, Active>, readUpTo: Int = 0): List<VolumeCell> {
         val byNumber = local.associateBy { it.number }
         val numbers = (1..count) + byNumber.keys.filter { it > count }.sorted() // extras beyond the count, one each
         return numbers.map { v ->
@@ -94,6 +95,7 @@ object GlassTitleState {
             when {
                 l != null -> VolumeCell(v, if (l.read) VolState.READ else VolState.HERE, l, null)
                 a != null -> VolumeCell(v, if (a.running) VolState.DOWNLOADING else VolState.QUEUED, null, a.fraction)
+                v <= readUpTo -> VolumeCell(v, VolState.READ, null, null)
                 else -> VolumeCell(v, VolState.NONE, null, null)
             }
         }

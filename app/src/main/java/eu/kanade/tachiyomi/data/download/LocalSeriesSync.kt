@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.download
 
 import eu.kanade.domain.chapter.interactor.SyncChaptersWithSource
 import eu.kanade.domain.manga.model.toSManga
+import eu.kanade.domain.track.interactor.RefreshTracks
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import kotlinx.coroutines.sync.Mutex
@@ -49,6 +50,8 @@ object LocalSeriesSync {
                     return@withLock
                 }
                 Injekt.get<SyncChaptersWithSource>().await(chapters, manga, source)
+                // read marks follow the tracker: for a local series AniList's volume count (fresh from AniList)
+                Injekt.get<RefreshTracks>().await(mangaId, enhancedTrackersOnly = false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.glass.title
 
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -129,7 +131,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             is Primary.Fetch -> primary.volume
             Primary.None -> null
         }
-        val cells = GlassTitleState.cells(count, volumes, active)
+        val cells = GlassTitleState.cells(count, volumes, active, readUpTo = entry?.progressVolumes ?: 0)
         val failed = rows.filter { r ->
             r.state == RealDebridQueue.State.FAILED && r.reason != "Cancelled" &&
                 r.volumes.any { it !in here && it !in active }
@@ -690,7 +692,7 @@ private fun VolumeCellView(
                     onClick = {
                         when {
                             local != null -> onOpen(local)
-                            cell.state == VolState.NONE -> onFetch()
+                            cell.state == VolState.NONE || cell.state == VolState.READ -> onFetch() // READ here = read on AniList, not on the tablet
                             else -> menu = true
                         }
                     },
@@ -698,7 +700,8 @@ private fun VolumeCellView(
                 ),
         ) {
             val context = LocalPlatformContext.current
-            if (!hidden) AsyncImage(
+            // hidden = blurred beyond recognition (needs Android 12; older: no image at all)
+            if (!hidden || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) AsyncImage(
                 // the volume's own first page, else MangaDex's cover, else the series cover
                 model = when {
                     localCover != null -> localCover
@@ -710,7 +713,7 @@ private fun VolumeCellView(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 alpha = alpha,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(if (hidden) Modifier.blur(18.dp) else Modifier),
             )
             Text(
                 cell.number.toString(),
