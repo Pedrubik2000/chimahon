@@ -65,6 +65,7 @@ import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import uy.kohesive.injekt.Injekt
@@ -246,9 +247,12 @@ private class ManualModel(
     var deleted by mutableStateOf<Boolean?>(null)
 
     init {
-        screenModelScope.launch(Dispatchers.IO) {
-            val coverages = cachedCoverage(app, mediaId)
-            options = ManualDownload.options(volumes, here.toSet(), coverages)
+        // The file read is off the main thread, the write on it: this model is made during composition, and a
+        // write from another thread before that composition is applied is lost (the list stayed empty for good).
+        screenModelScope.launch {
+            options = withContext(Dispatchers.IO) {
+                ManualDownload.options(volumes, here.toSet(), cachedCoverage(app, mediaId))
+            }
         }
         screenModelScope.launch {
             queue.rows.collect { rows ->
