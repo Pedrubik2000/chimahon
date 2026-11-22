@@ -23,7 +23,8 @@ object KumapieColours {
     /** kumapie reads kuma3's due queue once a minute; ask again after that. */
     private const val MAX_AGE_MS = 60_000L
 
-    private class Entry(val colours: IntArray?, val time: Long)
+    /** kumapie's answer for one text: its rows (start, length, status) and the colours drawn from them. */
+    private class Entry(val rows: List<Triple<Int, Int, String>>?, val colours: IntArray?, val time: Long)
     private val cache = LruCache<String, Entry>(500)
     private val asking = ConcurrentHashMap.newKeySet<String>()
     private val worker = Executors.newSingleThreadExecutor()
@@ -34,9 +35,7 @@ object KumapieColours {
         if (hit == null || System.currentTimeMillis() - hit.time > MAX_AGE_MS) {
             if (asking.add(text)) {
                 worker.execute {
-                    val colours = runCatching { ask(context.applicationContext, text) }
-                        .onFailure { Log.w("KumapieColours", "kumapie didn't answer: $it") }.getOrNull()
-                    cache.put(text, Entry(colours, System.currentTimeMillis()))
+                    val colours = ask(context.applicationContext, text)?.colours
                     asking.remove(text)
                     if (colours != null) ready()
                 }
@@ -224,28 +223,33 @@ object KumapieColours {
 
     /**
      * kumapie's words in [text] as its colours rows (start, length, status u/d/b), for the reader's page-words list;
-     * null when kumapie can't answer. Blocking: call it off the UI thread.
+     * null when kumapie can't answer. The same answer (and cache) the page draws with [of], so the list never calls a
+     * word new that the page shows known. Blocking: call it off the UI thread.
      */
-    fun words(context: Context, text: String): List<Triple<Int, Int, String>>? = runCatching<List<Triple<Int, Int, String>>?> {
-        val authority = authority(context) ?: return@runCatching null
-        buildList<Triple<Int, Int, String>> {
-            context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
-                while (c.moveToNext()) add(Triple(c.getInt(0), c.getInt(1), c.getString(2)))
-            }
-        }
-    }.onFailure { Log.w("KumapieColours", "kumapie words: $it") }.getOrNull()
+    fun words(context: Context, text: String): List<Triple<Int, Int, String>>? {
+        cache.get(text)?.takeIf { System.currentTimeMillis() - it.time <= MAX_AGE_MS && it.rows != null }?.let { return it.rows }
+        return ask(context.applicationContext, text)?.rows
+    }
 
-    private fun ask(context: Context, text: String): IntArray? {
-        val authority = authority(context) ?: return null
-        val out = IntArray(text.length)
-        context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
-            while (c.moveToNext()) {
-                val colour = COLOURS[c.getString(2)] ?: continue
-                val start = c.getInt(0)
-                for (i in start until minOf(start + c.getInt(1), text.length)) out[i] = colour
+    /** Asks kumapie for [text] and caches the answer (a failed one too, for [MAX_AGE_MS]). Blocking. */
+    private fun ask(context: Context, text: String): Entry? {
+        val rows = runCatching<List<Triple<Int, Int, String>>?> {
+            val authority = authority(context) ?: return@runCatching null
+            buildList<Triple<Int, Int, String>> {
+                context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
+                    while (c.moveToNext()) add(Triple(c.getInt(0), c.getInt(1), c.getString(2)))
+                }
+            }
+        }.onFailure { Log.w("KumapieColours", "kumapie didn't answer: $it") }.getOrNull()
+        val colours = rows?.let {
+            IntArray(text.length).also { out ->
+                for ((start, length, status) in it) {
+                    val colour = COLOURS[status] ?: continue
+                    for (i in maxOf(start, 0) until minOf(start + length, text.length)) out[i] = colour
+                }
             }
         }
-        return out
+        return Entry(rows, colours, System.currentTimeMillis()).also { cache.put(text, it) }
     }
 
     /**

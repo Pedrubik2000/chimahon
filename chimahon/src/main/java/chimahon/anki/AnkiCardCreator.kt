@@ -225,6 +225,9 @@ object AnkiCardCreator {
     private const val SENTENCE_AUDIO_MEDIA_PLACEHOLDER = "__chimahon_sentence_audio_media__"
     private val addLocks = List(16) { Mutex() }
 
+    /** Decks [checkExistingCards] found missing in Anki (see there). */
+    private val decksNotInAnki = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
     private data class DictionaryMediaReference(
         val dictionary: String,
         val path: String,
@@ -644,11 +647,23 @@ object AnkiCardCreator {
         if (!bridge.hasPermission()) return existing
 
         val targetDeckId = if (dupScope == "deck" && deckName.isNotBlank()) {
-            try {
+            // A deck Anki doesn't have (kumapie keeps the Mined decks' cards, since 2026-11-16) holds none of Anki's
+            // cards: no lookup at all, instead of a failing deck query (and the bridge's error log) on every popup and
+            // a fall back to the whole collection that flagged words carded in other decks.
+            // ponytail: remembered per app run; a deck made in Anki later shows its "have it" marks after a restart
+            if (deckName in decksNotInAnki) return existing
+            val id = try {
                 bridge.getDeckId(deckName)
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 null
             }
+            if (id == null) {
+                decksNotInAnki += deckName
+                return existing
+            }
+            id
         } else {
             null
         }

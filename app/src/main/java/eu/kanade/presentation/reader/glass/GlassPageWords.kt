@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -130,7 +131,7 @@ private fun loadWords(context: Context, views: List<ReaderPageImageView>, blocks
                 val word = text.substring(start, start + length)
                 when (status) {
                     "b" -> mined += word
-                    "u", "d" -> if (seen.add(word)) words += GlassPageWord(word, status, block, start, view)
+                    "u", "d" -> if (!isPageWordFragment(word) && seen.add(word)) words += GlassPageWord(word, status, block, start, view)
                 }
             }
         }
@@ -138,17 +139,44 @@ private fun loadWords(context: Context, views: List<ReaderPageImageView>, blocks
     return GlassPageWordsData(words, mined.size)
 }
 
-/** The dictionary's best entry for [word]: its own form first, else the longest match. Blocking. */
+/**
+ * An OCR piece, not a word (seen: サイ, そー, たり): one or two kana only, or only punctuation and prolonged-sound
+ * marks. A single kanji (人) stays: whether it is new is kumapie's call.
+ */
+internal fun isPageWordFragment(word: String): Boolean {
+    val w = word.trim()
+    if (w.all { it in "ー〜～・…‥" || !it.isLetterOrDigit() }) return true
+    return w.length <= 2 && w.all { it in '぀'..'ヿ' || it in 'ｦ'..'ﾟ' }
+}
+
+/** A dictionary answer for one page word; [result] null = no entry whose matched form is the word. */
+private class Looked(val result: LookupResult?)
+
+/** Page words looked up this app run (the dictionary doesn't change while reading). */
+private val looked = java.util.concurrent.ConcurrentHashMap<String, Looked>()
+
+/**
+ * The dictionary's entry for [word] whose matched form is the word itself (null: none, so not a word of its own, e.g.
+ * an OCR fragment); cached for the app run. Throws when the lookup itself fails (not cached). Blocking.
+ */
+private fun lookUpExact(
+    context: Context,
+    repository: DictionaryRepository,
+    word: String,
+    lookup: () -> Pair<AnkiProfile, DictionaryPaths>,
+): Looked = looked[word] ?: run {
+    val (profile, paths) = lookup()
+    val results = orderLookupResultsForDisplay(repository.lookup(word, paths, profile.languageCode).results, profile, context)
+    Looked(results.firstOrNull { it.matched == word }).also { looked[word] = it }
+}
+
+/** [lookUpExact]'s entry, null when there is none or the lookup failed. Blocking. */
 private fun lookUp(
     context: Context,
     repository: DictionaryRepository,
     word: String,
     lookup: () -> Pair<AnkiProfile, DictionaryPaths>,
-): LookupResult? = runCatching {
-    val (profile, paths) = lookup()
-    val results = orderLookupResultsForDisplay(repository.lookup(word, paths, profile.languageCode).results, profile, context)
-    results.firstOrNull { it.matched == word } ?: results.firstOrNull()
-}.getOrNull()
+): LookupResult? = runCatching { lookUpExact(context, repository, word, lookup).result }.getOrNull()
 
 /** Plain text of a dictionary glossary (plain string, or Yomitan structured content as JSON); readings in <rt> dropped. */
 internal fun glossaryText(raw: String): String {
@@ -199,6 +227,8 @@ internal fun GlassPageWord.openLookup() {
 fun GlassPageWords(
     viewer: Viewer?,
     pageKey: Any?,
+    /** changes when OCR finished another page: the list reloads only if the pages on screen got new text */
+    ocrTick: Any?,
     repository: DictionaryRepository,
     lookupPaths: () -> Pair<AnkiProfile, DictionaryPaths>,
     mediaInfo: MediaInfo?,
@@ -210,20 +240,42 @@ fun GlassPageWords(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // Loaded each time the controls open (this leaves composition with them) and when the page changes.
-    val data by produceState<Result<GlassPageWordsData?>?>(null, viewer, pageKey) {
-        val views = visiblePageViews(viewer)
-        val blocks = views.map { it.ocrBlocks }
-        value = Result.success(withContext(Dispatchers.IO) { loadWords(context, views, blocks) })
-    }
-    var expanded by remember { mutableStateOf(true) }
+    // What the user did on these pages; words are keyed by their text (the list has each once), never by position.
     val known = remember(pageKey) { mutableStateMapOf<String, Boolean>() }
     val minedNow = remember(pageKey) { mutableStateMapOf<String, Boolean>() }
     val peeks = remember { mutableStateMapOf<String, String>() }
     var peeking by remember(pageKey) { mutableStateOf<String?>(null) }
+    // false: no dictionary entry whose matched form is the word (an OCR fragment): hidden once known
+    val hasEntry = remember { mutableStateMapOf<String, Boolean>() }
+    val loadedBlocks = remember { arrayOfNulls<List<List<OcrTextBlock>>>(1) }
+
+    // Loaded each time the controls open (this leaves composition with them), when the page changes, and when OCR
+    // gave the pages on screen new text; another page's OCR (ocrTick) keeps the list, its peek and its marks.
+    val data by produceState<Result<GlassPageWordsData?>?>(null, viewer, pageKey, ocrTick) {
+        val views = visiblePageViews(viewer)
+        val blocks = views.map { it.ocrBlocks }
+        if (value != null && blocks == loadedBlocks[0]) return@produceState
+        val before = value?.getOrNull()
+        val fresh = withContext(Dispatchers.IO) { loadWords(context, views, blocks) }
+        loadedBlocks[0] = blocks
+        // words marked known here stay listed (white dot, ✓ to undo) though kumapie no longer calls them new
+        val kept = before?.words.orEmpty().filter { w -> known[w.text] == true && fresh?.words?.none { it.text == w.text } != false }
+        value = Result.success(if (fresh == null || kept.isEmpty()) fresh else GlassPageWordsData(fresh.words + kept, fresh.mined))
+    }
+    var expanded by remember { mutableStateOf(true) }
 
     val loaded = data?.getOrNull()
-    val words = loaded?.words.orEmpty()
+    // Dictionary check, lazily: the list shows at once and fragments drop out as their lookups come back.
+    LaunchedEffect(loaded) {
+        for (w in loaded?.words.orEmpty()) {
+            if (w.text in hasEntry) continue
+            val found = withContext(Dispatchers.Default) {
+                runCatching { lookUpExact(context, repository, w.text, lookupPaths).result != null }.getOrNull()
+            } ?: continue // the lookup failed (no dictionary set up): keep the word
+            hasEntry[w.text] = found
+        }
+    }
+    val words = loaded?.words.orEmpty().filter { hasEntry[it.text] != false || known[it.text] == true || minedNow[it.text] == true }
     val newCount = words.count { it.status == "u" && known[it.text] != true && minedNow[it.text] != true }
     val dueCount = words.count { it.status == "d" }
 
@@ -308,7 +360,8 @@ fun GlassPageWords(
                                     Modifier
                                         .weight(1f)
                                         .clickable {
-                                            peeking = if (peeking == w.text) null else w.text
+                                            // a peek still loading stays open: a second tap closes it once it shows
+                                            peeking = if (peeking == w.text && w.text in peeks) null else w.text
                                             if (w.text !in peeks) {
                                                 scope.launch {
                                                     val entry = withContext(Dispatchers.Default) {
@@ -337,8 +390,14 @@ fun GlassPageWords(
                                         )
                                     }
                                 }
-                                if (w.status == "u" && !isKnown && !isMined) {
-                                    CircleAction("check", stringResource(MR.strings.glass_reader_mark_known)) {
+                                if (w.status == "u" && !isMined) {
+                                    // variant B: ✓ marks known and the dot turns white; ✓ again unmarks (the popup's
+                                    // "Known ✓" toggle, kumapie mark with known = false)
+                                    CircleAction(
+                                        "check",
+                                        stringResource(if (isKnown) MR.strings.glass_reader_unmark_known else MR.strings.glass_reader_mark_known),
+                                        active = isKnown,
+                                    ) {
                                         scope.launch {
                                             val entry = withContext(Dispatchers.Default) { lookUp(context, repository, w.text, lookupPaths) }
                                             val body = JSONObject()
@@ -346,15 +405,18 @@ fun GlassPageWords(
                                                 .put("word", entry?.term?.expression ?: w.text)
                                                 .put("reading", entry?.term?.reading.orEmpty())
                                                 .put("text", w.text)
-                                                .put("known", true)
+                                                .put("known", !isKnown)
                                                 .toString()
                                             val answer = withContext(Dispatchers.IO) { KumapieColours.call(context, body) }
-                                            if (runCatching { JSONObject(answer).getBoolean("marked") }.getOrDefault(false)) {
-                                                known[w.text] = true
+                                            val marked = runCatching { JSONObject(answer).getBoolean("marked") }.getOrNull()
+                                            if (marked != null) {
+                                                known[w.text] = marked
                                                 redraw(w.view)
                                             }
                                         }
                                     }
+                                }
+                                if (w.status == "u" && !isKnown && !isMined) {
                                     CircleAction("plus", stringResource(MR.strings.glass_reader_mine)) {
                                         val shot = screenshot()
                                         scope.launch {
@@ -408,12 +470,14 @@ private fun Count(colour: Color, text: String) {
 }
 
 @Composable
-private fun CircleAction(icon: String, description: String, onClick: () -> Unit) {
+private fun CircleAction(icon: String, description: String, active: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(CircleShape).border(1.dp, Glass.line, CircleShape).clickable(onClick = onClick),
+        Modifier.size(44.dp).clip(CircleShape)
+            .background(if (active) Color.White else Color.Transparent)
+            .border(1.dp, Glass.line, CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        GlassIcon(icon, size = 20.dp, contentDescription = description)
+        GlassIcon(icon, size = 20.dp, tint = if (active) Color.Black else Color.White, contentDescription = description)
     }
 }
 

@@ -2,19 +2,25 @@ package eu.kanade.tachiyomi.data.download
 
 import eu.kanade.domain.chapter.interactor.SyncChaptersWithSource
 import eu.kanade.domain.manga.model.toSManga
-import eu.kanade.domain.track.interactor.RefreshTracks
+import eu.kanade.domain.track.interactor.SyncChapterProgressWithTrack
+import eu.kanade.domain.track.model.toDbTrack
+import eu.kanade.domain.track.model.toDomainTrack
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
+import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.manga.interactor.GetFavorites
 import tachiyomi.domain.manga.interactor.GetManga
 import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.storage.service.StorageManager
+import tachiyomi.domain.track.interactor.GetTracks
+import tachiyomi.domain.track.interactor.InsertTrack
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -51,11 +57,40 @@ object LocalSeriesSync {
                 }
                 Injekt.get<SyncChaptersWithSource>().await(chapters, manga, source)
                 // read marks follow the tracker: for a local series AniList's volume count (fresh from AniList)
-                Injekt.get<RefreshTracks>().await(mangaId, enhancedTrackersOnly = false)
+                pullTracks(mangaId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 logcat(LogPriority.WARN, e) { "Local series sync failed: $mangaId" }
+            }
+        }
+    }
+
+    /**
+     * RefreshTracks' pull and read marks without its push: RefreshTracks also wrote a higher local count back to
+     * AniList, an AniList write on a mere page open that bumps the entry's updatedAt (the glass "Last read" key of a
+     * title not read here), so opening a title moved it to the front. Reading a volume pushes progress itself.
+     */
+    private suspend fun pullTracks(mangaId: Long) {
+        val trackerManager = Injekt.get<TrackerManager>()
+        // as SyncChapterProgressWithTrack counts it: continuous reading only
+        val readHere = Injekt.get<GetChaptersByMangaId>().await(mangaId)
+            .filter { it.isRecognizedNumber }
+            .sortedBy { it.chapterNumber }
+            .takeWhile { it.read }
+            .lastOrNull()?.chapterNumber ?: 0.0
+        for (track in Injekt.get<GetTracks>().await(mangaId)) {
+            val tracker = trackerManager.get(track.trackerId)?.takeIf { it.isLoggedIn } ?: continue
+            try {
+                val remote = tracker.refresh(track.toDbTrack()).toDomainTrack() ?: continue
+                Injekt.get<InsertTrack>().await(remote)
+                // progress never below what is read here: sync then only marks chapters read, it never writes back
+                Injekt.get<SyncChapterProgressWithTrack>()
+                    .sync(mangaId, remote.copy(lastChapterRead = maxOf(remote.lastChapterRead, readHere)), tracker)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logcat(LogPriority.WARN, e) { "Track refresh failed: $mangaId" }
             }
         }
     }

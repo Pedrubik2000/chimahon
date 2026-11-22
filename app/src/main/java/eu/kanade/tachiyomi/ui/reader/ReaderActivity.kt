@@ -1569,7 +1569,8 @@ class ReaderActivity : BaseActivity() {
                 {
                     GlassPageWords(
                         viewer = state.viewer,
-                        pageKey = state.currentPage to state.ocrScanProgress?.completedPages,
+                        pageKey = state.currentPage,
+                        ocrTick = state.ocrScanProgress?.completedPages,
                         repository = dictionaryRepository,
                         lookupPaths = ::getOrRefreshLookupPaths,
                         mediaInfo = state.manga?.let { m ->

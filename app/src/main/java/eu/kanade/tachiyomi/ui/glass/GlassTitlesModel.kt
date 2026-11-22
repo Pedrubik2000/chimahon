@@ -102,7 +102,9 @@ class GlassTitlesModel(
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, ms) ->
                 ms.maxBy { it.totalChapters }.let {
-                    GlassTitles.Local(it.id, it.totalChapters.toInt(), it.readCount.toInt(), it.lastRead)
+                    // every chapter's number (one query per linked series, ~15): volumes here count only 1..total
+                    val numbers = getChaptersByMangaId.await(it.id).map { c -> c.chapterNumber }
+                    GlassTitles.Local(it.id, it.totalChapters.toInt(), it.readCount.toInt(), it.lastRead, numbers)
                 }
             }
         val list = GlassTitles.build(entries, linked)

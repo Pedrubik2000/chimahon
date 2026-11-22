@@ -190,7 +190,13 @@ private fun HeroText(hero: Hero, navigator: Navigator) {
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(where, color = Glass.secondary, fontSize = Glass.label, modifier = Modifier.padding(top = 8.dp))
+        // the bar below is volume progress, not page progress: the resume line says so
+        val read = if (hero.resume && next != null && total != null) {
+            " · " + stringResource(MR.strings.glass_hero_volumes_read, t.volumesRead.coerceAtMost(total), total)
+        } else {
+            ""
+        }
+        Text(where + read, color = Glass.secondary, fontSize = Glass.label, modifier = Modifier.padding(top = 8.dp))
         t.readFraction?.let { Meter(it, Modifier.padding(top = 14.dp).width(380.dp), color = Glass.ice) }
         Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (hero.resume && next != null) {

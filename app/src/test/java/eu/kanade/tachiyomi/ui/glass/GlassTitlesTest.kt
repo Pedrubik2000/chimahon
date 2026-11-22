@@ -181,6 +181,37 @@ class GlassTitlesTest {
     }
 
     @Test
+    fun `local volumes count only within 1 to total`() {
+        // MASHLE: 18 volumes on AniList, 14 files here plus one read as "153" and one without a number
+        val numbers = (1..14).map { it.toDouble() } + 153.0 + -1.0
+        val e = listOf(entry(1, "CURRENT", volumes = 18))
+        val built = GlassTitles.build(e, mapOf(1L to GlassTitles.Local(mangaId = 11, volumes = 16, read = 2, lastRead = 0, numbers = numbers)))
+        built[0].volumesHere shouldBe 14
+        GlassTitles.here(built[0]) shouldBe Here.SOME
+        // total unknown: the raw count
+        GlassTitles.build(listOf(entry(1, "CURRENT")), mapOf(1L to GlassTitles.Local(11, 16, 2, 0, numbers)))[0]
+            .volumesHere shouldBe 16
+        // a learned count (no AniList volumes) is the range too, and the floor uses the in-range count; volumes right
+        // after a lagging count, in a row, still count
+        val releasing = GlassTitles.build(listOf(entry(2, "CURRENT")), mapOf(2L to GlassTitles.Local(12, 16, 2, 0, numbers)))
+        GlassTitles.withCounts(releasing, mapOf(2L to 18))[0].let { it.volumesHere shouldBe 14; it.total shouldBe 18 }
+        GlassTitles.withCounts(releasing, mapOf(2L to 12))[0].let { it.volumesHere shouldBe 14; it.total shouldBe 14 }
+        GlassTitles.volumesHere(numbers, 10) shouldBe 10
+    }
+
+    @Test
+    fun `last read sort key is the read here, not an AniList refresh`() {
+        // 1 read here at t=5 000 ms, its AniList entry refreshed later (updatedAt 9 s); 2 not here, updated at 6 s
+        val e = listOf(entry(1, "CURRENT", volumes = 6, updatedAt = 9), entry(2, "CURRENT", volumes = 6, updatedAt = 6))
+        val built = GlassTitles.build(e, mapOf(1L to GlassTitles.Local(mangaId = 11, volumes = 6, read = 2, lastRead = 5_000)))
+        built[0].lastTouched shouldBe 5_000
+        ids(GlassTitles.reading(built)) shouldBe listOf(2L, 1L)
+        // a refreshed entry (new progress, same updatedAt) keeps the order
+        val refreshed = GlassTitles.build(listOf(e[1], e[0].copy(progressVolumes = 3)), mapOf(1L to GlassTitles.Local(11, 6, 2, 5_000)))
+        ids(GlassTitles.reading(refreshed)) shouldBe listOf(2L, 1L)
+    }
+
+    @Test
     fun `volume label`() {
         GlassTitles.volumeLabel(next) shouldBe "3"
         GlassTitles.volumeLabel(next.copy(number = 3.5)) shouldBe "3.5"

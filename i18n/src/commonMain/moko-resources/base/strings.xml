@@ -816,6 +816,7 @@
     <string name="glass_reader_nothing_new">Nothing new on this page</string>
     <string name="glass_reader_review">Review</string>
     <string name="glass_reader_mark_known">Mark known</string>
+    <string name="glass_reader_unmark_known">Known, tap to undo</string>
     <string name="glass_reader_mine">Mine</string>
     <string name="glass_reader_no_entry">No dictionary entry for %1$s</string>
     <!-- Glass Discover (UI rebuild phase 5b) -->
@@ -1000,6 +1001,7 @@
     <string name="glass_volumes">Volumes</string>
     <string name="glass_hero_vol">Vol. %1$s</string>
     <string name="glass_hero_vol_page">Vol. %1$s · page %2$d</string>
+    <string name="glass_hero_volumes_read">%1$d of %2$d volumes read</string>
     <string name="glass_n_volumes">%1$d volumes</string>
     <string name="glass_row_reading">Reading</string>
     <string name="glass_row_planning">Plan to read</string>

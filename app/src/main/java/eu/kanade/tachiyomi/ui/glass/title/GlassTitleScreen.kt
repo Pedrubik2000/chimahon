@@ -366,8 +366,14 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             }
             GlassRail(
                 active = "none",
-                // ponytail: back to the shell (its last page); the rail can't pick a page of GlassHomeScreen from here
-                onSelect = { if (it == "settings") navigator.push(SettingsScreen()) else navigator.popUntilRoot() },
+                onSelect = {
+                    if (it == "settings") {
+                        navigator.push(SettingsScreen())
+                    } else {
+                        eu.kanade.tachiyomi.ui.glass.GlassHomeScreen.show(it)
+                        navigator.popUntilRoot()
+                    }
+                },
                 modifier = Modifier.padding(start = 20.dp, top = 24.dp),
             )
         }

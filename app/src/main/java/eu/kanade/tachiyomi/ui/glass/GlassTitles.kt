@@ -23,6 +23,8 @@ data class GlassTitle(
     val next: NextVolume? = null,
     /** volumes out so far learned from sources / MangaDex ([eu.kanade.tachiyomi.data.anilist.VolumeCounts]) */
     val countSoFar: Int? = null,
+    /** the local chapters' numbers ([GlassTitles.volumesHere]); null = not read, [volumesHere] is the raw count */
+    val localNumbers: List<Double>? = null,
 ) {
     val mediaId: Long get() = entry.mediaId
     val name: String get() = entry.native ?: entry.romaji ?: entry.english ?: ""
@@ -218,16 +220,39 @@ object GlassTitles {
                 GlassTitle(
                     entry = e,
                     localMangaId = l.mangaId,
-                    volumesHere = l.volumes,
+                    volumesHere = l.numbers?.let { volumesHere(it, e.volumes?.takeIf { v -> v > 0 }) } ?: l.volumes,
                     volumesRead = maxOf(l.read, e.progressVolumes),
                     lastRead = l.lastRead.takeIf { it > 0 },
+                    localNumbers = l.numbers,
                 )
             }
         }
 
+    /**
+     * Local chapters that count as volumes: numbers in 1..[total] when it is known, else all of them (a file read as
+     * "153" in an 18-volume series is not a volume). A [learned] total (MangaDex / sources) can lag: the volumes right
+     * after it, in a row, count too.
+     */
+    fun volumesHere(numbers: List<Double>, total: Int?, learned: Boolean = false): Int {
+        if (total == null) return numbers.size
+        var top = total
+        if (learned) while ((top + 1).toDouble() in numbers) top++
+        return numbers.count { it >= 1 && it <= top }
+    }
+
     /** [counts] = [eu.kanade.tachiyomi.data.anilist.VolumeCounts.counts]. */
     fun withCounts(list: List<GlassTitle>, counts: Map<Long, Int>): List<GlassTitle> =
-        list.map { it.copy(countSoFar = counts[it.mediaId]) }
+        list.map { t ->
+            val count = counts[t.mediaId]
+            val numbers = t.localNumbers
+            // no AniList volumes: the learned count is the range (AniList's was applied in build)
+            val here = if (numbers != null && (t.entry.volumes ?: 0) <= 0 && count != null && count > 0) {
+                volumesHere(numbers, count, learned = true)
+            } else {
+                t.volumesHere
+            }
+            t.copy(countSoFar = count, volumesHere = here)
+        }
 
     /** Titles AniList gives no volume count for, in the order to ask: Reading, something here, Plan to read, rest. */
     fun fillOrder(list: List<GlassTitle>): List<AniListLibrary.Entry> =
@@ -242,8 +267,8 @@ object GlassTitles {
             }
             .map { it.entry }
 
-    /** A local-source manga as [build] needs it. */
-    data class Local(val mangaId: Long, val volumes: Int, val read: Int, val lastRead: Long)
+    /** A local-source manga as [build] needs it; [numbers] = its chapters' numbers (null: count [volumes] as is). */
+    data class Local(val mangaId: Long, val volumes: Int, val read: Int, val lastRead: Long, val numbers: List<Double>? = null)
 
     /** Volume label for the hero line: the number when the chapter has one ("3", "3.5"), else its name. */
     fun volumeLabel(next: NextVolume): String = when {

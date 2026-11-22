@@ -42,6 +42,11 @@ private val glassPage = mutableStateOf("home")
 object GlassHomeScreen : Screen() {
     private fun readResolve(): Any = GlassHomeScreen
 
+    /** Switches the shell to [page] ("home", "library", "discover", "downloads"), e.g. from a title page's rail. */
+    fun show(page: String) {
+        glassPage.value = page
+    }
+
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
