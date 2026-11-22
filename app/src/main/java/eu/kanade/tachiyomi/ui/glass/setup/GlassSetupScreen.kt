@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -89,6 +93,15 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val model = rememberScreenModel { GlassSetupModel(fromSettings) }
+        // the notification permission on every resume (granted or revoked in Android's settings), whatever the step
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner.lifecycle) {
+            val observer = object : DefaultLifecycleObserver {
+                override fun onResume(owner: LifecycleOwner) = model.readNotifications()
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
         val signedIn by model.signedIn.collectAsStateWithLifecycle()
         val entries by model.entries.collectAsStateWithLifecycle()
         val step = model.step
@@ -241,13 +254,14 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         }
                     } else {
                         SetupButton(
-                            stringResource(MR.strings.glass_setup_open_home),
+                            // from Settings it goes back there: "Done"
+                            stringResource(if (fromSettings) MR.strings.glass_setup_finish else MR.strings.glass_setup_open_home),
                             {
                                 model.finish()
                                 if (fromSettings) navigator.pop() else navigator.replaceAll(GlassHomeScreen)
                             },
                             enabled = missing.isEmpty(),
-                            leading = "home",
+                            leading = if (fromSettings) "check" else "home",
                         )
                         if (missing.isNotEmpty()) {
                             Row(

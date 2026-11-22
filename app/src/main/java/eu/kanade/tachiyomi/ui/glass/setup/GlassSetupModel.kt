@@ -1,7 +1,10 @@
 package eu.kanade.tachiyomi.ui.glass.setup
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -103,19 +106,25 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
     var importError by mutableStateOf<String?>(null)
         private set
 
-    /** Step 0-4, or [GlassSetupLogic.SUMMARY]. */
+    /** Step 0-4, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
     var step by mutableIntStateOf(
-        GlassSetupLogic.firstStep(
-            GlassSetupLogic.Facts(
-                aniList = trackerManager.aniList.isLoggedIn,
-                realDebrid = fromSettings && storedKey.isNotEmpty(),
-                // ponytail: one SAF stat on the main thread at open, as the MainActivity gate does
-                storage = StorageManager.directoryAccessible(app, storagePreferences.baseStorageDirectory().get()),
-            ),
-        ),
+        if (fromSettings) {
+            0
+        } else {
+            GlassSetupLogic.firstStep(
+                GlassSetupLogic.Facts(
+                    aniList = trackerManager.aniList.isLoggedIn,
+                    // a first run: a stored key counts only after a check here
+                    realDebrid = false,
+                    // ponytail: one SAF stat on the main thread at open, as the MainActivity gate does
+                    storage = StorageManager.directoryAccessible(app, storagePreferences.baseStorageDirectory().get()),
+                ),
+            )
+        },
     )
 
     init {
+        readNotifications()
         screenModelScope.launch {
             signedIn.collect { on ->
                 if (!on) {
@@ -176,6 +185,13 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         }
     }
 
+    /** At start and on every resume (the screen), so the bar and Summary know it before the step is visited. */
+    fun readNotifications() {
+        // from PermissionStep (onboarding): below API 33 there is nothing to ask
+        notificationsAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+
     fun skipNotifications() {
         notificationsSkipped = true
         step = 4
@@ -216,7 +232,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
     private suspend fun measureStorage() = withContext(Dispatchers.IO) {
         val dir = storagePreferences.baseStorageDirectory().get()
         val ok = StorageManager.directoryAccessible(app, dir)
-        storagePath = if (ok) UniFile.fromUri(app, dir.toUri())?.displayablePath else null
+        storagePath = if (ok) UniFile.fromUri(app, dir.toUri())?.displayablePath?.let(GlassSetupLogic::shortPath) else null
         storageOk = ok
         val local = if (ok) storageManager.getLocalSourceDirectory() else null
         // the same filter as LocalSeriesSync.syncAll

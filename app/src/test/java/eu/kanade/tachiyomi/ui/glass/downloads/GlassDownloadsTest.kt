@@ -99,6 +99,17 @@ class GlassDownloadsTest {
     }
 
     @Test
+    fun `a cancelled or covered job is not failed in the bar`() {
+        val cancelled = row(1, State.FAILED, 2, reason = "Cancelled")
+        GlassDownloads.cells(3, read = 1, here = emptySet(), rows = listOf(cancelled)) shouldBe
+            listOf(Cell.READ, Cell.NONE, Cell.NONE)
+        TitleGroup(1, listOf(cancelled)).failed shouldBe emptyList()
+        // failed, then done by a later job but not on the tablet: as the card's line, not failed
+        val rows = listOf(row(1, State.FAILED, 2), row(1, State.DONE, 2))
+        GlassDownloads.cells(2, read = 0, here = emptySet(), rows = rows) shouldBe listOf(Cell.NONE, Cell.NONE)
+    }
+
+    @Test
     fun `move a source up or down`() {
         val shown = listOf(10L, 20L, 30L, 40L) // 40 = newly installed, not yet in the pref
         GlassDownloads.move(shown, 40, -1) shouldBe listOf(10L, 20L, 40L, 30L)

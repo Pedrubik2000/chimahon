@@ -55,6 +55,7 @@ import androidx.work.WorkManager
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
 import com.hippo.unifile.UniFile
+import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Meter
@@ -80,6 +81,8 @@ import eu.kanade.tachiyomi.ui.glass.title.GlassTitleState
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
@@ -532,7 +535,11 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
     val account by produceState<Result<RealDebridImportJob.Account?>?>(null, token) {
         value = runCatching { RealDebridImportJob.account() }
     }
-    val storage by produceState(StorageCache.value) { value = StorageCache.load() }
+    // free space at once (with the last manga size), then the new manga size
+    val storage by produceState(StorageCache.value) {
+        value = StorageCache.space()
+        value = StorageCache.load()
+    }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Label(stringResource(MR.strings.glass_dl_sources))
@@ -566,17 +573,25 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
             val s = storage
             Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color.White.copy(alpha = 0.1f))) {
                 if (s != null && s.total > 0) {
-                    val other = (s.total - s.free - s.manga).coerceAtLeast(0)
-                    Box(Modifier.weight(s.manga.toFloat().coerceAtLeast(1f)).fillMaxHeight().background(Glass.ice))
+                    val manga = s.manga ?: 0
+                    val other = (s.total - s.free - manga).coerceAtLeast(0)
+                    if (s.manga != null) Box(Modifier.weight(manga.toFloat().coerceAtLeast(1f)).fillMaxHeight().background(Glass.ice))
                     Box(Modifier.weight(other.toFloat().coerceAtLeast(1f)).fillMaxHeight().background(Color.White.copy(alpha = 0.35f)))
                     Spacer(Modifier.weight(s.free.toFloat().coerceAtLeast(1f)))
                 }
             }
+            val measuring = stringResource(MR.strings.glass_dl_storage_measuring)
             Text(
-                if (s == null) {
-                    stringResource(MR.strings.glass_dl_storage_measuring)
-                } else {
-                    stringResource(
+                when {
+                    s == null -> measuring
+                    // chimahon: free space first; the manga part reads "Measuring…" until its first walk ends
+                    s.manga == null -> stringResource(
+                        MR.strings.glass_dl_storage_free,
+                        Formatter.formatShortFileSize(context, s.free),
+                        Formatter.formatShortFileSize(context, s.total),
+                        measuring,
+                    )
+                    else -> stringResource(
                         MR.strings.glass_dl_storage,
                         Formatter.formatShortFileSize(context, s.manga),
                         Formatter.formatShortFileSize(context, (s.total - s.free - s.manga).coerceAtLeast(0)),
@@ -633,22 +648,54 @@ private fun SourceCard(name: String, line: String, on: Boolean) {
     }
 }
 
-private data class Storage(val manga: Long, val total: Long, val free: Long)
+/** [manga] null = not measured yet ("measuring"); total and free come from StatFs at once. */
+private data class Storage(val manga: Long?, val total: Long, val free: Long)
 
-/** Local-source folder size + its volume's StatFs, measured off the main thread, kept for the next visit. */
+/**
+ * Local-source folder size + its volume's StatFs, off the main thread. Free/total are instant; the manga sum (a walk of
+ * the folder, slow through SAF) shows the last measured size (memory, then [UiPreferences.glassMangaBytes]) until the
+ * new one arrives.
+ */
 private object StorageCache {
     @Volatile
     var value: Storage? = null
 
-    suspend fun load(): Storage? = withContext(Dispatchers.IO) {
-        val local = Injekt.get<StorageManager>().getLocalSourceDirectory() ?: return@withContext value
-        val dir = local.filePath?.let(::File) ?: return@withContext value
+    private val walk = Mutex()
+
+    @Volatile
+    private var measuredAt = 0L
+
+    private val saved get() = Injekt.get<UiPreferences>().glassMangaBytes()
+
+    private fun local(): Pair<UniFile, File>? {
+        val local = Injekt.get<StorageManager>().getLocalSourceDirectory() ?: return null
+        return local.filePath?.let { local to File(it) }
+    }
+
+    /** StatFs now, with the last known manga size (or null). */
+    suspend fun space(): Storage? = withContext(Dispatchers.IO) {
+        val (_, dir) = local() ?: return@withContext value
         runCatching {
-            // chimahon: a SAF folder (no all-files access) has a real path for StatFs, but java.io.File can't see its
-            // files (scoped storage: Manga read 0 B): then the size is summed through the UniFile tree
-            val manga = if (local.uri.scheme == "file") DiskUtil.getDirectorySize(dir) else treeSize(local)
+            val manga = value?.manga ?: saved.get().takeIf { it >= 0 }
             Storage(manga, DiskUtil.getTotalStorageSpace(dir), DiskUtil.getAvailableStorageSpace(dir))
         }.getOrNull()?.also { value = it } ?: value
+    }
+
+    /** Measures the manga folder; one walk at a time, a second caller (rotation, page again) takes its result. */
+    suspend fun load(): Storage? = withContext(Dispatchers.IO) {
+        walk.withLock {
+            // ponytail: a walk in the last minute is fresh enough; the page's own job changes refresh on the next visit
+            if (value?.manga != null && System.currentTimeMillis() - measuredAt < 60_000) return@withLock value
+            val (local, dir) = local() ?: return@withLock value
+            runCatching {
+                // chimahon: a SAF folder (no all-files access) has a real path for StatFs, but java.io.File can't see
+                // its files (scoped storage: Manga read 0 B): then the size is summed through the UniFile tree
+                val manga = if (local.uri.scheme == "file") DiskUtil.getDirectorySize(dir) else treeSize(local)
+                saved.set(manga)
+                measuredAt = System.currentTimeMillis()
+                Storage(manga, DiskUtil.getTotalStorageSpace(dir), DiskUtil.getAvailableStorageSpace(dir))
+            }.getOrNull()?.also { value = it } ?: value
+        }
     }
 
     // chimahon: one children query per folder with _size (UniFile's isDirectory/length per entry opened every .rar
@@ -656,11 +703,15 @@ private object StorageCache {
     private fun treeSize(f: UniFile): Long {
         val uri = f.uri
         val resolver = Injekt.get<Application>().contentResolver
+        val start = System.currentTimeMillis()
         var total = 0L
+        var files = 0
+        var queries = 0
         var logged = false
         val folders = ArrayDeque(listOf(DocumentsContract.getDocumentId(uri)))
         while (folders.isNotEmpty()) {
             val id = folders.removeFirst()
+            queries++
             try {
                 resolver.query(
                     DocumentsContract.buildChildDocumentsUriUsingTree(uri, id),
@@ -670,13 +721,21 @@ private object StorageCache {
                     null,
                 )?.use { c ->
                     while (c.moveToNext()) {
-                        if (c.getString(1) == Document.MIME_TYPE_DIR) folders.add(c.getString(0)) else total += c.getLong(2)
+                        if (c.getString(1) == Document.MIME_TYPE_DIR) {
+                            folders.add(c.getString(0))
+                        } else {
+                            total += c.getLong(2)
+                            files++
+                        }
                     }
                 }
             } catch (e: Exception) {
                 if (!logged) logcat(LogPriority.WARN, e) { "Storage: can't list $id" }
                 logged = true
             }
+        }
+        logcat(LogPriority.INFO) {
+            "Storage: manga $total B in ${System.currentTimeMillis() - start} ms, $queries folders, $files files"
         }
         return total
     }

@@ -908,6 +908,7 @@
     <string name="glass_dl_off">Off</string>
     <string name="glass_dl_storage">Manga %1$s · other apps %2$s · %3$s free</string>
     <string name="glass_dl_storage_measuring">Measuring…</string>
+    <string name="glass_dl_storage_free">%1$s free of %2$s · manga: %3$s</string>
     <string name="glass_dl_key">KEY</string>
     <string name="glass_dl_key_read">Read</string>
     <string name="glass_dl_key_here">On tablet</string>
@@ -1002,6 +1003,8 @@
     <string name="glass_setup_needed">Needed to go on</string>
     <string name="glass_setup_or_not_now">Or tap Not now</string>
     <string name="glass_setup_open_home">Open Home</string>
+    <string name="glass_setup_finish">Done</string>
+    <string name="glass_setup_another_folder">Choose another folder</string>
     <!-- Glass title page (UI rebuild phase 4) -->
     <string name="glass_title_vols">%1$d vols</string>
     <string name="glass_title_finished">finished</string>

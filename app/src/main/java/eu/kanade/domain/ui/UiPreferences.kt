@@ -48,6 +48,9 @@ class UiPreferences(
     // chimahon: the new look's first-run setup was finished (or not needed); app state, like onboarding_complete
     fun glassSetupDone() = preferenceStore.getBoolean(Preference.appStateKey("glass_setup_done"), false)
 
+    // chimahon: Downloads' "On this tablet": the last measured size of the local-source folder (-1 = never measured)
+    fun glassMangaBytes() = preferenceStore.getLong(Preference.appStateKey("glass_manga_bytes"), -1L)
+
     /** Glass Discover: AniList media ids marked "Not for me" (never picked again). */
     fun discoverNotForMe() = preferenceStore.getStringSet("pref_glass_discover_not_for_me", emptySet())
 

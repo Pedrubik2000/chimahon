@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.ui.glass.setup
 
 import android.Manifest
 import android.content.ActivityNotFoundException
-import android.content.pm.PackageManager
 import android.os.Build
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,7 +24,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,9 +41,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.glassPanel
@@ -160,20 +155,17 @@ internal fun StorageStep(model: GlassSetupModel) {
     val context = LocalContext.current
     val pref = model.storagePreferences.baseStorageDirectory()
     val pick = SettingsDataScreen.storageLocationPicker(pref)
+    val choose: () -> Unit = {
+        // as Settings › Data and storage does
+        try {
+            StorageManager.allowAccessStorage(context, pref) { pick.launch(null) }
+        } catch (_: Exception) {
+            context.toast(MR.strings.file_picker_error)
+        }
+    }
     if (!model.storageOk) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SetupButton(
-                stringResource(MR.strings.glass_setup_choose_folder),
-                {
-                    // as Settings › Data and storage does
-                    try {
-                        StorageManager.allowAccessStorage(context, pref) { pick.launch(null) }
-                    } catch (_: Exception) {
-                        context.toast(MR.strings.file_picker_error)
-                    }
-                },
-                leading = "folder",
-            )
+            SetupButton(stringResource(MR.strings.glass_setup_choose_folder), choose, leading = "folder")
             Note(stringResource(MR.strings.glass_setup_folder_note))
         }
     } else {
@@ -187,24 +179,13 @@ internal fun StorageStep(model: GlassSetupModel) {
                 null
             },
         )
+        SetupButton(stringResource(MR.strings.glass_setup_another_folder), choose, primary = false, leading = "folder")
     }
 }
 
 @Composable
 internal fun NotificationsStep(model: GlassSetupModel) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    // from PermissionStep (onboarding): re-read on every resume; below API 33 there is nothing to ask
-    DisposableEffect(lifecycleOwner.lifecycle) {
-        val observer = object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                model.notificationsAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    // the permission is read by the model at start and by the screen on every resume
     val requester = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         model.notificationsAllowed = granted
     }
@@ -315,7 +296,8 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
             val fix = !ok[i] && GlassSetupLogic.needed(i)
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
             Row(
-                Modifier.fillMaxWidth().height(52.dp),
+                // chimahon: 44, not the canvas' 52: five rows fit above the buttons on a 800dp-high landscape tablet
+                Modifier.fillMaxWidth().height(44.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {

@@ -12,13 +12,13 @@ data class TitleGroup(val mediaId: Long?, val rows: List<RealDebridQueue.Row>) {
     val queued: List<RealDebridQueue.Row> get() = rows.filter { it.state == State.QUEUED }
     val active: Boolean get() = rows.any { it.state == State.RUNNING || it.state == State.QUEUED }
 
-    /** Failed rows whose failed volumes no later job (queued, running or done) covers again. */
+    /** Failed rows (not cancelled) whose failed volumes no later job (queued, running or done) covers again. */
     val failed: List<RealDebridQueue.Row>
         get() {
             val covered = rows.filter { it.state != State.FAILED }.flatMap { it.volumes }.toSet()
             return rows.filter {
                 val vols = GlassDownloads.failedOf(it)
-                it.state == State.FAILED && (vols.isEmpty() || !vols.all { v -> v in covered })
+                it.state == State.FAILED && it.reason != RealDebridQueue.CANCELLED && (vols.isEmpty() || !vols.all { v -> v in covered })
             }
         }
 
@@ -70,10 +70,11 @@ object GlassDownloads {
      * queue's state (a pack's volumes already here are not queued again), else read elsewhere, or not asked for.
      */
     fun cells(count: Int, read: Int, here: Set<Int>, rows: List<RealDebridQueue.Row>): List<Cell> {
-        fun has(state: State) = rows.filter { it.state == state }.flatMap { if (state == State.FAILED) failedOf(it) else it.volumes }.toSet()
+        fun has(state: State) = rows.filter { it.state == state }.flatMap { it.volumes }.toSet()
         val running = has(State.RUNNING)
         val queued = has(State.QUEUED)
-        val failed = has(State.FAILED)
+        // the same failed as the card's line and Try again: not cancelled, not covered by a later job
+        val failed = TitleGroup(null, rows).failedVolumes.toSet()
         return (1..count).map { v ->
             when {
                 v in here -> if (v <= read) Cell.READ else Cell.HERE

@@ -58,4 +58,12 @@ class GlassSetupLogicTest {
         GlassSetupLogic.masked("7QK2") shouldBe "••••"
         GlassSetupLogic.masked("") shouldBe ""
     }
+
+    @Test
+    fun `the storage folder reads as on the canvas`() {
+        GlassSetupLogic.shortPath("/storage/emulated/0/Chimahon dev") shouldBe "/sdcard/Chimahon dev"
+        GlassSetupLogic.shortPath("/storage/emulated/0") shouldBe "/sdcard"
+        GlassSetupLogic.shortPath("/storage/emulated/01/x") shouldBe "/storage/emulated/01/x"
+        GlassSetupLogic.shortPath("/storage/1A2B-3C4D/Manga") shouldBe "/storage/1A2B-3C4D/Manga"
+    }
 }

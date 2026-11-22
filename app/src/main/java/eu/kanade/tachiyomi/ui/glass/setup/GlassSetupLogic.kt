@@ -43,6 +43,12 @@ object GlassSetupLogic {
         else -> "$missingCount NEEDED ${if (missingCount > 1) "STEPS" else "STEP"} LEFT"
     }
 
+    /**
+     * The storage folder as the canvas shows it: "/storage/emulated/0/Chimahon" → "/sdcard/Chimahon". Settings › Data
+     * shows the raw path (UniFile.displayablePath); an SD card or a content URI stays as it is.
+     */
+    fun shortPath(path: String): String = path.replaceFirst(Regex("^/storage/emulated/0(?=/|$)"), "/sdcard")
+
     /** A pasted key shown as dots but its last 4 characters; same length, so the text field's cursor maps 1:1. */
     fun masked(key: String): String = if (key.length <= 4) "•".repeat(key.length) else "•".repeat(key.length - 4) + key.takeLast(4)
 }

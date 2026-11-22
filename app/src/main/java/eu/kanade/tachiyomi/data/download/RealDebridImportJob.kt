@@ -281,6 +281,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
                 }
             }
+            checkCancelled() // chimahon: a cancel during the fetch ends as cancelled, not as "Vol. n missing"
             val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName), deadSources())
             // a series folder this job made and nothing landed in: gone, and not added to the library
             if (wanted.isNotEmpty() && createdSeries != null && mangaDir.listFiles().isNullOrEmpty()) {
@@ -335,10 +336,17 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             done(listOfNotNull(inputData.getString(KEY_NAME), text).joinToString(": "), error = true)
             Result.success(output(text, delivered = pack - vols, missing = vols))
         } catch (e: Exception) {
-            logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
-            deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one
-            done("Failed: ${e.message}", error = true)
-            Result.success(output(e.message ?: e.javaClass.simpleName))
+            if (Injekt.get<RealDebridQueue>().isCancelled(id)) {
+                // chimahon: an error while cancelled (a stream closed under it) is the cancel, not a failure
+                logcat(LogPriority.INFO, e) { "Real-Debrid import cancelled: ${inputData.getString(KEY_NAME) ?: id}" }
+                undo()
+                Result.success(output(RealDebridQueue.CANCELLED))
+            } else {
+                logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
+                deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one
+                done("Failed: ${e.message}", error = true)
+                Result.success(output(e.message ?: e.javaClass.simpleName))
+            }
         }
     }
 
