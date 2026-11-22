@@ -33,10 +33,12 @@ object GlassProblems {
     /**
      * The current list, key problems first. [account] null = no key, not checked yet or no network (nothing to say).
      * [names] = AniList media id → title name. Shared links (no title) are left out: the Downloads page shows them.
+     * [here] = media id → volumes on the tablet ([GlassDownloads.volumesHere]): the Downloads page's failed rule.
      */
     fun build(
         account: RealDebridImportJob.Account?,
         rows: List<RealDebridQueue.Row>,
+        here: Map<Long, Set<Int>>,
         names: Map<Long, String>,
         signedIn: Boolean,
         aniListError: String?,
@@ -48,7 +50,7 @@ object GlassProblems {
             account.tokenRejected -> add(Problem(RD, ProblemKind.RD_REJECTED, "downloads", key))
             !account.premium -> add(Problem(RD, ProblemKind.RD_NOT_PREMIUM, "downloads", key))
         }
-        GlassDownloads.group(rows).forEach { g ->
+        GlassDownloads.group(rows, here).forEach { g ->
             val id = g.mediaId ?: return@forEach
             val failed = g.failed
             if (failed.isEmpty()) return@forEach

@@ -106,9 +106,35 @@ class GlassDownloadsTest {
         GlassDownloads.cells(3, read = 1, here = emptySet(), rows = listOf(cancelled)) shouldBe
             listOf(Cell.READ, Cell.NONE, Cell.NONE)
         TitleGroup(1, listOf(cancelled)).failed shouldBe emptyList()
-        // failed, then done by a later job but not on the tablet: as the card's line, not failed
+        // failed, then done by a later job but not on the tablet: failed (the title page's rule); on it: not failed
         val rows = listOf(row(1, State.FAILED, 2), row(1, State.DONE, 2))
-        GlassDownloads.cells(2, read = 0, here = emptySet(), rows = rows) shouldBe listOf(Cell.NONE, Cell.NONE)
+        GlassDownloads.cells(2, read = 0, here = emptySet(), rows = rows) shouldBe listOf(Cell.NONE, Cell.FAILED)
+        GlassDownloads.cells(2, read = 0, here = setOf(2), rows = rows) shouldBe listOf(Cell.NONE, Cell.HERE)
+    }
+
+    @Test
+    fun `with the tablet's volumes known a failed row counts for those not here, old done rows cover nothing`() {
+        // MASHLE - the done 1-5 row is from before jobs reported what they delivered; 1-2 never came
+        val rows = listOf(
+            row(1, State.DONE, 13, 14, 15, 16),
+            row(1, State.DONE, 17, 18),
+            row(1, State.DONE, 1, 2, 3, 4, 5),
+            row(1, State.FAILED, 1, 2, 3, 4, reason = "Vol. 1, 2, 3, 4 were not found; dead link: Rawxt"),
+        )
+        val g = GlassDownloads.group(rows, mapOf(1L to (3..18).toSet())).single()
+        g.failed shouldBe listOf(rows[3])
+        g.failedVolumes shouldBe listOf(1, 2)
+        GlassDownloads.cells(18, read = 0, here = (3..18).toSet(), rows = rows).take(3) shouldBe
+            listOf(Cell.FAILED, Cell.FAILED, Cell.HERE)
+        // all on the tablet: nothing failed
+        GlassDownloads.group(rows, mapOf(1L to (1..18).toSet())).single().let {
+            it.failed shouldBe emptyList()
+            it.failedVolumes shouldBe emptyList()
+        }
+        // queued again elsewhere: covered
+        TitleGroup(1, rows + row(1, State.QUEUED, 1, 2), (3..18).toSet()).failed shouldBe emptyList()
+        // the tablet's volumes not known: the old rule (the done 1-5 row covers them)
+        TitleGroup(1, rows).failed shouldBe emptyList()
     }
 
     @Test

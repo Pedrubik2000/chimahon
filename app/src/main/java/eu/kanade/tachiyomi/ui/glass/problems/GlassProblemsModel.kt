@@ -5,8 +5,10 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
+import eu.kanade.tachiyomi.data.download.RealDebridQueue.State
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
+import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import tachiyomi.domain.download.service.DownloadPreferences
@@ -43,15 +46,25 @@ class GlassProblemsModel(
         .map { token -> runCatching { RealDebridImportJob.account(token) }.getOrNull() }
         .onStart { emit(null) }
 
+    private val rows = queue.rows.flowOn(Dispatchers.IO).shareIn(screenModelScope, SharingStarted.Eagerly, replay = 1)
+
+    // the volumes on the tablet of the queue's titles, read again when a job finishes (it changes the folder)
+    private val here = rows
+        .map { rs -> rs.mapNotNull { it.mediaId }.distinct().sorted() to rs.count { it.state == State.DONE || it.state == State.FAILED } }
+        .distinctUntilChanged()
+        .map { (ids, _) -> GlassDownloads.volumesHere(ids) }
+        .onStart { emit(emptyMap()) }
+
     val problems: StateFlow<List<Problem>> = combine(
-        combine(account, queue.rows, hidden) { a, r, h -> Triple(a, r, h) },
+        combine(account, rows, hidden) { a, r, h -> Triple(a, r, h) },
         combine(
             flow { emitAll(aniList.entries) }, // first access reads the cache file: keep it off the main thread
             trackerManager.aniList.isLoggedInFlow,
             aniList.error,
         ) { e, s, err -> Triple(e, s, err) },
-    ) { (acc, rows, hid), (entries, signedIn, error) ->
-        GlassProblems.build(acc, rows, entries.associate { it.mediaId to GlassTitle(it).name }, signedIn, error, hid)
+        here,
+    ) { (acc, rs, hid), (entries, signedIn, error), h ->
+        GlassProblems.build(acc, rs, h, entries.associate { it.mediaId to GlassTitle(it).name }, signedIn, error, hid)
     }
         .flowOn(Dispatchers.IO)
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())

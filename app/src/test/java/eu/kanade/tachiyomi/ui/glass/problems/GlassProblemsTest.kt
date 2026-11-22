@@ -30,7 +30,8 @@ class GlassProblemsTest {
         signedIn: Boolean = true,
         error: String? = null,
         hidden: Set<String> = emptySet(),
-    ) = GlassProblems.build(account, rows, mapOf(1L to "神のみぞ知るセカイ"), signedIn, error, hidden)
+        here: Map<Long, Set<Int>> = emptyMap(),
+    ) = GlassProblems.build(account, rows, here, mapOf(1L to "神のみぞ知るセカイ"), signedIn, error, hidden)
 
     @Test
     fun `nothing wrong, no key or no network for the key check gives no problems`() {
@@ -69,6 +70,23 @@ class GlassProblemsTest {
             it.detail shouldBe "dead link: Rawxt · not on X3DL"
             it.actions shouldBe listOf(ProblemAction.OPEN_TITLE, ProblemAction.TRY_AGAIN)
         }
+    }
+
+    @Test
+    fun `a failed title by what is on the tablet, an old done row hiding nothing`() {
+        // MASHLE (as title 1): 3-18 here, the done 1-5 row from before jobs reported what they delivered
+        val rows = listOf(
+            row(1, State.DONE, 13, 14, 15, 16),
+            row(1, State.DONE, 17, 18),
+            row(1, State.DONE, 1, 2, 3, 4, 5),
+            row(1, State.FAILED, 1, 2, 3, 4, reason = "Vol. 1, 2, 3, 4 were not found; dead link: Rawxt"),
+        )
+        build(rows = rows, here = mapOf(1L to (3..18).toSet())).single().let {
+            it.mediaId shouldBe 1L
+            it.volumes shouldBe listOf(1, 2)
+            it.detail shouldBe "Vol. 1, 2, 3, 4 were not found; dead link: Rawxt"
+        }
+        build(rows = rows, here = mapOf(1L to (1..18).toSet())) shouldBe emptyList()
     }
 
     @Test

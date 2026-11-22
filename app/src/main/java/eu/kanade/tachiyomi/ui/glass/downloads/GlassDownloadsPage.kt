@@ -77,7 +77,6 @@ import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
-import eu.kanade.tachiyomi.ui.glass.title.GlassTitleState
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,7 +86,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
-import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.i18n.MR
@@ -116,24 +114,15 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
     val animeQueue by animeDownloadManager.queueState.collectAsStateWithLifecycle()
 
     val byId = remember(titles) { titles.orEmpty().associateBy { it.mediaId } }
-    val groups = remember(rows) { GlassDownloads.group(rows) }
+    // the volumes on the tablet of each title (the bars and the failed rule), read again when a job finishes
+    val mediaIds = remember(rows) { rows.mapNotNull { it.mediaId }.distinct().sorted() }
+    val finished = rows.count { it.state == State.DONE || it.state == State.FAILED }
+    val here by produceState(emptyMap<Long, Set<Int>>(), mediaIds, finished) { value = GlassDownloads.volumesHere(mediaIds) }
+    val groups = remember(rows, here) { GlassDownloads.group(rows, here) }
     val sourceNames = remember { Injekt.get<SourceCoverage>().sources(includeOff = true).associate { it.id to it.name } }
 
     fun titleOf(id: Long?): GlassTitle? = id?.let { byId[it] ?: aniList.get(it)?.let(::GlassTitle) }
     fun groupKey(g: TitleGroup) = g.mediaId?.toString() ?: "shared"
-
-    // the volume numbers of each title's local chapters (the bars' "on tablet"), read again when a job finishes
-    val localIds = groups.mapNotNull { g -> g.mediaId?.let { m -> titleOf(m)?.localMangaId?.let { m to it } } }
-    val finished = rows.count { it.state == State.DONE || it.state == State.FAILED }
-    val here by produceState(emptyMap<Long, Set<Int>>(), localIds, finished) {
-        value = withContext(Dispatchers.IO) {
-            val chapters = Injekt.get<ChapterRepository>()
-            localIds.associate { (mediaId, mangaId) ->
-                mediaId to runCatching { chapters.getChapterByMangaId(mangaId) }.getOrDefault(emptyList())
-                    .mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it) }
-            }
-        }
-    }
 
     var open by remember { mutableStateOf<Set<String>?>(null) }
     val expanded = open ?: setOfNotNull(groups.firstOrNull { it.active }?.let(::groupKey))
@@ -338,7 +327,7 @@ private fun TitleCard(
                         group.rows,
                     )
                     VolumeBar(
-                        GlassDownloads.cells(count, title?.volumesRead ?: 0, here, group.rows),
+                        GlassDownloads.cells(count, title?.volumesRead ?: 0, here, group.rows, group.failedVolumes.toSet()),
                         height = if (expanded) 12.dp else 10.dp,
                     )
                 }
