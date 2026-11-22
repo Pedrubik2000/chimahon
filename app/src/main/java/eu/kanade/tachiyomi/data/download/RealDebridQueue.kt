@@ -42,7 +42,7 @@ class RealDebridQueue(private val app: Application) {
         val speed: Long,
         /** Why it failed; [CANCELLED] when cancelled. */
         val reason: String?,
-        /** The source whose link worked (a fallback's when the first was dead). */
+        /** The source whose link worked (a fallback's when the first was dead); while running, the one being fetched. */
         val servedBy: Long?,
         /** "<source id>|<reason>" per dead link tried. */
         val failures: List<String>,
@@ -140,7 +140,9 @@ class RealDebridQueue(private val app: Application) {
             total = progress.getLong(RealDebridImportJob.KEY_TOTAL, 0),
             speed = progress.getLong(RealDebridImportJob.KEY_SPEED, 0),
             reason = reason,
-            servedBy = out.getLong(RealDebridImportJob.KEY_SERVED_BY, RealDebridImportJob.NO_SOURCE).takeIf { it != RealDebridImportJob.NO_SOURCE },
+            // finished: the output's; running: the source being fetched now (the progress', a fallback's included)
+            servedBy = (out.getLong(RealDebridImportJob.KEY_SERVED_BY, RealDebridImportJob.NO_SOURCE).takeIf { it != RealDebridImportJob.NO_SOURCE })
+                ?: progress.getLong(RealDebridImportJob.KEY_SERVED_BY, RealDebridImportJob.NO_SOURCE).takeIf { it != RealDebridImportJob.NO_SOURCE },
             failures = out.getStringArray(RealDebridImportJob.KEY_FAILURES)?.toList().orEmpty(),
             delivered = out.getIntArray(RealDebridImportJob.KEY_DELIVERED)?.toList().orEmpty(),
             missing = missing,

@@ -162,6 +162,17 @@ class GlassTitleScreenModel(
                     .mapKeys { it.key.toInt() }
             }
         }
+        // chimahon: a job of this title that ended may have corrected the coverage cache (a pack held less, a link is
+        // gone): read it again, so the next fetch dialog plans from the corrected coverage
+        screenModelScope.launch {
+            var unfinished = emptySet<java.util.UUID>()
+            rows.collect { list ->
+                val now = list.filter { it.state == RealDebridQueue.State.QUEUED || it.state == RealDebridQueue.State.RUNNING }
+                    .mapTo(mutableSetOf()) { it.workId }
+                if (!now.containsAll(unfinished)) entry.value?.let { loadCoverage(it, force = false) }
+                unfinished = now
+            }
+        }
         // chapter rows = the folder, once per open (a fetch that landed while the page was closed, files copied in)
         screenModelScope.launch(Dispatchers.IO) {
             LocalSeriesSync.sync(local.filterNotNull().first().manga.id)

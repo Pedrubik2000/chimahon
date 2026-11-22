@@ -131,7 +131,13 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             is Primary.Fetch -> primary.volume
             Primary.None -> null
         }
-        val cells = GlassTitleState.cells(count, volumes, active, readUpTo = entry?.progressVolumes ?: 0)
+        val cells = GlassTitleState.cells(
+            count,
+            volumes,
+            active,
+            readUpTo = entry?.progressVolumes ?: 0,
+            totalKnown = (entry?.volumes ?: 0) > 0,
+        )
         val failed = rows.filter { r ->
             r.state == RealDebridQueue.State.FAILED && r.reason != "Cancelled" &&
                 r.volumes.any { it !in here && it !in active }

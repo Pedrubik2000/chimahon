@@ -103,6 +103,12 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** Numbered volumes the link being fetched held (stored or skipped): what a pack really holds. */
     private val held = mutableSetOf<Int>()
 
+    /** The source whose link is being fetched now, for the row while it runs (progress [KEY_SERVED_BY]). */
+    private var fetching = NO_SOURCE
+
+    /** Ids of the torrents this run added on Real-Debrid: deleted there when it is cancelled. */
+    private val torrents = mutableListOf<String>()
+
     /** Started again by WorkManager after a killed run. */
     private val isRerun get() = runAttemptCount > 0
     // chimahon <--
@@ -125,7 +131,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
     /** WorkInfo progress for RealDebridQueue: step, bytes of the current file, its size, bytes/s. */
     private fun progress(step: String, bytes: Long = 0, total: Long = 0, speed: Long = 0) = runCatching {
-        setProgressAsync(workDataOf(KEY_STEP to step, KEY_BYTES to bytes, KEY_TOTAL to total, KEY_SPEED to speed))
+        setProgressAsync(
+            workDataOf(KEY_STEP to step, KEY_BYTES to bytes, KEY_TOTAL to total, KEY_SPEED to speed, KEY_SERVED_BY to fetching),
+        )
     }
 
     private fun output(
@@ -199,7 +207,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // chimahon <--
             status("Adding link")
             val candidates = candidates(link)
-            val (first, resolved) = resolve(candidates)
+            val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+            val (first, resolved) = resolve(candidates, mediaId, wanted)
             val (name, files) = resolved
             // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
             // named after AniList's romaji title when AniList knows it
@@ -235,23 +244,30 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // chimahon <--
             fetch(files, mangaDir, title)
             // chimahon --> a job for given volumes knows what it delivered: a pack can hold less than its label
-            val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
             var missing = emptySet<Int>()
             val tried = mutableListOf(candidates[first].source)
             if (wanted.isNotEmpty()) {
                 learn(mediaId, candidates[first], candidates[first].volumes ?: wanted)
                 missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
-                // other sources' links, only those that can hold a missing volume; "already here" stops doubles
+                // other sources' links that add nothing but missing volumes (a bigger pack or a torrent waits for the
+                // dialog: the corrected coverage offers it on the next tap); "already here" stops doubles
                 for (c in candidates.drop(first + 1)) {
                     if (missing.isEmpty()) break
-                    if (!canHold(c.volumes, missing)) continue
+                    if (!autoFallback(c.url, c.volumes, missing)) {
+                        if (canHold(c.volumes, missing)) {
+                            logcat(LogPriority.INFO) { "Real-Debrid: source ${c.source} holds more than vol. ${missing.joinToString()}, not fetched without asking" }
+                        }
+                        continue
+                    }
                     checkCancelled()
                     logcat(LogPriority.WARN) { "Real-Debrid: vol. ${missing.joinToString()} not in the link, trying source ${c.source}" }
                     status("Vol. ${missing.joinToString()} missing, trying the next source")
+                    fetching = c.source
+                    progress(STEP_WAITING)
                     val more = try {
                         filesOf(c.url)
                     } catch (e: DeadLinkException) {
-                        failures += "${c.source}|${e.message}"
+                        dead(mediaId, c, e)
                         continue
                     }
                     tried += c.source
@@ -261,7 +277,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
                 }
             }
-            val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName))
+            val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName), deadSources())
             // a series folder this job made and nothing landed in: gone, and not added to the library
             if (wanted.isNotEmpty() && createdSeries != null && mangaDir.listFiles().isNullOrEmpty()) {
                 mangaDir.delete()
@@ -299,6 +315,14 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // WorkManager stopped the worker ("Cancel all", system): no failed notification
             if (Injekt.get<RealDebridQueue>().isCancelled(id)) undo() // chimahon: "Cancel all" flags its jobs first
             throw e
+        } catch (e: DeadLinkException) {
+            // chimahon: every link dead (only resolve lets one out): one summary, the volumes and the sources tried
+            logcat(LogPriority.WARN, e) { "Real-Debrid: every link dead: $link" }
+            deleteParts()
+            val vols = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+            val text = if (vols.isEmpty()) "Dead link: ${e.message}" else missingReason(vols, emptyList(), deadSources())
+            done(listOfNotNull(inputData.getString(KEY_NAME), text).joinToString(": "), error = true)
+            Result.success(output(text))
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
             deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one
@@ -322,17 +346,27 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
     /**
      * Index and files of the first of [candidates] Real-Debrid can serve. A dead link (file gone, hoster unsupported
-     * or down) is noted and the next one tried; anything else, or the last dead link, fails as before.
+     * or down) is noted and the next one tried; anything else, or the last dead link, fails as before. For a job of
+     * given volumes ([wanted]) only fallbacks that add nothing else are tried ([autoFallback]).
      */
-    private suspend fun resolve(candidates: List<Candidate>): Pair<Int, Pair<String, List<Pair<String, String>>>> {
-        candidates.forEachIndexed { i, c ->
+    private suspend fun resolve(
+        candidates: List<Candidate>,
+        mediaId: Long,
+        wanted: Set<Int>,
+    ): Pair<Int, Pair<String, List<Pair<String, String>>>> {
+        val usable = candidates.indices.filter { i ->
+            i == 0 || wanted.isEmpty() || candidates[i].let { autoFallback(it.url, it.volumes, wanted) }
+        }
+        usable.forEach { i ->
+            val c = candidates[i]
             try {
+                fetching = c.source
                 val files = filesOf(c.url)
                 servedBy = c.source
                 return i to files
             } catch (e: DeadLinkException) {
-                failures += "${c.source}|${e.message}"
-                if (i == candidates.lastIndex) throw e
+                dead(mediaId, c, e)
+                if (i == usable.last()) throw e
                 logcat(LogPriority.WARN) { "Real-Debrid: dead link from source ${c.source}, trying the next" }
                 status("Dead link, trying the next source")
             }
@@ -376,6 +410,18 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         Injekt.get<SourceCoverage>().recordHeld(mediaId, c.source, c.url, held.toSet())
     }
 
+    /** A dead link [c]: noted in the output; a file gone for good ([DeadLinkException.gone]) holds nothing from now on. */
+    private suspend fun dead(mediaId: Long, c: Candidate, e: DeadLinkException) {
+        failures += "${c.source}|${e.message}"
+        if (!e.gone || mediaId <= 0 || c.source == NO_SOURCE) return
+        logcat(LogPriority.WARN) { "Real-Debrid: link of source ${c.source} is gone" }
+        Injekt.get<SourceCoverage>().recordHeld(mediaId, c.source, c.url, emptySet())
+    }
+
+    /** chimahon: names of the sources whose link was dead in this run ([failures]), for the summary. */
+    private fun deadSources(): List<String> =
+        failures.mapNotNull { it.substringBefore('|').toLongOrNull() }.filter { it != NO_SOURCE }.distinct().map(::sourceName)
+
     private fun sourceName(id: Long): String =
         runCatching { Injekt.get<SourceManager>().get(id)?.name }.getOrNull() ?: "source $id"
 
@@ -387,12 +433,21 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         return dir
     }
 
-    /** A cancelled job: its .part files, the files it wrote, its chapter folders and series folder when empty. */
+    /**
+     * A cancelled job: its .part files, the files it wrote (still there: an unpacked bundle is gone already), its
+     * chapter folders and series folder when empty, and the torrents it added on Real-Debrid.
+     */
     private fun undo() {
         deleteParts()
-        created.asReversed().forEach { runCatching { it.delete() } }
+        created.asReversed().forEach { runCatching { if (it.exists()) it.delete() } }
         (createdDirs.asReversed() + listOfNotNull(createdSeries)).forEach { dir ->
-            runCatching { if (dir.listFiles().isNullOrEmpty()) dir.delete() }
+            runCatching { if (dir.exists() && dir.listFiles().isNullOrEmpty()) dir.delete() }
+        }
+        torrents.forEach { id ->
+            runCatching {
+                val req = Request.Builder().url("$API/torrents/delete/$id").header("Authorization", "Bearer $token").delete()
+                client.newCall(req.build()).execute().use { r -> check(r.isSuccessful) { "HTTP ${r.code}" } }
+            }.onFailure { logcat(LogPriority.WARN, it) { "Real-Debrid: torrent $id not deleted" } }
         }
     }
     // chimahon <--
@@ -400,6 +455,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** Torrent name + (path inside the torrent, direct download url) per file, once Real-Debrid has it. */
     private suspend fun torrentFiles(magnet: String): Pair<String, List<Pair<String, String>>> {
         val id = JSONObject(api("/torrents/addMagnet", "magnet" to magnet)).getString("id")
+        torrents += id // chimahon: deleted on Real-Debrid when this run is cancelled
         api("/torrents/selectFiles/$id", "files" to "all")
         while (true) {
             val info = JSONObject(api("/torrents/info/$id"))
@@ -445,7 +501,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val body = r.body.string()
             if (!r.isSuccessful) {
                 val message = "Real-Debrid $path: HTTP ${r.code} ${body.take(200)}"
-                if (isDeadLink(body)) throw DeadLinkException(message)
+                if (isDeadLink(body)) throw DeadLinkException(message, gone = isGone(body))
                 error(message)
             }
             return body
@@ -729,7 +785,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private fun JSONObject.str(key: String) = if (isNull(key)) null else optString(key).ifBlank { null }
 
     /** Real-Debrid can't serve this link (file gone, hoster unsupported or down): the next source's may work. */
-    private class DeadLinkException(message: String) : IllegalStateException(message)
+    private class DeadLinkException(message: String, val gone: Boolean = false) : IllegalStateException(message)
 
     /** The job was cancelled from RealDebridQueue: it ends as success with the error "Cancelled". */
     private class CancelledException : Exception("Cancelled")
@@ -792,15 +848,27 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         internal fun canHold(volumes: Set<Int>?, missing: Set<Int>): Boolean =
             volumes == null || volumes.any { it in missing }
 
+        /**
+         * May the job fetch a fallback link with [volumes] for [missing] without asking? Only a hoster link known to
+         * hold nothing but missing volumes: a bigger pack or a torrent is offered by the title page's dialog instead.
+         */
+        internal fun autoFallback(url: String, volumes: Set<Int>?, missing: Set<Int>): Boolean =
+            !url.startsWith("magnet:") && volumes != null && canHold(volumes, missing) && missing.containsAll(volumes)
+
         /** "1,2,3" -> {1, 2, 3}; null when it names none. */
         internal fun decodeVolumes(text: String): Set<Int>? =
             text.split(',').mapNotNull { it.trim().toIntOrNull() }.toSet().ifEmpty { null }
 
-        /** "Vol. 1, 2 were not in the pack (X3DL)" */
-        internal fun missingReason(missing: Set<Int>, sources: List<String>): String {
+        /**
+         * "Vol. 1, 2 were not in the pack (X3DL); dead link: Rawxt"; no link served at all ([sources] empty, [dead]
+         * not): "Vol. 1, 2 were not found; dead link: X3DL, Rawxt".
+         */
+        internal fun missingReason(missing: Set<Int>, sources: List<String>, dead: List<String> = emptyList()): String {
             val verb = if (missing.size == 1) "was" else "were"
-            return "Vol. ${missing.sorted().joinToString()} $verb not in the pack" +
-                if (sources.isEmpty()) "" else " (${sources.joinToString()})"
+            val what = if (sources.isEmpty() && dead.isNotEmpty()) "not found" else "not in the pack"
+            return "Vol. ${missing.sorted().joinToString()} $verb $what" +
+                (if (sources.isEmpty()) "" else " (${sources.joinToString()})") +
+                if (dead.isEmpty()) "" else "; dead link: ${dead.joinToString()}"
         }
         // chimahon <--
 
@@ -810,6 +878,13 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val name = json.optString("error")
             return name == "unavailable_file" || name == "file_unavailable" || name.startsWith("hoster_") ||
                 json.optInt("error_code") in DEAD_CODES
+        }
+
+        /** chimahon: of those, the definite "the file is gone" answer (not a hoster down or a limit). */
+        private fun isGone(body: String): Boolean {
+            val json = runCatching { JSONObject(body) }.getOrNull() ?: return false
+            val name = json.optString("error")
+            return name == "unavailable_file" || name == "file_unavailable" || json.optInt("error_code") == 24
         }
 
         // 16 unsupported hoster, 17 in maintenance, 18 limit reached, 19 temporarily unavailable, 20 not free, 24 file unavailable

@@ -127,6 +127,12 @@ class GlassTitleStateTest {
     }
 
     @Test
+    fun `no cell above a known total`() {
+        // MASHLE: 18 on AniList, a stray "Vol. 153.rar" in the folder
+        GlassTitleState.cells(18, listOf(vol(1), vol(153)), emptyMap(), totalKnown = true).map { it.number } shouldBe (1..18).toList()
+    }
+
+    @Test
     fun `MangaDex only when a volume is missing or the count is unknown`() {
         GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(2), vol(3))) shouldBe false
         GlassTitleState.needsMangaDex(3, listOf(vol(1), vol(3))) shouldBe true

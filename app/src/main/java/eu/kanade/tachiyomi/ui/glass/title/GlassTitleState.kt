@@ -52,7 +52,7 @@ object GlassTitleState {
 
     /**
      * Volumes 1..N: AniList's count; unknown → the highest any source or the tablet has. A file on the tablet numbered
-     * above AniList's count (a chapter pack read as "153") gets its own cell in [cells], it does not stretch the range.
+     * above AniList's count (a chapter pack read as "153") does not stretch the range, and gets no cell ([cells]).
      */
     fun volumeCount(aniListVolumes: Int?, coverages: Collection<Coverage>, local: List<LocalVolume>): Int {
         aniListVolumes?.takeIf { it > 0 }?.let { return it }
@@ -95,10 +95,21 @@ object GlassTitleState {
         }
     }
 
-    /** [readUpTo] = AniList's volumes read: a volume up to it that is not on the tablet still shows as read. */
-    fun cells(count: Int, local: List<LocalVolume>, active: Map<Int, Active>, readUpTo: Int = 0): List<VolumeCell> {
+    /**
+     * [readUpTo] = AniList's volumes read: a volume up to it that is not on the tablet still shows as read.
+     * [totalKnown]: [count] is AniList's total, so files numbered above it get no cell (Library's in-range rule,
+     * [eu.kanade.tachiyomi.ui.glass.GlassTitles.volumesHere]: a stray "153" in an 18-volume series is no volume).
+     */
+    fun cells(
+        count: Int,
+        local: List<LocalVolume>,
+        active: Map<Int, Active>,
+        readUpTo: Int = 0,
+        totalKnown: Boolean = false,
+    ): List<VolumeCell> {
         val byNumber = local.associateBy { it.number }
-        val numbers = (1..count) + byNumber.keys.filter { it > count }.sorted() // extras beyond the count, one each
+        // extras beyond the count, one each, only when the count is not a known total
+        val numbers = (1..count) + if (totalKnown) emptyList<Int>() else byNumber.keys.filter { it > count }.sorted()
         return numbers.map { v ->
             val l = byNumber[v]
             val a = active[v]
