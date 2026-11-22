@@ -1,0 +1,334 @@
+package eu.kanade.tachiyomi.ui.glass.setup
+
+import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cafe.adriel.voyager.core.model.rememberScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import coil3.compose.AsyncImage
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassIcon
+import eu.kanade.presentation.glass.GlassPage
+import eu.kanade.presentation.glass.glassPanel
+import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.ui.glass.GlassHomeScreen
+import tachiyomi.domain.download.service.DownloadPreferences
+import tachiyomi.domain.storage.service.StorageManager
+import tachiyomi.domain.storage.service.StoragePreferences
+import tachiyomi.i18n.MR
+import tachiyomi.presentation.core.i18n.stringResource
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+
+/**
+ * The new look's first-run setup (canvas `Setup-2`, build plan phase 10): AniList, Real-Debrid, storage folder,
+ * notifications, dictionary, then a summary. Root of the Navigator on a first run (see MainActivity), pushed from
+ * Settings › About ([fromSettings]).
+ */
+class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
+
+    companion object {
+        /**
+         * Does the first run need the setup? Not when it is done, or when nothing is missing: then it is set done
+         * quietly, so a later logout or a lost folder never blocks. No network.
+         */
+        fun needed(context: Context): Boolean {
+            val done = Injekt.get<UiPreferences>().glassSetupDone()
+            if (done.get()) return false
+            val facts = GlassSetupLogic.Facts(
+                aniList = Injekt.get<TrackerManager>().aniList.isLoggedIn,
+                realDebrid = Injekt.get<DownloadPreferences>().realDebridToken().get().isNotBlank(),
+                storage = StorageManager.directoryAccessible(context, Injekt.get<StoragePreferences>().baseStorageDirectory().get()),
+            )
+            val shows = GlassSetupLogic.shows(glassRoot = true, done = false, facts = facts)
+            if (!shows) done.set(true)
+            return shows
+        }
+    }
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
+        val model = rememberScreenModel { GlassSetupModel(fromSettings) }
+        val signedIn by model.signedIn.collectAsStateWithLifecycle()
+        val entries by model.entries.collectAsStateWithLifecycle()
+        val step = model.step
+        val isEnd = step == GlassSetupLogic.SUMMARY
+        val missing = GlassSetupLogic.missing(model.facts)
+        val names = listOf(
+            stringResource(MR.strings.glass_setup_anilist),
+            stringResource(MR.strings.glass_dl_rd),
+            stringResource(MR.strings.glass_setup_storage),
+            stringResource(MR.strings.glass_setup_notifications),
+            stringResource(MR.strings.glass_setup_dictionary),
+        )
+
+        GlassPage {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                // portrait tablet: no room for the covers, the column keeps its width
+                if (maxWidth >= 1100.dp) {
+                    Covers(signedIn, entries, Modifier.align(Alignment.TopEnd))
+                }
+
+                Box(
+                    Modifier
+                        .offset(x = 80.dp, y = 32.dp)
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Glass.bear)
+                        .semantics { contentDescription = "chimahon" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("熊", color = Color.Black, fontSize = Glass.heading, fontWeight = FontWeight.Bold)
+                }
+                val stepsLabel = stringResource(MR.strings.glass_setup_steps)
+                Row(
+                    Modifier.offset(x = 168.dp, y = 36.dp).semantics { contentDescription = stepsLabel },
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    names.forEachIndexed { i, n ->
+                        val on = i == step
+                        val ok = model.done(i)
+                        Column(
+                            Modifier.width(112.dp).height(48.dp).clickable { model.step = i }.padding(top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                Modifier.width(112.dp).height(4.dp).clip(CircleShape)
+                                    .background(if (on) Glass.ice else if (ok) Color.White else Glass.line),
+                            )
+                            Text(
+                                n,
+                                color = if (on || ok) Color.White else Glass.secondary,
+                                fontSize = Glass.caption,
+                                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    Modifier
+                        // padding, not offset: the column must end above the buttons to scroll there
+                        .padding(start = 80.dp, top = 136.dp, bottom = 140.dp)
+                        .width(520.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Box(
+                        Modifier.size(56.dp).glassPanel(Glass.r16),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        GlassIcon(
+                            if (isEnd) (if (missing.isEmpty()) "check" else "alert") else StepIcons[step],
+                            size = 24.dp,
+                        )
+                    }
+                    val label = if (isEnd) stringResource(MR.strings.glass_setup_summary) else stringResource(MR.strings.glass_setup_step, step + 1)
+                    val tagColor = when {
+                        isEnd -> if (missing.isEmpty()) Glass.ice else Color.White
+                        GlassSetupLogic.needed(step) -> Glass.ice
+                        else -> Glass.secondary
+                    }
+                    Text(
+                        buildAnnotatedString {
+                            append("$label · ") // in code: resources lose a trailing space
+                            withStyle(SpanStyle(color = tagColor)) { append(GlassSetupLogic.tag(step, missing.size)) }
+                        },
+                        Modifier.padding(top = 24.dp),
+                        color = Glass.secondary,
+                        fontSize = Glass.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 2.sp,
+                    )
+                    Text(
+                        when {
+                            isEnd -> stringResource(if (missing.isEmpty()) MR.strings.glass_setup_ready else MR.strings.glass_setup_almost)
+                            step == 2 -> stringResource(MR.strings.glass_setup_storage_title)
+                            else -> names[step]
+                        },
+                        Modifier.padding(top = 10.dp),
+                        fontSize = Glass.hero,
+                        lineHeight = 48.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        stringResource(
+                            when (step) {
+                                0 -> MR.strings.glass_setup_anilist_why
+                                1 -> MR.strings.glass_setup_rd_why
+                                2 -> MR.strings.glass_setup_storage_why
+                                3 -> MR.strings.glass_setup_notifications_why
+                                4 -> MR.strings.glass_setup_dictionary_why
+                                else -> if (missing.isEmpty()) MR.strings.glass_setup_ready_why else MR.strings.glass_setup_almost_why
+                            },
+                        ),
+                        Modifier.padding(top = 10.dp),
+                        color = Glass.secondary,
+                        fontSize = Glass.label,
+                        lineHeight = 24.sp,
+                    )
+                    Column(Modifier.padding(top = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        when (step) {
+                            0 -> AniListStep(model, signedIn, entries)
+                            1 -> RealDebridStep(model)
+                            2 -> StorageStep(model)
+                            3 -> NotificationsStep(model)
+                            4 -> DictionaryStep(model)
+                            else -> SummaryStep(model, names, entries)
+                        }
+                    }
+                }
+
+                // Back + Continue / Open Home
+                Row(
+                    Modifier.align(Alignment.BottomStart).padding(start = 80.dp, bottom = 64.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (step > 0) {
+                        SetupButton(stringResource(MR.strings.glass_back), { model.step = step - 1 }, primary = false, leading = "chevLeft")
+                    }
+                    if (!isEnd) {
+                        val canNext = model.done(step)
+                        SetupButton(stringResource(MR.strings.glass_setup_continue), { model.step = step + 1 }, enabled = canNext, trailing = "chevRight")
+                        if (!canNext) {
+                            Text(
+                                stringResource(if (GlassSetupLogic.needed(step)) MR.strings.glass_setup_needed else MR.strings.glass_setup_or_not_now),
+                                Modifier.padding(start = 8.dp),
+                                color = Glass.secondary,
+                                fontSize = Glass.body,
+                            )
+                        }
+                    } else {
+                        SetupButton(
+                            stringResource(MR.strings.glass_setup_open_home),
+                            {
+                                model.finish()
+                                if (fromSettings) navigator.pop() else navigator.replaceAll(GlassHomeScreen)
+                            },
+                            enabled = missing.isEmpty(),
+                            leading = "home",
+                        )
+                        if (missing.isNotEmpty()) {
+                            Row(
+                                Modifier.padding(start = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                GlassIcon("alert", size = 18.dp)
+                                Text(GlassSetupLogic.missingLine(missing.map { names[it] }), color = Color.White, fontSize = Glass.body)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val StepIcons = listOf("person", "key", "folder", "bell", "book")
+
+private val CoverX = listOf(0, 138, 276, 414)
+private val CoverDy = listOf(0, 48, 16, 64)
+
+/** Right half: 8 quiet panels before sign-in, the person's covers (Reading first) after. Anchored to the right edge. */
+@Composable
+private fun Covers(signedIn: Boolean, entries: List<AniListLibrary.Entry>, modifier: Modifier) {
+    val reading = entries.count { it.status == "CURRENT" }
+    val planning = entries.count { it.status == "PLANNING" }
+    val shown = (entries.filter { it.status == "CURRENT" } + entries.filter { it.status == "PLANNING" })
+        .filter { it.cover != null || it.coverLarge != null }
+        .take(8)
+    // the canvas block: 760 wide, covers from x=700 of 1280, i.e. 580 from the right edge
+    Box(modifier.width(760.dp).height(800.dp)) {
+        val on = signedIn && shown.isNotEmpty()
+        if (on) {
+            AsyncImage(
+                model = shown.first().let { it.banner ?: it.coverLarge ?: it.cover },
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.width(760.dp).height(560.dp).alpha(0.45f),
+            )
+            Box(
+                Modifier.width(760.dp).height(560.dp).background(
+                    Brush.horizontalGradient(0f to Glass.page, 0.35f to Glass.page.copy(alpha = 0.85f), 1f to Glass.page.copy(alpha = 0.35f)),
+                ),
+            )
+            Box(
+                Modifier.width(760.dp).height(560.dp).background(
+                    Brush.verticalGradient(0.45f to Glass.page.copy(alpha = 0f), 1f to Glass.page),
+                ),
+            )
+        }
+        val left = 760 - 580
+        for (i in 0 until 8) {
+            val x = left + CoverX[i % 4]
+            val y = 136 + (if (i < 4) 0 else 202) + CoverDy[i % 4]
+            val shape = RoundedCornerShape(Glass.r10)
+            val m = Modifier.offset(x = x.dp, y = y.dp).width(124.dp).height(186.dp).clip(shape)
+            val entry = shown.getOrNull(i)
+            if (on && entry != null) {
+                AsyncImage(
+                    model = entry.coverLarge ?: entry.cover,
+                    contentDescription = entry.native ?: entry.romaji,
+                    contentScale = ContentScale.Crop,
+                    modifier = m.background(Glass.panel).border(1.dp, Glass.line, shape),
+                )
+            } else {
+                Box(m.alpha(0.55f).background(Glass.panel))
+            }
+        }
+        Row(
+            Modifier.offset(x = left.dp, y = 640.dp).width(538.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (on) {
+                GlassIcon("check", size = 18.dp, tint = Glass.ice)
+                Text(stringResource(MR.strings.glass_setup_covers_line, reading, planning), color = Glass.secondary, fontSize = Glass.body)
+            } else {
+                Text(stringResource(MR.strings.glass_setup_covers_empty), color = Glass.secondary, fontSize = Glass.body)
+            }
+        }
+    }
+}

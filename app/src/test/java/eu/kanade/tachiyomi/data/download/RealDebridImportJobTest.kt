@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.download
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 
@@ -58,5 +59,18 @@ class RealDebridImportJobTest {
             "Vol. 1, 2 were not in the pack (X3DL); dead link: Rawxt"
         RealDebridImportJob.missingReason(setOf(1, 2), emptyList(), listOf("X3DL", "Rawxt")) shouldBe
             "Vol. 1, 2 were not found; dead link: X3DL, Rawxt"
+    }
+
+    @Test
+    fun `the user answer gives premium and days left, or a refused key`() {
+        // /user body, trimmed; "premium" = seconds of premium left (214 days)
+        val premium = """{"id":1,"username":"x","type":"premium","premium":18489600,"expiration":"2027-06-24T00:00:00.000Z"}"""
+        RealDebridImportJob.parseUser(200, premium) shouldBe RealDebridImportJob.Account(premium = true, daysLeft = 214)
+        val free = """{"id":1,"username":"x","type":"free","premium":0}"""
+        RealDebridImportJob.parseUser(200, free) shouldBe RealDebridImportJob.Account(premium = false, daysLeft = 0)
+        RealDebridImportJob.parseUser(401, "") shouldBe RealDebridImportJob.Account(false, 0, tokenRejected = true)
+        RealDebridImportJob.parseUser(403, """{"error":"permission_denied"}""") shouldBe
+            RealDebridImportJob.Account(false, 0, tokenRejected = true)
+        shouldThrow<IllegalStateException> { RealDebridImportJob.parseUser(503, "") }
     }
 }

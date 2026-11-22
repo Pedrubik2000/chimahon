@@ -17,6 +17,8 @@ data class ALUserViewer(
 @Serializable
 data class ALUserViewerData(
     val id: Int,
+    // chimahon: shown by the glass setup
+    val name: String = "",
     val mediaListOptions: ALUserListOptions,
 )
 

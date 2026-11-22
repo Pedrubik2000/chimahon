@@ -677,12 +677,14 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         return ALOAuth(token, "Bearer", System.currentTimeMillis() + 31536000000, 31536000000)
     }
 
-    suspend fun getCurrentUser(): Pair<Int, String> {
+    // chimahon: a Triple (id, score format, name); callers that destructure two values are unchanged
+    suspend fun getCurrentUser(): Triple<Int, String, String> {
         return withIOContext {
             val query = """
             |query User {
                 |Viewer {
                     |id
+                    |name
                     |mediaListOptions {
                         |scoreFormat
                     |}
@@ -706,7 +708,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                     .parseAs<ALCurrentUserResult>()
                     .let {
                         val viewer = it.data.viewer
-                        Pair(viewer.id, viewer.mediaListOptions.scoreFormat)
+                        Triple(viewer.id, viewer.mediaListOptions.scoreFormat, viewer.name)
                     }
             }
         }

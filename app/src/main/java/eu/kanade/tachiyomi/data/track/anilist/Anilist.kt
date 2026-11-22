@@ -373,8 +373,9 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
         try {
             val oauth = api.createOAuth(token)
             interceptor.setAuth(oauth)
-            val (username, scoreType) = api.getCurrentUser()
+            val (username, scoreType, name) = api.getCurrentUser()
             scorePreference.set(scoreType)
+            trackPreferences.anilistName().set(name) // chimahon
             saveCredentials(username.toString(), oauth.accessToken)
         } catch (e: Throwable) {
             logout()
@@ -384,7 +385,13 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
     override fun logout() {
         super.logout()
         trackPreferences.trackToken(this).delete()
+        trackPreferences.anilistName().delete() // chimahon
         interceptor.setAuth(null)
+    }
+
+    // chimahon: the viewer's name for the glass setup, fetched once for a login made before the name was stored
+    suspend fun viewerName(): String = trackPreferences.anilistName().get().ifBlank {
+        api.getCurrentUser().third.also { trackPreferences.anilistName().set(it) }
     }
 
     override suspend fun getMangaMetadata(track: DomainTrack): TrackMangaMetadata {

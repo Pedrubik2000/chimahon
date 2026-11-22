@@ -96,6 +96,7 @@ import eu.kanade.tachiyomi.ui.browse.source.feed.SourceFeedScreen
 import eu.kanade.tachiyomi.ui.browse.source.globalsearch.GlobalSearchScreen
 import eu.kanade.tachiyomi.ui.deeplink.DeepLinkScreen
 import eu.kanade.tachiyomi.ui.glass.GlassHomeScreen
+import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
@@ -270,8 +271,15 @@ class MainActivity : BaseActivity() {
             }
 
             val glassRoot = remember { Injekt.get<UiPreferences>().glassUi().get() } && isTabletUi()
+            // chimahon: the new look's first-run setup is the root (not pushed: Home's one-per-run folder sync must
+            // see the folder picked in it) when AniList, a Real-Debrid key or the storage folder is missing
+            val glassSetup = remember(glassRoot) { glassRoot && GlassSetupScreen.needed(this@MainActivity) }
             Navigator(
-                screen = if (glassRoot) GlassHomeScreen else HomeScreen,
+                screen = when {
+                    glassSetup -> GlassSetupScreen()
+                    glassRoot -> GlassHomeScreen
+                    else -> HomeScreen
+                },
                 disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false, disposeSteps = true),
             ) { navigator ->
                 LaunchedEffect(navigator) {
@@ -398,7 +406,7 @@ class MainActivity : BaseActivity() {
                 RearmJobs()
                 // KMK <--
                 CheckForUpdates()
-                ShowOnboarding()
+                if (!glassRoot) ShowOnboarding() // chimahon: the new look has its own setup
             }
 
             // SY -->

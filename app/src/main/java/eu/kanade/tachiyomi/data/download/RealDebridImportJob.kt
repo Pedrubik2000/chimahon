@@ -25,6 +25,10 @@ import eu.kanade.tachiyomi.util.system.notify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import kotlin.coroutines.cancellation.CancellationException
 import logcat.LogPriority
 import mihon.core.archive.ArchiveInputStream
@@ -897,18 +901,30 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         // 16 unsupported hoster, 17 in maintenance, 18 limit reached, 19 temporarily unavailable, 20 not free, 24 file unavailable
         private val DEAD_CODES = setOf(16, 17, 18, 19, 20, 24)
 
-        /** Premium flag and days left of the stored token's account; null with no token. Throws on network errors. */
-        suspend fun account(): Account? = withContext(Dispatchers.IO) {
-            val token = Injekt.get<DownloadPreferences>().realDebridToken().get().trim()
-            if (token.isEmpty()) return@withContext null
-            val req = Request.Builder().url("$API/user").header("Authorization", "Bearer $token").build()
-            Injekt.get<NetworkHelper>().client.newCall(req).execute().use { r ->
-                if (r.code == 401 || r.code == 403) return@withContext Account(false, 0, tokenRejected = true)
-                if (!r.isSuccessful) error("Real-Debrid /user: HTTP ${r.code}")
-                val user = JSONObject(r.body.string())
-                // "premium" = seconds of premium left
-                Account(premium = user.optString("type") == "premium", daysLeft = (user.optLong("premium") / 86_400).toInt())
-            }
+        /**
+         * Premium flag and days left of [token]'s account (default: the stored token); null with no token. Throws on
+         * network errors. chimahon: the token parameter lets the glass setup check a pasted key before saving it.
+         */
+        suspend fun account(
+            token: String = Injekt.get<DownloadPreferences>().realDebridToken().get(),
+        ): Account? = withContext(Dispatchers.IO) {
+            val key = token.trim()
+            if (key.isEmpty()) return@withContext null
+            val req = Request.Builder().url("$API/user").header("Authorization", "Bearer $key").build()
+            Injekt.get<NetworkHelper>().client.newCall(req).execute().use { r -> parseUser(r.code, r.body.string()) }
+        }
+
+        /** chimahon: /user's answer: 401/403 = key refused, another error code throws. Pure, for the unit test. */
+        internal fun parseUser(code: Int, body: String): Account {
+            if (code == 401 || code == 403) return Account(false, 0, tokenRejected = true)
+            check(code in 200..299) { "Real-Debrid /user: HTTP $code" }
+            // kotlinx JSON, not org.json: unit tests run against android.jar's stubs
+            val user = kotlinx.serialization.json.Json.parseToJsonElement(body).jsonObject
+            // "premium" = seconds of premium left
+            return Account(
+                premium = user["type"]?.jsonPrimitive?.contentOrNull == "premium",
+                daysLeft = ((user["premium"]?.jsonPrimitive?.longOrNull ?: 0L) / 86_400).toInt(),
+            )
         }
         private val IMAGES = setOf("jpg", "jpeg", "png", "webp", "avif", "gif", "jxl", "heif")
         private val CHAPTERS = setOf("cbz", "cbr", "cb7", "epub", "pdf")

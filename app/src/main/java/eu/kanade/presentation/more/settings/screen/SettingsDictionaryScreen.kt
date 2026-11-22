@@ -2809,7 +2809,8 @@ object SettingsDictionaryScreen : SearchableSettings {
     }
 }
 
-private suspend fun importDictionaryFromStream(
+// chimahon: internal (was private) for the glass setup's Dictionary step, like the two helpers below
+internal suspend fun importDictionaryFromStream(
     context: Context,
     inputStream: java.io.InputStream,
     activeProfile: chimahon.anki.AnkiProfile,
@@ -2939,7 +2940,7 @@ private suspend fun importDictionaryFromStream(
     }
 }
 
-private fun openStreamWithFallback(context: Context, uri: Uri): java.io.InputStream? {
+internal fun openStreamWithFallback(context: Context, uri: Uri): java.io.InputStream? {
     try {
         val stream = context.contentResolver.openInputStream(uri)
         if (stream != null) return stream
@@ -3035,7 +3036,7 @@ private fun validatePath(context: Context, path: String?): String? {
     }
 }
 
-private fun getFileNameFromUri(context: Context, uri: Uri): String {
+internal fun getFileNameFromUri(context: Context, uri: Uri): String {
     if ("content".equals(uri.scheme, ignoreCase = true)) {
         try {
             context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->

@@ -5,6 +5,7 @@ import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
+import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
 import tachiyomi.core.common.preference.getEnum
 import java.time.format.DateTimeFormatter
@@ -43,6 +44,9 @@ class UiPreferences(
     fun tabletUiMode() = preferenceStore.getEnum("tablet_ui_mode", TabletUiMode.AUTOMATIC)
 
     fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", false)
+
+    // chimahon: the new look's first-run setup was finished (or not needed); app state, like onboarding_complete
+    fun glassSetupDone() = preferenceStore.getBoolean(Preference.appStateKey("glass_setup_done"), false)
 
     /** Glass Discover: AniList media ids marked "Not for me" (never picked again). */
     fun discoverNotForMe() = preferenceStore.getStringSet("pref_glass_discover_not_for_me", emptySet())

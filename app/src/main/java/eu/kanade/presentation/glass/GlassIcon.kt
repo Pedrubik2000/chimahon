@@ -107,6 +107,12 @@ private val GlassIcons: Map<String, ImageVector> by lazy {
         "library" to listOf(
             s(rect(3.5f, 4f, 4.5f, 16f, 1f) + rect(9.5f, 4f, 4.5f, 16f, 1f) + "M15.6 5.2l3.9-1 2.9 14.6-3.9 1z", join = true),
         ),
+        "folder" to listOf(
+            s("M3.5 6.5a1 1 0 0 1 1-1h5l2 2.5h8a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z", cap = true, join = true),
+        ),
+        "bell" to listOf(s("M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 21h4", cap = true, join = true)),
+        "key" to listOf(s(circle(8f, 15.5f, 4f) + "M11 12.5l8.5-8.5M16 7.5l2.5 2.5M13.5 10l2 2", cap = true, join = true)),
+        "person" to listOf(s(circle(12f, 8f, 4f) + "M4.5 20.5c1-4 4-5.5 7.5-5.5s6.5 1.5 7.5 5.5", cap = true, join = true)),
     ).mapValues { (name, paths) ->
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
             paths.forEach { p ->
