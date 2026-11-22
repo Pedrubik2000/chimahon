@@ -22,6 +22,52 @@ Chimahon is a specialized Android reader designed for language learners and imme
   <img src="./.github/readme-images/anime.jpg" width="64%" />
 </p>
 
+## 📱 This fork: a tablet look built on your AniList list
+
+This fork ([Pedrubik2000/chimahon](https://github.com/Pedrubik2000/chimahon)) adds a second shell for tablets. A title is an AniList entry, its volumes are fetched through Real-Debrid from raw-manga sources, and everything on the tablet lives in plain series folders. The classic Chimahon screens stay one tap away (Settings › About › Classic view), and phones keep the classic look.
+
+<p align="center">
+  <img src="./.github/readme-images/glass/home.jpg" alt="Home: continue reading, then the Reading and Plan to read rows" width="49%" />
+  <img src="./.github/readme-images/glass/library.jpg" alt="Library: the whole AniList list with filters and how many volumes are on the tablet" width="49%" />
+</p>
+
+- **Home** is your AniList *Reading* and *Plan to read* lists, with "Continue reading" on top.
+- **Library** is the whole list: filter by list, genre, tag, length, or by what is on the tablet.
+
+<p align="center">
+  <img src="./.github/readme-images/glass/discover-pick.jpg" alt="Discover: one pick with the reasons for it" width="32%" />
+  <img src="./.github/readme-images/glass/discover-thisorthat.jpg" alt="Discover: this or that" width="32%" />
+  <img src="./.github/readme-images/glass/discover-browse.jpg" alt="Discover: browse AniList with a filter sidebar" width="32%" />
+</p>
+
+- **Discover** suggests what to read next from what you finished: one pick with its reasons, a "this or that" knockout, or a filtered browse of AniList.
+
+<p align="center">
+  <img src="./.github/readme-images/glass/title.jpg" alt="Title page: sources with coverage bars and the volume grid" width="49%" />
+  <img src="./.github/readme-images/glass/title-notfound.jpg" alt="Title page: volumes no source could deliver are marked Not found" width="49%" />
+</p>
+
+- **Title page**: every source shows which volumes it holds. Tap a volume and the app says what will be added before anything is fetched. Covers of unread volumes can be blurred. A volume no source could deliver is marked *Not found*.
+- **Sources** (through Real-Debrid): X3DL, Excnn, Rawxt, Manga Zone, BsZip, A-Z Manga and Nyaa. A bigger pack or a torrent is never started without asking.
+
+<p align="center">
+  <img src="./.github/readme-images/glass/downloads.jpg" alt="Downloads: one row per title with its volume bar" width="49%" />
+  <img src="./.github/readme-images/glass/attention.jpg" alt="Needs attention: an alert button on the rail and one card per problem" width="49%" />
+</p>
+
+- **Downloads**: one row per title with its volume bar, what each job delivered, and the space used on the tablet.
+- **Needs attention**: a button on the rail appears when something needs you (a rejected Real-Debrid key, volumes that were not found, AniList unreachable), with the fix on each card.
+
+<p align="center">
+  <img src="./.github/readme-images/glass/setup-anilist.jpg" alt="First-run setup, one step per screen" width="49%" />
+  <img src="./.github/readme-images/glass/settings-dictionaries.jpg" alt="Settings: the usual dictionaries to download" width="49%" />
+</p>
+
+- **First-run setup**, one step per screen: AniList, a Real-Debrid key (checked on the spot), the storage folder, notifications and a dictionary.
+- **Usual dictionaries** in one tap: Jitendex, JMnedict and KANJIDIC, kept up to date, next to any Yomitan dictionary you import yourself.
+
+Tablet builds are on the fork's [Releases](https://github.com/Pedrubik2000/chimahon/releases) page.
+
 ## 🚀 Key Immersion Features
 
 ### 📖 Novel & Manga Support
