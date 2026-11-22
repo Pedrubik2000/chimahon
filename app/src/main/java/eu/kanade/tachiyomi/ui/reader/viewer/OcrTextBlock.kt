@@ -125,18 +125,35 @@ internal fun OcrTextBlock.orderedLineIndices(): List<Int> {
         return lines.indices.toList()
     }
 
-    return if (vertical) {
-        lines.indices.sortedWith(
-            compareByDescending<Int> { geometries[it].centerX }
-                .thenBy { geometries[it].ymin },
-        )
+    // Exact-centre sorting never reaches the tie-break: two pieces of one column (or row) differ by
+    // a hair across, so they were ordered by that jitter. Group lines into columns (vertical, right to
+    // left) / rows (horizontal, top to bottom) first, then read each group along its axis.
+    val across = if (vertical) {
+        lines.indices.sortedByDescending { geometries[it].centerX }
     } else {
-        lines.indices.sortedWith(
-            compareBy<Int> { geometries[it].centerY }
-                .thenBy { geometries[it].xmin },
-        )
+        lines.indices.sortedBy { geometries[it].centerY }
+    }
+    val groups = mutableListOf<MutableList<Int>>()
+    for (index in across) {
+        val anchor = groups.lastOrNull()?.first()?.let { geometries[it] }
+        if (anchor != null && sameColumnOrRow(anchor, geometries[index], vertical)) {
+            groups.last().add(index)
+        } else {
+            groups.add(mutableListOf(index))
+        }
+    }
+    return groups.flatMap { group ->
+        if (vertical) group.sortedBy { geometries[it].ymin } else group.sortedBy { geometries[it].xmin }
     }
 }
+
+/** True when one line's centre lies inside the other's span across the reading direction. */
+private fun sameColumnOrRow(a: OcrLineGeometry, b: OcrLineGeometry, vertical: Boolean): Boolean =
+    if (vertical) {
+        b.centerX in a.xmin..a.xmax || a.centerX in b.xmin..b.xmax
+    } else {
+        b.centerY in a.ymin..a.ymax || a.centerY in b.ymin..b.ymax
+    }
 
 private val OcrLineGeometry.centerX: Float
     get() = (xmin + xmax) / 2f

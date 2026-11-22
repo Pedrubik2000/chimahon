@@ -840,7 +840,8 @@ open class ReaderPageImageView @JvmOverloads constructor(
                 }
             }
 
-            OcrHitTester.hitLines(lines, viewX, viewY)?.let { hit ->
+            // The tap is already inside this block (findBlock), so a tap between lines snaps to the nearest one.
+            OcrHitTester.hitLines(lines, viewX, viewY, snapDistance = Float.POSITIVE_INFINITY)?.let { hit ->
                 return hit.textOffset
             }
         }
