@@ -39,6 +39,16 @@ class RealDebridQueueTest {
     }
 
     @Test
+    fun `a pack that lacked volumes reads as failed`() {
+        val reason = "Vol. 1, 2 were not in the pack (X3DL)"
+        RealDebridQueue.stateOf(WorkInfo.State.SUCCEEDED, reason, false, listOf(1, 2)) shouldBe (State.FAILED to reason)
+        // missing volumes alone (no error in the output) still fail
+        RealDebridQueue.stateOf(WorkInfo.State.SUCCEEDED, null, false, listOf(1, 2)) shouldBe
+            (State.FAILED to "Vol. 1, 2 missing")
+        RealDebridQueue.stateOf(WorkInfo.State.SUCCEEDED, null, false, emptyList()) shouldBe (State.DONE to null)
+    }
+
+    @Test
     fun `cancelled ids are kept only while their work is unfinished`() {
         RealDebridQueue.pruned(setOf("a", "b", "c"), setOf("b", "x")) shouldBe setOf("b")
         RealDebridQueue.pruned(emptySet(), setOf("x")) shouldBe emptySet()

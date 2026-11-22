@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -44,6 +45,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.manga.interactor.GetManga
+import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.track.repository.TrackRepository
 import tachiyomi.source.local.LocalSource
@@ -89,6 +91,18 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** (folder, "<name>.part") of every download this job starts: deleted when it fails or is cancelled. */
     private val partFiles = mutableListOf<Pair<UniFile, String>>()
 
+    /** Files this run created (volumes, images, the bundle, metadata): deleted when it is cancelled. */
+    private val created = mutableListOf<UniFile>()
+
+    /** Chapter folders this run created: deleted on cancel when empty. */
+    private val createdDirs = mutableListOf<UniFile>()
+
+    /** The series folder, when this run created it: removed when it ends up empty. */
+    private var createdSeries: UniFile? = null
+
+    /** Numbered volumes the link being fetched held (stored or skipped): what a pack really holds. */
+    private val held = mutableSetOf<Int>()
+
     /** Started again by WorkManager after a killed run. */
     private val isRerun get() = runAttemptCount > 0
     // chimahon <--
@@ -114,16 +128,24 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         setProgressAsync(workDataOf(KEY_STEP to step, KEY_BYTES to bytes, KEY_TOTAL to total, KEY_SPEED to speed))
     }
 
-    private fun output(error: String? = null, note: String? = null) = workDataOf(
+    private fun output(
+        error: String? = null,
+        note: String? = null,
+        delivered: Collection<Int> = emptyList(),
+        missing: Collection<Int> = emptyList(),
+    ) = workDataOf(
         KEY_SERVED_BY to servedBy,
         KEY_FAILURES to failures.toTypedArray(),
         KEY_ERROR to error,
         KEY_NOTE to note,
+        KEY_DELIVERED to delivered.sorted().toIntArray(),
+        KEY_MISSING to missing.sorted().toIntArray(),
     )
 
-    private fun done(text: String) = applicationContext.notify(
+    /** The job's summary: successes on the downloader channel, failures on the error one. */
+    private fun done(text: String, error: Boolean = false) = applicationContext.notify(
         Notifications.ID_REAL_DEBRID_DONE,
-        Notifications.CHANNEL_DOWNLOADER_ERROR,
+        if (error) Notifications.CHANNEL_DOWNLOADER_ERROR else Notifications.CHANNEL_DOWNLOADER_PROGRESS,
     ) {
         setContentTitle("Real-Debrid")
         setContentText(text)
@@ -140,7 +162,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     override suspend fun doWork(): Result {
         val link = inputData.getString(KEY_LINK) ?: return Result.success(output("No link"))
         if (token.isEmpty()) {
-            done("Set the Real-Debrid API token in Settings > Downloads")
+            done("Set the Real-Debrid API token in Settings > Downloads", error = true)
             return Result.success(output("No Real-Debrid token"))
         }
         return try {
@@ -171,12 +193,14 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 ) {
                     titleDir.name?.let { syncSeries(it) }
                     done("${titleDir.name}: already on the tablet")
-                    return Result.success(output(note = NOTE_ALREADY_HERE))
+                    return Result.success(output(note = NOTE_ALREADY_HERE, delivered = wanted))
                 }
             }
             // chimahon <--
             status("Adding link")
-            val (name, files) = resolve(link)
+            val candidates = candidates(link)
+            val (first, resolved) = resolve(candidates)
+            val (name, files) = resolved
             // Same series = same folder, whatever volumes or version letter this download has (v01-03, v06-09, 2w);
             // named after AniList's romaji title when AniList knows it
             val guess = MangaImportUtil.seriesTitle(hint ?: name)
@@ -189,7 +213,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 )
                 mangaDir = titleDir
                     ?: titleFolder(localDir, mediaId, titleNames(media, mediaId) + listOfNotNull(hint, guess, title))
-                    ?: localDir.createDirectory(title) ?: error("Can't create $title")
+                    ?: newSeriesFolder(localDir, title)
             } else {
                 status("AniList: $guess")
                 media = runCatching { aniList(guess) }
@@ -199,7 +223,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 val existing = localDir.listFiles()?.firstOrNull {
                     it.isDirectory && MangaImportUtil.seriesKey(MangaImportUtil.seriesTitle(it.name.orEmpty())) in keys
                 }
-                mangaDir = existing ?: localDir.createDirectory(title) ?: error("Can't create $title")
+                mangaDir = existing ?: newSeriesFolder(localDir, title)
             }
             val folder = mangaDir.name ?: title
             // chimahon --> what the folder holds before this job: volumes already here are skipped, new names follow
@@ -209,74 +233,169 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             japanese = MangaImportUtil.japaneseStyle(names)
             if (!isRerun) present += MangaImportUtil.volumeNumbers(folder, names)
             // chimahon <--
-            files.forEachIndexed { i, (path, url) ->
-                checkCancelled()
-                val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
-                status(label)
-                progress(STEP_DOWNLOADING)
-                val (dir, fileName) = target(mangaDir, path, title) ?: return@forEachIndexed
-                val bundle = fileName.substringAfterLast('.').lowercase() in BUNDLES
-                partFiles += dir to "$fileName.part"
-                val file = download(url, dir, fileName, report = true)
-                    // a bundle still there: a run killed while unpacking it (unpacking deletes it when done)
-                    ?: dir.findFile(fileName)?.takeIf { bundle }
-                    ?: return@forEachIndexed
-                if (bundle) {
-                    status("$label: unpacking")
-                    progress(STEP_UNPACKING)
-                    unpack(file, mangaDir)
+            fetch(files, mangaDir, title)
+            // chimahon --> a job for given volumes knows what it delivered: a pack can hold less than its label
+            val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+            var missing = emptySet<Int>()
+            val tried = mutableListOf(candidates[first].source)
+            if (wanted.isNotEmpty()) {
+                learn(mediaId, candidates[first], candidates[first].volumes ?: wanted)
+                missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
+                // other sources' links, only those that can hold a missing volume; "already here" stops doubles
+                for (c in candidates.drop(first + 1)) {
+                    if (missing.isEmpty()) break
+                    if (!canHold(c.volumes, missing)) continue
+                    checkCancelled()
+                    logcat(LogPriority.WARN) { "Real-Debrid: vol. ${missing.joinToString()} not in the link, trying source ${c.source}" }
+                    status("Vol. ${missing.joinToString()} missing, trying the next source")
+                    val more = try {
+                        filesOf(c.url)
+                    } catch (e: DeadLinkException) {
+                        failures += "${c.source}|${e.message}"
+                        continue
+                    }
+                    tried += c.source
+                    held.clear()
+                    fetch(more.second, mangaDir, title)
+                    learn(mediaId, c, c.volumes ?: missing)
+                    missing = missingVolumes(wanted, written.keys, skipped, volumesIn(mangaDir))
                 }
             }
+            val reason = if (missing.isEmpty()) null else missingReason(missing, tried.distinct().map(::sourceName))
+            // a series folder this job made and nothing landed in: gone, and not added to the library
+            if (wanted.isNotEmpty() && createdSeries != null && mangaDir.listFiles().isNullOrEmpty()) {
+                mangaDir.delete()
+                done("$folder: ${reason ?: "nothing added"}", error = true)
+                return Result.success(output(reason ?: "Nothing added", delivered = wanted - missing, missing = missing))
+            }
+            checkCancelled()
+            // chimahon <--
             progress(STEP_ADDING)
             // The link's name can be a romanization AniList doesn't know; the volumes inside usually carry the
             // original title ("[檜原フキ] タダでは抱かれません 第01巻.rar")
             val found = media ?: originals.map { MangaImportUtil.seriesTitle(it) }.distinct().take(2)
                 .firstNotNullOfOrNull { runCatching { aniList(it) }.getOrNull() }
             found?.let { runCatching { writeMetadata(mangaDir, it) } }
+            checkCancelled()
+            // chimahon: the last cancel check. From here the job is done: a cancel now no longer stops or undoes it
             ImportHandler.addMangaToLibrary(folder)
             found?.let { bindAniList(folder, it) }
             syncSeries(folder) // chimahon: the title page shows the new volumes without a classic refresh
             // chimahon: volumes skipped because they were already here are named in the notification
             val note = if (skipped.isEmpty()) null else "$NOTE_ALREADY_HERE: vol. ${skipped.joinToString()}"
+            if (reason != null) {
+                // ends as failed for those volumes (the queue reads the error); what came is in the library
+                done("$folder: $reason" + note?.let { "; $it" }.orEmpty(), error = true)
+                return Result.success(output(reason, note, delivered = wanted - missing, missing = missing))
+            }
             done("Added $folder (${files.size} files)" + note?.let { "; $it" }.orEmpty())
-            Result.success(output(note = note))
+            Result.success(output(note = note, delivered = wanted))
         } catch (e: CancelledException) {
             logcat(LogPriority.INFO) { "Real-Debrid import cancelled: ${inputData.getString(KEY_NAME) ?: id}" }
-            deleteParts() // chimahon
+            // chimahon: cancelled from the queue = leave nothing; stopped by WorkManager alone (system) = keep the volumes
+            if (Injekt.get<RealDebridQueue>().isCancelled(id)) undo() else deleteParts()
             Result.success(output(RealDebridQueue.CANCELLED))
         } catch (e: CancellationException) {
-            throw e // WorkManager stopped the worker ("Cancel all", system): no failed notification
+            // WorkManager stopped the worker ("Cancel all", system): no failed notification
+            if (Injekt.get<RealDebridQueue>().isCancelled(id)) undo() // chimahon: "Cancel all" flags its jobs first
+            throw e
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
             deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one
-            done("Failed: ${e.message}")
+            done("Failed: ${e.message}", error = true)
             Result.success(output(e.message ?: e.javaClass.simpleName))
         }
     }
 
+    /** A link to try: the job's own, then other sources' (input [KEY_FALLBACKS]); [volumes] null = not known. */
+    private class Candidate(val source: Long, val url: String, val volumes: Set<Int>?)
+
+    private fun candidates(link: String): List<Candidate> {
+        val urls = inputData.getStringArray(KEY_FALLBACKS) ?: emptyArray()
+        val sources = inputData.getLongArray(KEY_FALLBACK_SOURCES) ?: LongArray(0)
+        // per fallback "1,2,3"; jobs queued before it existed have none (volumes not known)
+        val vols = inputData.getStringArray(KEY_FALLBACK_VOLUMES)?.takeIf { it.size == urls.size }
+        val own = inputData.getIntArray(KEY_VOLUMES)?.toSet()?.ifEmpty { null }
+        return listOf(Candidate(inputData.getLong(KEY_SOURCE, NO_SOURCE), link, own)) +
+            sources.zip(urls).mapIndexed { i, (s, u) -> Candidate(s, u, vols?.get(i)?.let { decodeVolumes(it) }) }
+    }
+
     /**
-     * Files of [link], or of the first fallback link (input [KEY_FALLBACKS], other sources' links for the same
-     * volume) Real-Debrid can serve. A dead link (file gone, hoster unsupported or down) is noted and the next one
-     * tried; anything else, or the last dead link, fails as before.
+     * Index and files of the first of [candidates] Real-Debrid can serve. A dead link (file gone, hoster unsupported
+     * or down) is noted and the next one tried; anything else, or the last dead link, fails as before.
      */
-    private suspend fun resolve(link: String): Pair<String, List<Pair<String, String>>> {
-        val fallbacks = (inputData.getLongArray(KEY_FALLBACK_SOURCES) ?: LongArray(0))
-            .zip(inputData.getStringArray(KEY_FALLBACKS) ?: emptyArray())
-        val candidates = listOf(inputData.getLong(KEY_SOURCE, NO_SOURCE) to link) + fallbacks
-        candidates.forEachIndexed { i, (source, url) ->
+    private suspend fun resolve(candidates: List<Candidate>): Pair<Int, Pair<String, List<Pair<String, String>>>> {
+        candidates.forEachIndexed { i, c ->
             try {
-                val files = if (url.startsWith("magnet:")) torrentFiles(url) else linkFiles(url)
-                servedBy = source
-                return files
+                val files = filesOf(c.url)
+                servedBy = c.source
+                return i to files
             } catch (e: DeadLinkException) {
-                failures += "$source|${e.message}"
+                failures += "${c.source}|${e.message}"
                 if (i == candidates.lastIndex) throw e
-                logcat(LogPriority.WARN) { "Real-Debrid: dead link from source $source, trying the next" }
+                logcat(LogPriority.WARN) { "Real-Debrid: dead link from source ${c.source}, trying the next" }
                 status("Dead link, trying the next source")
             }
         }
         error("No link") // not reached: the last candidate returns or throws
     }
+
+    private suspend fun filesOf(url: String) = if (url.startsWith("magnet:")) torrentFiles(url) else linkFiles(url)
+
+    /** Downloads [files] of one link into [mangaDir]; bundles are unpacked. */
+    private suspend fun fetch(files: List<Pair<String, String>>, mangaDir: UniFile, title: String) {
+        files.forEachIndexed { i, (path, url) ->
+            checkCancelled()
+            val label = "${i + 1}/${files.size} ${path.substringAfterLast('/')}"
+            status(label)
+            progress(STEP_DOWNLOADING)
+            val (dir, fileName) = target(mangaDir, path, title) ?: return@forEachIndexed
+            val bundle = fileName.substringAfterLast('.').lowercase() in BUNDLES
+            partFiles += dir to "$fileName.part"
+            val file = download(url, dir, fileName, report = true)
+                // a bundle still there: a run killed while unpacking it (unpacking deletes it when done)
+                ?: dir.findFile(fileName)?.takeIf { bundle }
+                ?: return@forEachIndexed
+            if (bundle) {
+                status("$label: unpacking")
+                progress(STEP_UNPACKING)
+                unpack(file, mangaDir)
+                checkCancelled()
+            }
+        }
+    }
+
+    // chimahon --> what a link really held; leave nothing when cancelled
+    /**
+     * After fetching [c]: when it held numbered volumes but not all of [promised], its source's coverage learns that
+     * it holds only those ([SourceCoverage.recordHeld]), so the pages stop offering the link for the others.
+     */
+    private suspend fun learn(mediaId: Long, c: Candidate, promised: Set<Int>) {
+        if (mediaId <= 0 || c.source == NO_SOURCE || held.isEmpty() || held.containsAll(promised)) return
+        logcat(LogPriority.WARN) { "Real-Debrid: link of source ${c.source} held vol. ${held.sorted().joinToString()} only" }
+        Injekt.get<SourceCoverage>().recordHeld(mediaId, c.source, c.url, held.toSet())
+    }
+
+    private fun sourceName(id: Long): String =
+        runCatching { Injekt.get<SourceManager>().get(id)?.name }.getOrNull() ?: "source $id"
+
+    /** A series folder for this job ([createdSeries] when it did not exist). */
+    private fun newSeriesFolder(localDir: UniFile, title: String): UniFile {
+        val existed = localDir.findFile(title) != null
+        val dir = localDir.createDirectory(title) ?: error("Can't create $title")
+        if (!existed) createdSeries = dir
+        return dir
+    }
+
+    /** A cancelled job: its .part files, the files it wrote, its chapter folders and series folder when empty. */
+    private fun undo() {
+        deleteParts()
+        created.asReversed().forEach { runCatching { it.delete() } }
+        (createdDirs.asReversed() + listOfNotNull(createdSeries)).forEach { dir ->
+            runCatching { if (dir.listFiles().isNullOrEmpty()) dir.delete() }
+        }
+    }
+    // chimahon <--
 
     /** Torrent name + (path inside the torrent, direct download url) per file, once Real-Debrid has it. */
     private suspend fun torrentFiles(magnet: String): Pair<String, List<Pair<String, String>>> {
@@ -362,7 +481,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     MangaImportUtil.restyle(MangaImportUtil.volumeName(original), japanese),
                 )
                 if (alreadyHere(chapter)) return null // before createDirectory: no empty chapter folder
-                (mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")) to name
+                val existed = mangaDir.findFile(chapter) != null
+                val dir = mangaDir.createDirectory(chapter) ?: error("Can't create $chapter")
+                if (!existed) createdDirs += dir
+                dir to name
             }
             else -> null
         }
@@ -376,6 +498,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private fun alreadyHere(chapter: String): Boolean {
         val n = MangaImportUtil.volumeNumber(seriesTitle, chapter) ?: return false
         numberedSeen++
+        held += n
         val skip = n in present || written[n].let { it != null && it != chapter }
         if (skip) {
             logcat(LogPriority.INFO) { "Real-Debrid: vol. $n already in $seriesTitle, $chapter skipped" }
@@ -453,6 +576,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             throw e
         }
         if (!part.renameTo(name)) error("Can't rename $name")
+        created += part
         return part
     }
 
@@ -477,6 +601,22 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         progress(STEP_DOWNLOADING, done, total)
     }
 
+    /** copyTo that checks for a cancel every MiB. */
+    private fun copyCancellable(input: java.io.InputStream, out: java.io.OutputStream) {
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var sinceCheck = 0L
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            out.write(buffer, 0, n)
+            sinceCheck += n
+            if (sinceCheck >= 1L shl 20) {
+                sinceCheck = 0
+                checkCancelled()
+            }
+        }
+    }
+
     /** A rar/7z/zip of volumes (or of one volume's images) -> its volumes / chapter folders in the series folder. */
     // ponytail: multi-part RARs (.part1.rar...) aren't joined; libarchive reads one file
     private fun unpack(bundle: UniFile, mangaDir: UniFile) {
@@ -486,6 +626,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         bundle.archiveReader(applicationContext).use { reader ->
             ArchiveInputStream(reader.address, reader.size, reader.encrypted).use { stream ->
                 generateSequence { stream.getNextEntry() }.filter { it.isFile }.forEach { entry ->
+                    checkCancelled() // chimahon: between entries, and every MiB inside one (copyCancellable)
                     // target skips volumes already in the folder (chimahon)
                     val (dir, name) = target(mangaDir, entry.name, stem, inBundle = true) ?: return@forEach
                     val volumeFile = dir === mangaDir
@@ -495,8 +636,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     dir.findFile("$name.part")?.delete()
                     partFiles += dir to "$name.part"
                     val file = dir.createFile("$name.part") ?: error("Can't create $name")
-                    file.openOutputStream().use { stream.copyTo(it) }
+                    file.openOutputStream().use { copyCancellable(stream, it) }
                     if (!file.renameTo(name)) error("Can't rename $name")
+                    created += file
                     if (volumeFile && !hasNumber) unnumbered += name
                 }
             }
@@ -573,7 +715,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
             }
             val xml = Injekt.get<XML>().encodeToString(ComicInfo.serializer(), manga.getComicInfo())
-            mangaDir.createFile(COMIC_INFO_FILE)?.openOutputStream()?.use { it.write(xml.toByteArray()) }
+            mangaDir.createFile(COMIC_INFO_FILE)?.also { created += it }?.openOutputStream()?.use { it.write(xml.toByteArray()) }
         }
         val cover = media.optJSONObject("coverImage")?.str("extraLarge").orEmpty()
         if (cover.isNotBlank() && mangaDir.findFile("cover.jpg") == null) {
@@ -604,6 +746,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         private const val KEY_SOURCE = "source"
         private const val KEY_FALLBACKS = "fallbacks"
         private const val KEY_FALLBACK_SOURCES = "fallback_sources"
+
+        /** chimahon: each fallback link's volumes, "1,2,3" (parallel to [KEY_FALLBACKS]). */
+        private const val KEY_FALLBACK_VOLUMES = "fallback_volumes"
         private const val ID_TORRENT_PROGRESS = -2205
         const val NO_SOURCE = -1L
 
@@ -633,6 +778,31 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         /** chimahon: done, but some or all of the link's volumes were not stored again ([NOTE_ALREADY_HERE]). */
         const val KEY_NOTE = "note"
         const val NOTE_ALREADY_HERE = "already on the tablet"
+
+        /** chimahon: of the job's volumes ([KEY_VOLUMES]), those on the tablet now and those no link held. */
+        const val KEY_DELIVERED = "delivered"
+        const val KEY_MISSING = "missing"
+
+        // chimahon --> pure parts, for RealDebridImportJobTest
+        /** [promised] volumes neither [written] nor [skipped] by this job, nor in the folder now ([present]). */
+        internal fun missingVolumes(promised: Set<Int>, written: Set<Int>, skipped: Set<Int>, present: Set<Int>): Set<Int> =
+            promised - written - skipped - present
+
+        /** Can a link with [volumes] (null = not known) hold one of [missing]? */
+        internal fun canHold(volumes: Set<Int>?, missing: Set<Int>): Boolean =
+            volumes == null || volumes.any { it in missing }
+
+        /** "1,2,3" -> {1, 2, 3}; null when it names none. */
+        internal fun decodeVolumes(text: String): Set<Int>? =
+            text.split(',').mapNotNull { it.trim().toIntOrNull() }.toSet().ifEmpty { null }
+
+        /** "Vol. 1, 2 were not in the pack (X3DL)" */
+        internal fun missingReason(missing: Set<Int>, sources: List<String>): String {
+            val verb = if (missing.size == 1) "was" else "were"
+            return "Vol. ${missing.sorted().joinToString()} $verb not in the pack" +
+                if (sources.isEmpty()) "" else " (${sources.joinToString()})"
+        }
+        // chimahon <--
 
         /** RD error bodies that mean "this link, not the account": file gone, hoster unsupported / down / not free. */
         private fun isDeadLink(body: String): Boolean {
@@ -683,7 +853,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         /**
          * [name]: the series when the hoster's filename says nothing about it (Excnn's "excnn20-11-2026a07.rar").
          * From RealDebridQueue also: the AniList [mediaId], the [volumes] the link holds, its [sourceId], and
-         * [fallbacks] (source id, link) of other sources for the same volume, tried in order when [link] is dead.
+         * [fallbacks] (source id, link) of other sources for the same volume, tried in order when [link] is dead,
+         * and again for the volumes [link] turns out not to hold; [fallbackVolumes] = each fallback's volumes.
          */
         fun start(
             context: Context,
@@ -693,6 +864,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             volumes: List<Int> = emptyList(),
             sourceId: Long? = null,
             fallbacks: List<Pair<Long, String>> = emptyList(),
+            fallbackVolumes: List<Collection<Int>> = emptyList(),
         ) {
             val input = Data.Builder().putString(KEY_LINK, link).putString(KEY_NAME, name)
             mediaId?.let { input.putLong(KEY_MEDIA_ID, it) }
@@ -701,6 +873,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             if (fallbacks.isNotEmpty()) {
                 input.putLongArray(KEY_FALLBACK_SOURCES, fallbacks.map { it.first }.toLongArray())
                 input.putStringArray(KEY_FALLBACKS, fallbacks.map { it.second }.toTypedArray())
+                if (fallbackVolumes.size == fallbacks.size) {
+                    input.putStringArray(KEY_FALLBACK_VOLUMES, fallbackVolumes.map { it.sorted().joinToString(",") }.toTypedArray())
+                }
             }
             val request = OneTimeWorkRequestBuilder<RealDebridImportJob>().setInputData(input.build()).addTag(TAG)
             mediaId?.let { request.addTag(TAG_MEDIA + it) }

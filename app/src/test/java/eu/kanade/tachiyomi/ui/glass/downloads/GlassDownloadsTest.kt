@@ -8,7 +8,13 @@ import java.util.UUID
 
 class GlassDownloadsTest {
 
-    private fun row(mediaId: Long?, state: State, vararg volumes: Int, reason: String? = null) = RealDebridQueue.Row(
+    private fun row(
+        mediaId: Long?,
+        state: State,
+        vararg volumes: Int,
+        reason: String? = null,
+        missing: List<Int> = emptyList(),
+    ) = RealDebridQueue.Row(
         workId = UUID.randomUUID(),
         mediaId = mediaId,
         volumes = volumes.toList(),
@@ -21,6 +27,7 @@ class GlassDownloadsTest {
         reason = reason ?: if (state == State.FAILED) "not on Excnn" else null,
         servedBy = null,
         failures = emptyList(),
+        missing = missing,
     )
 
     @Test
@@ -52,11 +59,43 @@ class GlassDownloadsTest {
         val rows = listOf(row(1, State.RUNNING, 5), row(1, State.QUEUED, 6, 7), row(1, State.FAILED, 9), row(1, State.DONE, 4))
         val n = GlassDownloads.volumeCount(null, read = 2, here = 3, rows = rows)
         n shouldBe 9
-        GlassDownloads.cells(n, read = 2, here = 3, rows = rows) shouldBe listOf(
+        GlassDownloads.cells(n, read = 2, here = setOf(1, 2, 3, 4), rows = rows) shouldBe listOf(
             Cell.READ, Cell.READ, Cell.HERE, Cell.HERE, Cell.DOWNLOADING, Cell.QUEUED, Cell.QUEUED, Cell.NONE, Cell.FAILED,
         )
         GlassDownloads.volumeCount(26, 2, 3, rows) shouldBe 26
         GlassDownloads.volumeCount(0, 2, 3, emptyList()) shouldBe 3
+    }
+
+    @Test
+    fun `a done job is not on the tablet unless its volumes are`() {
+        // MASHLE - the 1-5 pack held only 3-5, already here; 17-18 came
+        val rows = listOf(row(1, State.DONE, 17, 18), row(1, State.DONE, 1, 2, 3, 4, 5))
+        val here = setOf(3, 4, 5, 17, 18)
+        GlassDownloads.cells(18, read = 0, here = here, rows = rows) shouldBe
+            List(18) { i -> if (i + 1 in here) Cell.HERE else Cell.NONE }
+    }
+
+    @Test
+    fun `a queued pack with volumes already here shows and counts only the new ones`() {
+        val pack = row(1, State.QUEUED, 1, 2, 3, 4, 5)
+        GlassDownloads.cells(6, read = 0, here = setOf(3, 4, 5), rows = listOf(pack)) shouldBe listOf(
+            Cell.QUEUED, Cell.QUEUED, Cell.HERE, Cell.HERE, Cell.HERE, Cell.NONE,
+        )
+        GlassDownloads.toAdd(listOf(pack), setOf(3, 4, 5)) shouldBe 2
+        GlassDownloads.toAdd(listOf(row(null, State.QUEUED)), emptySet()) shouldBe 1 // a shared link
+    }
+
+    @Test
+    fun `a row with missing volumes fails for those only`() {
+        val pack = row(1, State.FAILED, 1, 2, 3, 4, 5, reason = "Vol. 1, 2 were not in the pack (X3DL)", missing = listOf(1, 2))
+        GlassDownloads.cells(5, read = 0, here = setOf(3, 4, 5), rows = listOf(pack)) shouldBe listOf(
+            Cell.FAILED, Cell.FAILED, Cell.HERE, Cell.HERE, Cell.HERE,
+        )
+        val g = TitleGroup(1, listOf(pack))
+        g.failed shouldBe listOf(pack)
+        g.failedVolumes shouldBe listOf(1, 2)
+        // queued again for 1 and 2 from another source: no longer failed
+        TitleGroup(1, listOf(pack, row(1, State.QUEUED, 1, 2))).failed shouldBe emptyList()
     }
 
     @Test

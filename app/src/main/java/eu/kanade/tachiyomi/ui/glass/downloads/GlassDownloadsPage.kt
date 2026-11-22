@@ -72,11 +72,13 @@ import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
+import eu.kanade.tachiyomi.ui.glass.title.GlassTitleState
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.i18n.MR
@@ -111,6 +113,19 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
     fun titleOf(id: Long?): GlassTitle? = id?.let { byId[it] ?: aniList.get(it)?.let(::GlassTitle) }
     fun groupKey(g: TitleGroup) = g.mediaId?.toString() ?: "shared"
 
+    // the volume numbers of each title's local chapters (the bars' "on tablet"), read again when a job finishes
+    val localIds = groups.mapNotNull { g -> g.mediaId?.let { m -> titleOf(m)?.localMangaId?.let { m to it } } }
+    val finished = rows.count { it.state == State.DONE || it.state == State.FAILED }
+    val here by produceState(emptyMap<Long, Set<Int>>(), localIds, finished) {
+        value = withContext(Dispatchers.IO) {
+            val chapters = Injekt.get<ChapterRepository>()
+            localIds.associate { (mediaId, mangaId) ->
+                mediaId to runCatching { chapters.getChapterByMangaId(mangaId) }.getOrDefault(emptyList())
+                    .mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it.chapterNumber) }
+            }
+        }
+    }
+
     var open by remember { mutableStateOf<Set<String>?>(null) }
     val expanded = open ?: setOfNotNull(groups.firstOrNull { it.active }?.let(::groupKey))
     var confirmCancel by remember { mutableStateOf(false) }
@@ -128,7 +143,9 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
     }
 
     val active = groups.filter { it.active }
-    val activeVolumes = rows.filter { it.state == State.RUNNING || it.state == State.QUEUED }.sumOf { it.volumes.size.coerceAtLeast(1) }
+    val activeVolumes = active.sumOf { g ->
+        GlassDownloads.toAdd(g.rows.filter { it.state == State.RUNNING || it.state == State.QUEUED }, here[g.mediaId].orEmpty())
+    }
     val speed = rows.filter { it.state == State.RUNNING }.sumOf { it.speed }
     val summary = buildString {
         append(stringResource(MR.strings.glass_dl_summary, active.size, activeVolumes))
@@ -180,6 +197,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                 TitleCard(
                     group = g,
                     title = titleOf(g.mediaId),
+                    here = here[g.mediaId].orEmpty(),
                     sourceNames = sourceNames,
                     expanded = k in expanded,
                     onToggle = { open = if (k in expanded) expanded - k else expanded + k },
@@ -229,6 +247,8 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            // flagged first: each job then removes what it wrote (RealDebridImportJob.undo)
+                            rows.filter { it.state == State.RUNNING || it.state == State.QUEUED }.forEach { queue.cancel(it.workId) }
                             WorkManager.getInstance(context).cancelAllWorkByTag(RealDebridImportJob.TAG)
                             confirmCancel = false
                         },
@@ -246,6 +266,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
 private fun TitleCard(
     group: TitleGroup,
     title: GlassTitle?,
+    here: Set<Int>,
     sourceNames: Map<Long, String>,
     expanded: Boolean,
     onToggle: () -> Unit,
@@ -296,7 +317,7 @@ private fun TitleCard(
                             Text(stringResource(MR.strings.glass_dl_from, it), color = Glass.secondary, fontSize = Glass.caption)
                         }
                     } else {
-                        val (line, color) = titleLine(group, sourceNames)
+                        val (line, color) = titleLine(group, sourceNames, here)
                         Text(line, color = color, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -304,11 +325,11 @@ private fun TitleCard(
                     val count = GlassDownloads.volumeCount(
                         title?.entry?.volumes,
                         title?.volumesRead ?: 0,
-                        title?.volumesHere ?: 0,
+                        here.maxOrNull() ?: 0,
                         group.rows,
                     )
                     VolumeBar(
-                        GlassDownloads.cells(count, title?.volumesRead ?: 0, title?.volumesHere ?: 0, group.rows),
+                        GlassDownloads.cells(count, title?.volumesRead ?: 0, here, group.rows),
                         height = if (expanded) 12.dp else 10.dp,
                     )
                 }
@@ -376,9 +397,9 @@ private fun VolumeRow(row: RealDebridQueue.Row, onCancel: (RealDebridQueue.Row) 
 
 /** The collapsed card's state line and its colour (ice running, white failed, else 62%). */
 @Composable
-private fun titleLine(g: TitleGroup, sourceNames: Map<Long, String>): Pair<String, Color> {
+private fun titleLine(g: TitleGroup, sourceNames: Map<Long, String>, here: Set<Int>): Pair<String, Color> {
     val r = g.running
-    val queuedVolumes = g.queued.sumOf { it.volumes.size.coerceAtLeast(1) }
+    val queuedVolumes = GlassDownloads.toAdd(g.queued, here) // a pack: only the volumes it will add
     return when {
         r != null -> buildString {
             if (r.volumes.isNotEmpty()) append(stringResource(MR.strings.glass_dl_vol, CoverageMatch.ranges(r.volumes))).append(" · ")

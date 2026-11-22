@@ -30,6 +30,7 @@ class RealDebridQueue(private val app: Application) {
     data class Row(
         val workId: UUID,
         val mediaId: Long?,
+        /** The volumes the job was queued for (all a pack's label promises). */
         val volumes: List<Int>,
         val sourceId: Long?,
         val state: State,
@@ -45,6 +46,10 @@ class RealDebridQueue(private val app: Application) {
         val servedBy: Long?,
         /** "<source id>|<reason>" per dead link tried. */
         val failures: List<String>,
+        /** Of [volumes], those on the tablet when the job ended. */
+        val delivered: List<Int> = emptyList(),
+        /** Of [volumes], those none of the job's links held: the row is failed for these. */
+        val missing: List<Int> = emptyList(),
     )
 
     private val workManager get() = WorkManager.getInstance(app)
@@ -82,7 +87,10 @@ class RealDebridQueue(private val app: Application) {
     fun enqueue(entry: AniListLibrary.Entry, volume: Int, coverageInOrder: List<Coverage>): Set<Int> {
         val links = CoverageMatch.links(volume, coverageInOrder)
         val (sourceId, link) = links.firstOrNull() ?: return emptySet()
-        val holds = coverageInOrder.first { it.sourceId == sourceId }.volumes.filterValues { it == link }.keys
+        fun heldBy(source: Long, url: String) =
+            coverageInOrder.first { it.sourceId == source }.volumes.filterValues { it == url }.keys
+        val holds = heldBy(sourceId, link)
+        val fallbacks = links.drop(1)
         RealDebridImportJob.start(
             app,
             link,
@@ -90,7 +98,8 @@ class RealDebridQueue(private val app: Application) {
             mediaId = entry.mediaId,
             volumes = holds.sorted(),
             sourceId = sourceId,
-            fallbacks = links.drop(1),
+            fallbacks = fallbacks,
+            fallbackVolumes = fallbacks.map { (s, url) -> heldBy(s, url) },
         )
         return holds
     }
@@ -117,7 +126,8 @@ class RealDebridQueue(private val app: Application) {
         fun tag(prefix: String) = info.tags.firstOrNull { it.startsWith(prefix) }?.removePrefix(prefix)
         val out = info.outputData
         val progress = info.progress
-        val (state, reason) = stateOf(info.state, out.getString(RealDebridImportJob.KEY_ERROR), flagged)
+        val missing = out.getIntArray(RealDebridImportJob.KEY_MISSING)?.toList().orEmpty()
+        val (state, reason) = stateOf(info.state, out.getString(RealDebridImportJob.KEY_ERROR), flagged, missing)
         return Row(
             workId = info.id,
             mediaId = tag(RealDebridImportJob.TAG_MEDIA)?.toLongOrNull(),
@@ -132,6 +142,8 @@ class RealDebridQueue(private val app: Application) {
             reason = reason,
             servedBy = out.getLong(RealDebridImportJob.KEY_SERVED_BY, RealDebridImportJob.NO_SOURCE).takeIf { it != RealDebridImportJob.NO_SOURCE },
             failures = out.getStringArray(RealDebridImportJob.KEY_FAILURES)?.toList().orEmpty(),
+            delivered = out.getIntArray(RealDebridImportJob.KEY_DELIVERED)?.toList().orEmpty(),
+            missing = missing,
         )
     }
 
@@ -140,14 +152,26 @@ class RealDebridQueue(private val app: Application) {
         const val CANCELLED = "Cancelled"
         private const val KEY_CANCELLED = "cancelled"
 
-        /** Row state and reason from the work's state, its output error and whether its id was cancelled. */
-        internal fun stateOf(work: WorkInfo.State, error: String?, flagged: Boolean): Pair<State, String?> = when (work) {
+        /**
+         * Row state and reason from the work's state, its output error, whether its id was cancelled, and the volumes
+         * its links did not hold ([missing]: failed even without an error).
+         */
+        internal fun stateOf(
+            work: WorkInfo.State,
+            error: String?,
+            flagged: Boolean,
+            missing: List<Int> = emptyList(),
+        ): Pair<State, String?> = when (work) {
             // "Cancel all" cancels every job through WorkManager; works cancelled by the previous version
             WorkInfo.State.CANCELLED -> State.FAILED to CANCELLED
             // only works of the previous version fail; one behind a failed one has no output of its own
             WorkInfo.State.FAILED -> State.FAILED to (error ?: "An earlier job in the queue failed")
             // a job's error ends as success so the jobs behind it still run
-            WorkInfo.State.SUCCEEDED -> if (error != null) State.FAILED to error else State.DONE to null
+            WorkInfo.State.SUCCEEDED -> when {
+                error != null -> State.FAILED to error
+                missing.isNotEmpty() -> State.FAILED to "Vol. ${missing.joinToString()} missing"
+                else -> State.DONE to null
+            }
             // cancelled: it stops (or is skipped when its turn comes) within seconds
             else -> if (flagged) {
                 State.FAILED to CANCELLED

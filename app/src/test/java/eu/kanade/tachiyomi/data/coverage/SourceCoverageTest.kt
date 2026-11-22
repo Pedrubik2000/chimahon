@@ -78,4 +78,19 @@ class SourceCoverageTest {
         CoverageMatch.ranges(listOf(5, 1, 2)) shouldBe "1–2, 5"
         CoverageMatch.ranges(emptyList()) shouldBe ""
     }
+
+    @Test
+    fun `a corrected link no longer gives the volumes it did not hold`() {
+        val pack = "https://x3dl.example/MASHLE_01s-05.rar"
+        val v06 = "https://x3dl.example/v06.rar"
+        val volumes = mapOf(1 to pack, 2 to pack, 3 to pack, 4 to pack, 5 to pack, 6 to v06)
+        val fixed = CoverageMatch.corrected(volumes, mapOf(pack to setOf(3, 4, 5)))
+        fixed shouldBe mapOf(3 to pack, 4 to pack, 5 to pack, 6 to v06)
+        CoverageMatch.corrected(volumes, emptyMap()) shouldBe volumes
+        CoverageMatch.corrected(volumes, mapOf("https://other.example/a.rar" to setOf(1))) shouldBe volumes
+        // after the correction, vol. 1 comes from the next source
+        val x3dl = Coverage(1, "X3DL", Coverage.State.FOUND, volumes = fixed)
+        val excnn = Coverage(2, "Excnn", Coverage.State.FOUND, volumes = mapOf(1 to "https://excnn.example/v01.rar"))
+        CoverageMatch.links(1, listOf(x3dl, excnn)) shouldBe listOf(2L to "https://excnn.example/v01.rar")
+    }
 }

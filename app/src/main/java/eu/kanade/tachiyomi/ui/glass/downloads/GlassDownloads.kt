@@ -12,15 +12,18 @@ data class TitleGroup(val mediaId: Long?, val rows: List<RealDebridQueue.Row>) {
     val queued: List<RealDebridQueue.Row> get() = rows.filter { it.state == State.QUEUED }
     val active: Boolean get() = rows.any { it.state == State.RUNNING || it.state == State.QUEUED }
 
-    /** Failed rows whose volumes no later job (queued, running or done) covers again. */
+    /** Failed rows whose failed volumes no later job (queued, running or done) covers again. */
     val failed: List<RealDebridQueue.Row>
         get() {
             val covered = rows.filter { it.state != State.FAILED }.flatMap { it.volumes }.toSet()
-            return rows.filter { it.state == State.FAILED && (it.volumes.isEmpty() || !it.volumes.all { v -> v in covered }) }
+            return rows.filter {
+                val vols = GlassDownloads.failedOf(it)
+                it.state == State.FAILED && (vols.isEmpty() || !vols.all { v -> v in covered })
+            }
         }
 
-    /** Volumes to fetch again with "Try again". */
-    val failedVolumes: List<Int> get() = failed.flatMap { it.volumes }.distinct().sorted()
+    /** Volumes to fetch again with "Try again": a pack's missing ones only. */
+    val failedVolumes: List<Int> get() = failed.flatMap { GlassDownloads.failedOf(it) }.distinct().sorted()
 }
 
 object GlassDownloads {
@@ -53,20 +56,30 @@ object GlassDownloads {
         aniListVolumes?.takeIf { it > 0 }
             ?: maxOf(read, here, rows.flatMap { it.volumes }.maxOrNull() ?: 0)
 
-    // ponytail: read / here are counts taken as volumes 1..n (GlassTitlesModel has counts, not volume numbers)
-    /** Volumes 1..[count]: the queue's state where it has one, else read, on the tablet, or not asked for. */
-    fun cells(count: Int, read: Int, here: Int, rows: List<RealDebridQueue.Row>): List<Cell> {
-        fun has(state: State) = rows.filter { it.state == state }.flatMap { it.volumes }.toSet()
+    /** A row's failed volumes: those its links did not hold, else all it was queued for. */
+    fun failedOf(row: RealDebridQueue.Row): List<Int> = row.missing.ifEmpty { row.volumes }
+
+
+    /** Volumes queued or running jobs will actually add: a pack's volumes not on the tablet ([here]); no volumes = 1. */
+    fun toAdd(rows: List<RealDebridQueue.Row>, here: Set<Int>): Int =
+        rows.sumOf { r -> if (r.volumes.isEmpty()) 1 else r.volumes.count { it !in here } }
+
+    // ponytail: read is a count taken as volumes 1..n (AniList progress is a count)
+    /**
+     * Volumes 1..[count]: on the tablet ([here], the local chapters' volume numbers) is read or here; else the
+     * queue's state (a pack's volumes already here are not queued again), else read elsewhere, or not asked for.
+     */
+    fun cells(count: Int, read: Int, here: Set<Int>, rows: List<RealDebridQueue.Row>): List<Cell> {
+        fun has(state: State) = rows.filter { it.state == state }.flatMap { if (state == State.FAILED) failedOf(it) else it.volumes }.toSet()
         val running = has(State.RUNNING)
         val queued = has(State.QUEUED)
-        val done = has(State.DONE)
         val failed = has(State.FAILED)
         return (1..count).map { v ->
             when {
+                v in here -> if (v <= read) Cell.READ else Cell.HERE
                 v in running -> Cell.DOWNLOADING
                 v in queued -> Cell.QUEUED
                 v <= read -> Cell.READ
-                v <= here || v in done -> Cell.HERE
                 v in failed -> Cell.FAILED
                 else -> Cell.NONE
             }

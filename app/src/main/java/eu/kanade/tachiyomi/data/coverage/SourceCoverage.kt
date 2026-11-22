@@ -102,7 +102,7 @@ class SourceCoverage(private val app: Application) {
                 state = Coverage.State.FOUND,
                 postTitle = posts.first().title,
                 postUrl = source.getMangaUrl(posts.first()),
-                volumes = CoverageMatch.volumes(chapters),
+                volumes = CoverageMatch.corrected(CoverageMatch.volumes(chapters), corrections()),
             )
         } catch (e: CancellationException) {
             throw e
@@ -114,6 +114,37 @@ class SourceCoverage(private val app: Application) {
     }
 
     private fun file(mediaId: Long) = File(app.filesDir, "coverage/$mediaId.json")
+
+    // chimahon --> what a link really held, learnt by RealDebridImportJob
+    /** Link -> the volumes it really held; not a "<media id>.json" (cachedMaxVolumes skips it). */
+    private val correctionsFile get() = File(app.filesDir, "coverage/corrections.json")
+
+    private fun corrections(): Map<String, Set<Int>> =
+        runCatching { json.decodeFromString<Map<String, Set<Int>>>(correctionsFile.readText()) }.getOrDefault(emptyMap())
+
+    /**
+     * [link] of [sourceId] held only [held] of what the coverage of [mediaId] maps to it: the other volumes stop
+     * pointing at it, in the cache now and in every coverage fetched later (kept in `coverage/corrections.json`).
+     */
+    suspend fun recordHeld(mediaId: Long, sourceId: Long, link: String, held: Set<Int>) {
+        fileLock.withLock {
+            runCatching {
+                correctionsFile.parentFile?.mkdirs()
+                writeAtomically(correctionsFile, json.encodeToString(corrections() + (link to held)))
+                val cached = read(mediaId)
+                val c = cached[sourceId] ?: return@runCatching
+                val fixed = c.copy(volumes = CoverageMatch.corrected(c.volumes, mapOf(link to held)))
+                writeAtomically(file(mediaId), json.encodeToString((cached + (sourceId to fixed)).values.toList()))
+            }.onFailure { logcat(LogPriority.WARN, it) { "Coverage correction write failed" } }
+        }
+    }
+
+    private fun writeAtomically(file: File, text: String) {
+        val tmp = File(file.path + ".tmp")
+        tmp.writeText(text)
+        check(tmp.renameTo(file)) { "Can't write ${file.name}" }
+    }
+    // chimahon <--
 
     /** Media id → highest volume any cached FOUND coverage has (any age), for seeding [VolumeCounts]. */
     fun cachedMaxVolumes(): Map<Long, Int> =
@@ -220,6 +251,14 @@ object CoverageMatch {
             .forEach { c -> c.volumes.keys.forEach { result.putIfAbsent(it, c.sourceId) } }
         return result
     }
+
+    /** [volumes] without those a corrected link did not hold ([corrections] = link -> the volumes it held). */
+    fun corrected(volumes: Map<Int, String>, corrections: Map<String, Set<Int>>): Map<Int, String> =
+        if (corrections.isEmpty()) {
+            volumes
+        } else {
+            volumes.filter { (v, link) -> corrections[link]?.contains(v) ?: true }.toSortedMap()
+        }
 
     /** "1–26, 28" */
     fun ranges(volumes: Collection<Int>): String {
