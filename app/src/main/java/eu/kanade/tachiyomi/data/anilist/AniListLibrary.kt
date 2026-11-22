@@ -233,6 +233,45 @@ class AniListLibrary(private val app: Application) {
                 .toSet()
             return entries.firstOrNull { e -> e.titles.any { MangaImportUtil.seriesKey(it) in keys } }
         }
+
+        /**
+         * The entry a series folder belongs to. [id] (its ComicInfo `<Web>`, [aniListId]) decides alone: that entry,
+         * or none when the title is not on the list. Else the entry whose native title is the folder's [native]
+         * (ComicInfo summary, [summaryTitles]), else [match] on [names] (folder name, `<Series>`, english) + native.
+         */
+        fun matchFolder(id: Long?, native: String?, names: List<String>, entries: List<Entry>): Entry? {
+            if (id != null) return entries.firstOrNull { it.mediaId == id }
+            val key = native?.let { MangaImportUtil.seriesKey(it) }.orEmpty()
+            if (key.isNotEmpty()) {
+                entries.firstOrNull { e -> e.native?.let { MangaImportUtil.seriesKey(it) } == key }?.let { return it }
+            }
+            return match(names + listOfNotNull(native), entries)
+        }
+
+        private val aniListUrl = Regex("""anilist\.co/manga/(\d+)""")
+
+        /** The media id in a ComicInfo `<Web>` ("https://anilist.co/manga/114960"), else null. */
+        fun aniListId(web: String?): Long? =
+            web?.let { aniListUrl.find(it) }?.groupValues?.get(1)?.toLongOrNull()
+
+        /**
+         * native and english title of a ComicInfo `<Summary>` written by the import job: "native\n\nenglish\n\n...".
+         * Line 3 is the description when AniList has no english title: it then just matches nothing.
+         */
+        fun summaryTitles(summary: String?): Pair<String?, String?> {
+            val lines = summary?.lines().orEmpty().map { it.trim() }
+            return lines.getOrNull(0)?.ifBlank { null } to lines.getOrNull(2)?.ifBlank { null }
+        }
+
+        /**
+         * [xml] (a ComicInfo.xml) with `<Web>[url]</Web>` put before its end tag, the rest unchanged (a re-encode
+         * would drop elements the ComicInfo class doesn't know); null when it has a Web element or no end tag.
+         */
+        fun withWeb(xml: String, url: String): String? {
+            if ("<Web>" in xml) return null
+            val end = xml.lastIndexOf("</ComicInfo>").takeIf { it >= 0 } ?: return null
+            return xml.substring(0, end) + "  <Web>$url</Web>\n" + xml.substring(end)
+        }
     }
 }
 

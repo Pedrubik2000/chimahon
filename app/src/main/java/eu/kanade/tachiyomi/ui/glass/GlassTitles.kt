@@ -191,21 +191,25 @@ object GlassTitles {
     fun planning(list: List<GlassTitle>) = sort(list.filter { ListFilter.PLANNING.matches(it) }, GlassSort.LAST_READ)
 
     /**
-     * The linked title read most recently that still has a next volume here; else the most recently updated
-     * Reading title (no Resume).
+     * The title with a next volume here ([heroCandidates] gives it to one); else the most recently updated Reading
+     * title (no Resume).
      */
     fun hero(list: List<GlassTitle>): Hero? {
-        list.filter { it.localMangaId != null && it.next != null && it.lastRead != null }
-            .maxByOrNull { it.lastRead!! }
+        list.filter { it.localMangaId != null && it.next != null }
+            .maxByOrNull { it.lastRead ?: 0 }
             ?.let { return Hero(it, resume = true) }
         return list.filter { ListFilter.READING.matches(it) }
             .maxByOrNull { it.entry.updatedAt }
             ?.let { Hero(it, resume = false) }
     }
 
-    /** Hero candidates in order: titles here that were read and have unread volumes left, latest first. */
+    /**
+     * Hero candidates in order: titles here with unread volumes left that were read here, latest first; then
+     * (nothing read here yet, a fresh install) Reading titles here, most recently updated on AniList first.
+     */
     fun heroCandidates(list: List<GlassTitle>, unread: (GlassTitle) -> Boolean): List<GlassTitle> =
-        list.filter { it.localMangaId != null && it.lastRead != null && unread(it) }.sortedByDescending { it.lastRead }
+        list.filter { it.localMangaId != null && (it.lastRead != null || ListFilter.READING.matches(it)) && unread(it) }
+            .sortedWith(compareByDescending<GlassTitle> { it.lastRead ?: 0L }.thenByDescending { it.entry.updatedAt })
 
     /**
      * Joins the AniList list with what is here: [linked] = mediaId → local manga (one per media, the one with the

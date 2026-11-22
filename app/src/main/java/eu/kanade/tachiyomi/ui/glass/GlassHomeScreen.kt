@@ -76,7 +76,8 @@ object GlassHomeScreen : Screen() {
         val model = rememberScreenModel { GlassTitlesModel() }
         var page by glassPage
         BackHandler(enabled = page != "home") { page = "home" }
-        // volumes put in a series folder outside the app (or by an older import) get their chapter rows
+        // volumes put in a series folder outside the app (or by an older import) get their chapter rows; series
+        // folders keep being linked to their AniList titles while the shell is up (the list can arrive later)
         LaunchedEffect(Unit) { LocalSeriesSync.syncAll() }
         val problemsModel = rememberScreenModel { GlassProblemsModel() }
         val problems by problemsModel.problems.collectAsStateWithLifecycle()

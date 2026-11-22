@@ -16,6 +16,7 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
@@ -296,7 +297,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // original title ("[檜原フキ] タダでは抱かれません 第01巻.rar")
             val found = media ?: originals.map { MangaImportUtil.seriesTitle(it) }.distinct().take(2)
                 .firstNotNullOfOrNull { runCatching { aniList(it) }.getOrNull() }
-            found?.let { runCatching { writeMetadata(mangaDir, it) } }
+            found?.let { runCatching { writeMetadata(mangaDir, it, exactId = mediaId) } }
             checkCancelled()
             // chimahon: the last cancel check. From here the job is done: a cancel now no longer stops or undoes it
             ImportHandler.addMangaToLibrary(folder)
@@ -764,9 +765,15 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         }
     }
 
-    /** ComicInfo.xml (title, authors, description, genres, status) and cover.jpg, unless the folder has them. */
-    private fun writeMetadata(mangaDir: UniFile, media: JSONObject) {
-        if (mangaDir.findFile(COMIC_INFO_FILE) == null) {
+    /**
+     * ComicInfo.xml (title, authors, description, genres, status, AniList URL as `<Web>`) and cover.jpg, unless the
+     * folder has them. chimahon: an older ComicInfo gets the `<Web>` of [exactId] (the title page's media id, not a
+     * search hit), so adoption on a fresh install links the folder by id ([LocalSeriesSync]).
+     */
+    private fun writeMetadata(mangaDir: UniFile, media: JSONObject, exactId: Long) {
+        if (mangaDir.findFile(COMIC_INFO_FILE) != null) {
+            if (exactId > 0) LocalSeriesSync.writeAniListId(mangaDir, exactId)
+        } else {
             val titles = media.getJSONObject("title")
             val staff = media.getJSONObject("staff").getJSONArray("edges").objects()
             fun people(role: String) = staff.filter { it.getString("role").contains(role, ignoreCase = true) }
@@ -789,7 +796,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                     else -> SManga.UNKNOWN
                 }
             }
-            val xml = Injekt.get<XML>().encodeToString(ComicInfo.serializer(), manga.getComicInfo())
+            val web = media.optLong("id").takeIf { it > 0 }?.let { ComicInfo.Web(AnilistApi.mangaUrl(it)) }
+            val xml = Injekt.get<XML>().encodeToString(ComicInfo.serializer(), manga.getComicInfo().copy(web = web))
             mangaDir.createFile(COMIC_INFO_FILE)?.also { created += it }?.openOutputStream()?.use { it.write(xml.toByteArray()) }
         }
         val cover = media.optJSONObject("coverImage")?.str("extraLarge").orEmpty()

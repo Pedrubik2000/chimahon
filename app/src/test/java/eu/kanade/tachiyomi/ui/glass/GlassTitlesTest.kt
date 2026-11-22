@@ -56,6 +56,19 @@ class GlassTitlesTest {
     }
 
     @Test
+    fun `hero candidates, also on a fresh install with nothing read here`() {
+        // read here first (latest first), then Reading titles here never read here, newest AniList update first
+        val fresh = GlassTitle(entry(6, "CURRENT", volumes = 9, updatedAt = 4_000), 16, 3, 0)
+        val older = GlassTitle(entry(7, "CURRENT", volumes = 9, updatedAt = 10), 17, 3, 0)
+        val planned = GlassTitle(entry(8, "PLANNING", volumes = 9), 18, 3, 0)
+        val candidates = GlassTitles.heroCandidates(list + listOf(older, fresh, planned)) { true }
+        ids(candidates) shouldBe listOf(2L, 1L, 4L, 6L, 7L)
+        // a fresh install: the newest Reading title here resumes at its first volume
+        val first = fresh.copy(next = next)
+        GlassTitles.hero(listOf(older, first, planned)) shouldBe Hero(first, resume = true)
+    }
+
+    @Test
     fun `build joins local volumes and keeps AniList progress`() {
         val e = listOf(entry(1, "CURRENT", volumes = 6).copy(progressVolumes = 4), entry(2, "PLANNING"))
         val built = GlassTitles.build(e, mapOf(1L to GlassTitles.Local(mangaId = 11, volumes = 6, read = 2, lastRead = 0)))
