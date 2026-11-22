@@ -281,7 +281,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 fullSpan {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            stringResource(MR.strings.glass_title_failed, CoverageMatch.ranges(r.volumes), r.reason.orEmpty()),
+                            // chimahon: only the row's volumes not on the tablet (a pack of 1-4 for 1-2 failed 1-2)
+                            stringResource(MR.strings.glass_title_failed, CoverageMatch.ranges(r.volumes.filter { it !in here }), r.reason.orEmpty()),
                             color = Glass.secondary,
                             fontSize = Glass.body,
                             maxLines = 2,

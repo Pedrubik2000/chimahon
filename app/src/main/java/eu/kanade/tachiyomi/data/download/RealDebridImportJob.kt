@@ -173,6 +173,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             done("Set the Real-Debrid API token in Settings > Downloads", error = true)
             return Result.success(output("No Real-Debrid token"))
         }
+        var titleDir: UniFile? = null // chimahon: outside the try: the dead-link catch reads the volumes already here
         return try {
             checkCancelled()
             if (ExcnnParser.isPost(link)) { // an excnn.com post: queue each of its volumes under the post's title
@@ -188,7 +189,6 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // chimahon --> a title page job (AniList media id): its folder before anything is downloaded
             val hint = inputData.getString(KEY_NAME)
             var media: JSONObject? = null
-            var titleDir: UniFile? = null
             if (mediaId > 0) {
                 status("AniList: ${hint ?: mediaId}")
                 media = runCatching { aniList(hint.orEmpty(), mediaId) }
@@ -319,10 +319,17 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // chimahon: every link dead (only resolve lets one out): one summary, the volumes and the sources tried
             logcat(LogPriority.WARN, e) { "Real-Debrid: every link dead: $link" }
             deleteParts()
-            val vols = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
-            val text = if (vols.isEmpty()) "Dead link: ${e.message}" else missingReason(vols, emptyList(), deadSources())
+            // chimahon: the pack's volumes less those already in the title's folder (a pack of 1-4 for 1-2: "Vol. 1, 2")
+            val pack = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+            val here = titleDir?.let { runCatching { volumesIn(it) }.getOrNull() }.orEmpty()
+            val vols = missingVolumes(pack, emptySet(), emptySet(), here)
+            val text = when {
+                pack.isEmpty() -> "Dead link: ${e.message}"
+                vols.isEmpty() -> "Dead link: ${deadSources().joinToString()}"
+                else -> missingReason(vols, emptyList(), deadSources())
+            }
             done(listOfNotNull(inputData.getString(KEY_NAME), text).joinToString(": "), error = true)
-            Result.success(output(text))
+            Result.success(output(text, delivered = pack - vols, missing = vols))
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Real-Debrid import failed: $link" }
             deleteParts() // chimahon: a failed job leaves no .part, as a cancelled one

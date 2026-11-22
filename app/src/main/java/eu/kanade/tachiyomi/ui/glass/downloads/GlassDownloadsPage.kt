@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.WorkManager
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
+import com.hippo.unifile.UniFile
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Meter
@@ -635,12 +636,19 @@ private object StorageCache {
     var value: Storage? = null
 
     suspend fun load(): Storage? = withContext(Dispatchers.IO) {
-        val dir = Injekt.get<StorageManager>().getLocalSourceDirectory()?.filePath?.let(::File)
-            ?: return@withContext value
+        val local = Injekt.get<StorageManager>().getLocalSourceDirectory() ?: return@withContext value
+        val dir = local.filePath?.let(::File) ?: return@withContext value
         runCatching {
-            Storage(DiskUtil.getDirectorySize(dir), DiskUtil.getTotalStorageSpace(dir), DiskUtil.getAvailableStorageSpace(dir))
+            // chimahon: a SAF folder (no all-files access) has a real path for StatFs, but java.io.File can't see its
+            // files (scoped storage: Manga read 0 B): then the size is summed through the UniFile tree
+            val manga = if (local.uri.scheme == "file") DiskUtil.getDirectorySize(dir) else treeSize(local)
+            Storage(manga, DiskUtil.getTotalStorageSpace(dir), DiskUtil.getAvailableStorageSpace(dir))
         }.getOrNull()?.also { value = it } ?: value
     }
+
+    // ponytail: one SAF query per entry (slow on folders of loose pages); one children query with _size per folder if it drags
+    private fun treeSize(f: UniFile): Long =
+        if (f.isDirectory) (f.listFiles()?.sumOf { treeSize(it) } ?: 0L) else f.length()
 }
 
 private val coverageJson = Json { ignoreUnknownKeys = true }
