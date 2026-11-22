@@ -1,17 +1,17 @@
 <div align="center">
 
-<img width="200" height="200" src="./app/src/main/res/drawable/chimahon.png" alt="Chimahon icon" />
-<h1 align="center">Chimahon, tablet fork</h1>
+<img width="200" height="200" src="./app/src/main/res/drawable/chimahon.png" alt="kumahon icon" />
+<h1 align="center">kumahon</h1>
 
 **Read raw manga on a tablet, straight from your AniList list.**
 
-[![Latest build](https://img.shields.io/github/v/release/Pedrubik2000/chimahon?include_prereleases&label=Latest%20build&labelColor=27303D&color=0D1111&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/Pedrubik2000/chimahon/releases)
+[![Latest build](https://img.shields.io/github/v/release/Pedrubik2000/kumahon?include_prereleases&label=Latest%20build&labelColor=27303D&color=0D1111&logo=github&logoColor=FFFFFF&style=flat)](https://github.com/Pedrubik2000/kumahon/releases)
 
 </div>
 
 ---
 
-This is a fork of [Chimahon](https://github.com/sohilsayed/chimahon), the immersion reader built on Mihon and Komikku. It adds one thing: **a second look for tablets, built around your AniList manga list.**
+kumahon (熊 bear + 本 book) is a fork of [Chimahon](https://github.com/sohilsayed/chimahon), the immersion reader built on Mihon and Komikku. It adds one thing: **a second look for tablets, built around your AniList manga list.**
 
 - A title is an AniList entry. Home, Library and Discover come from your list.
 - Its volumes are fetched through **Real-Debrid** from raw-manga sources, one tap per volume.
@@ -79,7 +79,7 @@ Three ways to find what to read next, based on what you finished:
 
 ## 📥 Download
 
-Tablet builds (arm64) are on the [Releases](https://github.com/Pedrubik2000/chimahon/releases) page. The app installs as "Chimahon Dev", next to the original app.
+Tablet builds (arm64) are on the [Releases](https://github.com/Pedrubik2000/kumahon/releases) page. The app installs as "kumahon", next to the original Chimahon.
 
 You need:
 

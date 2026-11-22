@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Chimahon</string>
+    <string name="app_name" translatable="false">kumahon</string>
 
     <!-- Generic strings -->
     <string name="on">On</string>
@@ -429,7 +429,7 @@
     <string name="screen_lookup_title">Screen lookup</string>
     <string name="screen_lookup_more_summary">OCR text from other apps with a floating capture button</string>
     <string name="screen_lookup_enable_title">Enable screen lookup</string>
-    <string name="screen_lookup_enable_summary">Chimahon needs permission to show a small capture button over other apps. Android will ask for screen capture permission after that.</string>
+    <string name="screen_lookup_enable_summary">kumahon needs permission to show a small capture button over other apps. Android will ask for screen capture permission after that.</string>
     <string name="screen_lookup_notification_title">Screen lookup is on</string>
     <string name="screen_lookup_notification_text">Tap the floating button to OCR the current screen.</string>
     <string name="screen_lookup_capture_button">Capture screen for lookup</string>
@@ -941,7 +941,7 @@
     <string name="glass_settings_no_sources">No Real-Debrid sources installed</string>
     <string name="glass_settings_move_up">Move %1$s up</string>
     <string name="glass_settings_move_down">Move %1$s down</string>
-    <string name="glass_settings_about_app">About chimahon</string>
+    <string name="glass_settings_about_app">About kumahon</string>
     <string name="glass_settings_all">All settings</string>
     <string name="glass_settings_all_sub">The classic settings, every option</string>
     <string name="glass_settings_classic_sub">The classic app: Novels, Anime, History, Updates</string>
@@ -983,7 +983,7 @@
     <string name="glass_setup_offline">No connection. Try again.</string>
     <string name="glass_setup_not_premium">This account is not Premium. Downloads need Premium.</string>
     <string name="glass_setup_choose_folder">Choose folder</string>
-    <string name="glass_setup_folder_note">Android asks which folder chimahon may use.</string>
+    <string name="glass_setup_folder_note">Android asks which folder kumahon may use.</string>
     <string name="glass_setup_folder_line">%1$s free · %2$d series found here</string>
     <string name="glass_setup_allow">Allow</string>
     <string name="glass_setup_not_now">Not now</string>
