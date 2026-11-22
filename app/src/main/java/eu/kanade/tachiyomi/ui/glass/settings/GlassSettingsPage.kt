@@ -59,6 +59,9 @@ import eu.kanade.presentation.more.settings.screen.SettingsTrackingScreen
 import eu.kanade.presentation.more.settings.screen.about.AboutScreen
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
+import eu.kanade.tachiyomi.data.dictionary.RecommendedDictionaries
+import eu.kanade.tachiyomi.ui.glass.dictionary.GlassDictionaryLicencesScreen
+import eu.kanade.tachiyomi.ui.glass.dictionary.UsualDictionariesSettings
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
 import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
@@ -197,6 +200,7 @@ private fun sectionItems(id: String, navigator: Navigator): List<Preference> = w
     "japanese" -> {
         val ocr = stringResource(MR.strings.pref_category_ocr)
         SettingsReaderScreen.getPreferences().filter { it.title == ocr } +
+            usualDictionariesGroup(navigator) +
             SettingsDictionaryScreen.getPreferences() +
             SettingsDictionaryPopupScreen.getPreferences()
     }
@@ -260,6 +264,20 @@ private fun group(title: String, items: List<Preference>): Preference.Preference
     if (flat.isEmpty()) return null
     return Preference.PreferenceGroup(title = title, preferenceItems = flat.toImmutableList())
 }
+
+/** Build plan phase 12: the usual dictionaries to download, and their licences on a screen of their own (EDRDG). */
+@Composable
+private fun usualDictionariesGroup(navigator: Navigator): Preference.PreferenceGroup = Preference.PreferenceGroup(
+    title = stringResource(MR.strings.glass_dict_usual),
+    preferenceItems = persistentListOf(
+        Preference.PreferenceItem.CustomPreference(title = stringResource(MR.strings.glass_dict_usual)) { UsualDictionariesSettings() },
+        Preference.PreferenceItem.TextPreference(
+            title = stringResource(MR.strings.glass_dict_licences),
+            subtitle = RecommendedDictionaries.names(RecommendedDictionaries.all.map { it.name }),
+            onClick = { navigator.push(GlassDictionaryLicencesScreen()) },
+        ),
+    ),
+)
 
 @Composable
 private fun sourceOrderGroup(): Preference.PreferenceGroup = Preference.PreferenceGroup(

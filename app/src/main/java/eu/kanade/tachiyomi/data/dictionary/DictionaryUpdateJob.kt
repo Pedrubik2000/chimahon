@@ -20,6 +20,7 @@ import eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences
 import eu.kanade.tachiyomi.util.system.setForegroundSafely
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -97,11 +98,12 @@ class DictionaryUpdateJob(context: Context, workerParams: WorkerParameters) :
         val newRevision: String?,
     )
 
+    // chimahon: one import at a time with the manual import and the glass downloads (same folders, same profile)
     private suspend fun applyUpdate(
         dictName: String,
         downloadUrl: String,
         dictionariesDir: File,
-    ): UpdateResult = withContext(Dispatchers.IO) {
+    ): UpdateResult = DictionaryImportMutex.withLock { withContext(Dispatchers.IO) {
         val cacheDir = applicationContext.cacheDir
         val tempZip = File(cacheDir, "dict_update_${System.currentTimeMillis()}.zip")
         val tempImportDir = File(cacheDir, "dict_import_tmp_${System.currentTimeMillis()}")
@@ -136,13 +138,15 @@ class DictionaryUpdateJob(context: Context, workerParams: WorkerParameters) :
                 if (hoshiResult.termCount > 0) add("term")
                 if (hoshiResult.freqCount > 0) add("frequency")
                 if (hoshiResult.pitchCount > 0) add("pitch")
+                // chimahon: KANJIDIC is offered in the glass setup; without this its update wrote nothing
+                if (hoshiResult.kanjiCount > 0) add("kanji")
             }
 
             // Read old revision before cleanup
             val oldRevision = readOldRevision(dictionariesDir, dictName)
 
             // Clean stale type subdirs from previous version before writing new ones
-            for (type in listOf("term", "frequency", "pitch")) {
+            for (type in listOf("term", "frequency", "pitch", "kanji")) {
                 val staleDir = File(File(dictionariesDir, type), dictName)
                 if (staleDir.exists()) staleDir.deleteRecursively()
             }
@@ -168,10 +172,10 @@ class DictionaryUpdateJob(context: Context, workerParams: WorkerParameters) :
             if (tempZip.exists()) tempZip.delete()
             if (tempImportDir.exists()) tempImportDir.deleteRecursively()
         }
-    }
+    } }
 
     private fun readOldRevision(dictionariesDir: File, dictName: String): String? {
-        for (type in listOf("term", "frequency", "pitch")) {
+        for (type in listOf("term", "frequency", "pitch", "kanji")) {
             val dir = File(File(dictionariesDir, type), dictName)
             if (dir.isDirectory) {
                 val index = readDictionaryIndex(dir)
@@ -182,7 +186,7 @@ class DictionaryUpdateJob(context: Context, workerParams: WorkerParameters) :
     }
 
     private fun readNewRevision(dictionariesDir: File, dictName: String): String? {
-        for (type in listOf("term", "frequency", "pitch")) {
+        for (type in listOf("term", "frequency", "pitch", "kanji")) {
             val dir = File(File(dictionariesDir, type), dictName)
             if (dir.isDirectory) {
                 val index = readDictionaryIndex(dir)

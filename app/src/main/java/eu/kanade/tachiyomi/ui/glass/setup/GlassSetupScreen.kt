@@ -273,6 +273,14 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                                 color = Glass.secondary,
                                 fontSize = Glass.body,
                             )
+                        } else if (step == 4 && model.dictionaryDownloading) {
+                            // canvas Dict-1: Continue is on while it downloads
+                            Text(
+                                stringResource(MR.strings.glass_setup_dict_keeps),
+                                Modifier.padding(start = 8.dp),
+                                color = Glass.secondary,
+                                fontSize = Glass.body,
+                            )
                         }
                     } else {
                         SetupButton(

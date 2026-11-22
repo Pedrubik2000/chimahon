@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,12 +45,18 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
+import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.more.settings.screen.SettingsDataScreen
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.dictionary.DictionaryDownloads
+import eu.kanade.tachiyomi.data.dictionary.RecommendedDictionaries
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
+import eu.kanade.tachiyomi.ui.glass.dictionary.DictionaryPanel
+import eu.kanade.tachiyomi.ui.glass.dictionary.Status
 import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupModel.Rd
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toast
@@ -222,43 +231,72 @@ internal fun DictionaryStep(model: GlassSetupModel) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(model::importDictionary)
     }
-    val name = model.dictionary
-    if (name != null) {
-        DoneCard(name, stringResource(MR.strings.glass_setup_dictionary_sub))
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SetupButton(
-                stringResource(if (model.importing) MR.strings.glass_setup_importing else MR.strings.glass_setup_import),
-                {
-                    try {
-                        // the same types as Settings › Dictionaries
-                        picker.launch(
-                            arrayOf(
-                                "application/zip",
-                                "application/x-zip-compressed",
-                                "application/x-zip",
-                                "application/x-compressed",
-                                "application/octet-stream",
-                            ),
-                        )
-                    } catch (_: ActivityNotFoundException) {
-                        context.toast(MR.strings.file_picker_error)
-                    }
-                },
-                enabled = !model.importing,
-                leading = "plus",
+    val pickZip: () -> Unit = {
+        try {
+            // the same types as Settings › Dictionaries
+            picker.launch(
+                arrayOf(
+                    "application/zip",
+                    "application/x-zip-compressed",
+                    "application/x-zip",
+                    "application/x-compressed",
+                    "application/octet-stream",
+                ),
             )
-            SetupButton(stringResource(MR.strings.glass_setup_not_now), model::skipDictionary, primary = false)
+        } catch (_: ActivityNotFoundException) {
+            context.toast(MR.strings.file_picker_error)
         }
-        val error = model.importError
-        Note(
-            when {
-                error != null -> stringResource(MR.strings.glass_setup_dictionary_failed, error)
-                model.dictionarySkipped -> stringResource(MR.strings.glass_setup_dictionary_skipped)
-                else -> stringResource(MR.strings.glass_setup_dictionary_note)
-            },
-        )
     }
+    val others by DictionaryDownloads.others.collectAsStateWithLifecycle()
+    val states = model.downloads
+    val busy = model.dictionaryDownloading
+    // canvas Dict-1: rows with switches, one Download pill; the pill's label follows the switches
+    DictionaryPanel(states, others, Modifier.width(520.dp)) { entry ->
+        if (busy) {
+            Status(stringResource(MR.strings.glass_dict_not_chosen))
+        } else {
+            val on = entry.id in model.picked
+            val label = stringResource(MR.strings.glass_dict_switch, entry.name)
+            GlassToggle(
+                on,
+                onCheckedChange = { model.picked = if (it) model.picked + entry.id else model.picked - entry.id },
+                modifier = Modifier.semantics { contentDescription = label },
+            )
+        }
+    }
+    val idle = RecommendedDictionaries.all.filter { states[it.id] == null }
+    val importing = if (model.importing) stringResource(MR.strings.glass_setup_importing) else null
+    if (!busy && idle.isNotEmpty()) {
+        val chosen = idle.filter { it.id in model.picked }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            SetupButton(
+                if (chosen.isEmpty()) {
+                    stringResource(MR.strings.glass_setup_dict_download_none)
+                } else {
+                    stringResource(MR.strings.glass_setup_dict_download, chosen.size, RecommendedDictionaries.totalMb(chosen))
+                },
+                model::downloadPicked,
+                enabled = chosen.isNotEmpty(),
+                leading = "download",
+            )
+            QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import), pickZip, enabled = !model.importing)
+            QuietButton(stringResource(MR.strings.glass_setup_not_now), model::skipDictionary)
+        }
+    } else {
+        QuietButton(importing ?: stringResource(MR.strings.glass_setup_dict_import_too), pickZip, enabled = !model.importing, leading = "plus")
+    }
+    val error = model.importError
+    when {
+        error != null -> Note(stringResource(MR.strings.glass_setup_dictionary_failed, error))
+        model.dictionarySkipped && model.dictionary == null && !busy -> Note(stringResource(MR.strings.glass_setup_dictionary_skipped))
+    }
+    Text(
+        stringResource(MR.strings.glass_setup_dict_licence, RecommendedDictionaries.names(RecommendedDictionaries.all.map { it.name })),
+        Modifier.width(520.dp),
+        color = Glass.secondary,
+        fontSize = Glass.caption,
+        lineHeight = 16.sp,
+    )
     Column(Modifier.width(520.dp)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Glass.line))
         Note(stringResource(MR.strings.glass_setup_dictionary_more), Modifier.padding(top = 8.dp))
@@ -280,7 +318,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         },
         listOfNotNull(model.storagePath, model.freeBytes?.let { Formatter.formatShortFileSize(context, it) + " free" }).joinToString(" · "),
         stringResource(MR.strings.glass_setup_allowed),
-        model.dictionary.orEmpty(),
+        if (model.dictionaryDownloading) stringResource(MR.strings.glass_setup_dict_downloading_row) else model.dictionaryLine,
     )
     val skipped = listOf(
         false,
@@ -319,6 +357,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
                 Text(
                     when {
                         ok[i] -> values[i]
+                        i == 4 && model.dictionaryDownloading -> values[i]
                         fix -> notDone
                         skipped[i] -> skippedText[i]
                         else -> notSet
@@ -397,6 +436,24 @@ private fun DoneCard(title: String, sub: String?) {
             Text(title, fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             sub?.let { Text(it, color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
+    }
+}
+
+/** Canvas Dict-1's quiet text button ("Import a .zip instead", "Not now"): no fill, no outline, 14sp. */
+@Composable
+private fun QuietButton(text: String, onClick: () -> Unit, enabled: Boolean = true, leading: String? = null) {
+    Row(
+        Modifier
+            .height(Glass.button)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val ink = if (enabled) Color.White else Glass.secondary
+        leading?.let { GlassIcon(it, size = 18.dp, tint = ink) }
+        Text(text, color = ink, fontSize = Glass.body, maxLines = 1)
     }
 }
 

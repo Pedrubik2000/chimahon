@@ -101,6 +101,7 @@ import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.PreferenceGroupHeader
 import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
+import eu.kanade.tachiyomi.data.dictionary.DictionaryImportMutex
 import eu.kanade.tachiyomi.data.dictionary.DictionaryUpdateJob
 import eu.kanade.tachiyomi.data.ocr.ModelDownloader
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -116,6 +117,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -2815,7 +2817,9 @@ internal suspend fun importDictionaryFromStream(
     inputStream: java.io.InputStream,
     activeProfile: chimahon.anki.AnkiProfile,
 ): Pair<String, Boolean> {
-    return withContext(Dispatchers.IO) {
+    // chimahon: one import at a time (setup, Settings, glass downloads, update job): the profile's
+    // dictionaryOrder below is read-modify-write and the temp names are millisecond-stamped
+    return DictionaryImportMutex.withLock { withContext(Dispatchers.IO) {
         val dictionariesDir = File(context.getExternalFilesDir(null), "dictionaries")
         Log.d(TAG, "importDictionaryFromStream: dictionariesDir=${dictionariesDir.absolutePath}")
 
@@ -2937,7 +2941,7 @@ internal suspend fun importDictionaryFromStream(
             if (tempZip.exists()) tempZip.delete()
             if (tempImportDir.exists()) tempImportDir.deleteRecursively()
         }
-    }
+    } }
 }
 
 internal fun openStreamWithFallback(context: Context, uri: Uri): java.io.InputStream? {

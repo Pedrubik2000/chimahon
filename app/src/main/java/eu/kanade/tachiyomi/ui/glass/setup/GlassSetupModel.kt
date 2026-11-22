@@ -19,6 +19,8 @@ import eu.kanade.presentation.more.settings.screen.getFileNameFromUri
 import eu.kanade.presentation.more.settings.screen.importDictionaryFromStream
 import eu.kanade.presentation.more.settings.screen.openStreamWithFallback
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.dictionary.DictionaryDownloads
+import eu.kanade.tachiyomi.data.dictionary.RecommendedDictionaries
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.ui.dictionary.DictionaryPreferences
@@ -106,6 +108,21 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
     var importError by mutableStateOf<String?>(null)
         private set
 
+    /** The usual dictionaries switched on (canvas Dict-1: on by default); kept across rotation with the model. */
+    var picked by mutableStateOf(RecommendedDictionaries.all.filter { it.onByDefault }.map { it.id }.toSet())
+
+    /** [DictionaryDownloads.states], app-scoped: the downloads go on when the setup is left. */
+    var downloads by mutableStateOf<Map<String, DictionaryDownloads.State>>(emptyMap())
+        private set
+
+    val dictionaryDownloading: Boolean get() = downloads.values.any(DictionaryDownloads::isActive)
+
+    /** "Jitendex, JMnedict and KANJIDIC" (the installed usual ones), else the newest folder's name. */
+    val dictionaryLine: String
+        get() = RecommendedDictionaries.names(
+            RecommendedDictionaries.all.filter { downloads[it.id] == DictionaryDownloads.State.Installed }.map { it.name },
+        ).ifEmpty { dictionary.orEmpty() }
+
     /** Step 0-4, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
     var step by mutableIntStateOf(
         if (fromSettings) {
@@ -140,6 +157,24 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
             merge(storagePreferences.baseStorageDirectory().changes().map { }, storageManager.changes).collect { measureStorage() }
         }
         screenModelScope.launch { dictionary = withContext(Dispatchers.IO) { installedDictionary() } }
+        DictionaryDownloads.refresh()
+        screenModelScope.launch {
+            var installed = emptySet<String>()
+            DictionaryDownloads.states.collect { s ->
+                downloads = s
+                // one folder scan per newly installed dictionary, not per progress step
+                val now = s.filterValues { it == DictionaryDownloads.State.Installed }.keys
+                if (now != installed) {
+                    installed = now
+                    dictionary = withContext(Dispatchers.IO) { installedDictionary() }
+                }
+            }
+        }
+    }
+
+    fun downloadPicked() {
+        DictionaryDownloads.start(RecommendedDictionaries.all.filter { it.id in picked })
+        dictionarySkipped = false
     }
 
     // Real-Debrid: done only after a check answered Premium, or (from Settings) the stored key unchanged
@@ -152,7 +187,8 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         1 -> realDebridDone
         2 -> storageOk
         3 -> notificationsAllowed || notificationsSkipped
-        4 -> dictionary != null || dictionarySkipped
+        // canvas Dict-1: Continue once one is installed, downloading or skipped
+        4 -> dictionary != null || dictionarySkipped || dictionaryDownloading
         else -> false
     }
 
@@ -223,6 +259,8 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
             }
             if (ok) {
                 dictionary = withContext(Dispatchers.IO) { installedDictionary() } ?: getFileNameFromUri(app, uri)
+                // the own-dictionary row (or a hand-imported Jitendex shown as installed)
+                DictionaryDownloads.refresh()
             } else {
                 importError = message
             }
