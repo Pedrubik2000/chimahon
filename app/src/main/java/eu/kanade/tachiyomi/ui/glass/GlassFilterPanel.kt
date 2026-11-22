@@ -61,7 +61,10 @@ fun GlassFilterScaffold(
             FilterSidebar(panel, headerAction, Modifier.padding(start = 100.dp).width(264.dp).fillMaxHeight())
             Box(Modifier.fillMaxSize().padding(start = 396.dp)) { content {} }
         } else {
-            Box(Modifier.fillMaxSize().padding(start = 108.dp)) { content { FilterSection(panel, headerAction) } }
+            // under 600dp it is a phone: no rail to clear
+            Box(Modifier.fillMaxSize().padding(start = if (maxWidth < 600.dp) 16.dp else 108.dp)) {
+                content { FilterSection(panel, headerAction) }
+            }
         }
     }
 }

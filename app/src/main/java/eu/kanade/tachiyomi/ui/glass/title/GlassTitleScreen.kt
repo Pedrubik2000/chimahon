@@ -73,6 +73,7 @@ import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.util.Screen
+import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.Coverage
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
@@ -343,7 +344,10 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         .background(Brush.verticalGradient(listOf(Glass.page.copy(alpha = 0.3f), Glass.page))),
                 )
             }
-            BoxWithConstraints(Modifier.fillMaxSize().padding(start = 108.dp, end = 32.dp)) {
+            val phone = !isTabletUi()
+            BoxWithConstraints(
+                Modifier.fillMaxSize().padding(start = if (phone) 16.dp else 108.dp, end = if (phone) 16.dp else 32.dp),
+            ) {
                 val grid = @Composable { modifier: Modifier, portrait: Boolean ->
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(68.dp),
@@ -380,7 +384,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     grid(Modifier.fillMaxSize(), true)
                 }
             }
-            GlassRail(
+            if (!phone) GlassRail(
                 active = "none",
                 onSelect = {
                     if (it == "settings") {

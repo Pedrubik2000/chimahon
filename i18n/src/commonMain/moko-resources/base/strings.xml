@@ -1131,7 +1131,6 @@
     <string name="glass_phone_here">%1$d/%2$d here</string>
     <string name="glass_phone_here_n">%1$d here</string>
     <string name="glass_phone_none_here">none here</string>
-    <string name="glass_phone_not_yet">This page is not built for phones yet.</string>
     <string name="glass_phone_from_anilist">from AniList</string>
     <string name="glass_phone_swipe_hint">Swipe right to add to Home, left for Not for me</string>
     <string name="glass_phone_adding">Adding %1$s to Home</string>
@@ -1317,7 +1316,7 @@
     <string name="pref_tablet_ui_mode">Tablet UI</string>
     <string name="pref_glass_ui">New look (tablet)</string>
     <string name="pref_glass_phone">New look on phones (in progress)</string>
-    <string name="pref_glass_phone_summary">Home and Discover are ready. Library, Downloads and Settings open the classic view for now.</string>
+    <string name="pref_glass_phone_summary">Home and Discover are made for phones. Library, Downloads and title pages are the tablet ones made narrow; Settings opens the classic settings.</string>
     <string name="pref_verbose_logging">Verbose logging</string>
     <string name="pref_verbose_logging_summary">Print verbose logs to system log (reduces app performance)</string>
     <string name="pref_debug_info">Debug info</string>

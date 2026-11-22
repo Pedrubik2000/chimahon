@@ -57,11 +57,13 @@ import coil3.compose.AsyncImage
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassPhoneBarRoom
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
+import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
 import eu.kanade.tachiyomi.data.coverage.Coverage
@@ -153,14 +155,15 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
     val wide = LocalConfiguration.current.screenWidthDp >= 900
     val aside: @Composable (Modifier) -> Unit = { m -> Aside(sourceNames.keys.toList(), sourceNames, m) }
 
+    val phone = !isTabletUi()
     Row(
-        Modifier.fillMaxSize().padding(start = 108.dp, top = 24.dp, end = 32.dp),
+        Modifier.fillMaxSize().padding(start = if (phone) 16.dp else 108.dp, top = 24.dp, end = if (phone) 16.dp else 32.dp),
         horizontalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         LazyColumn(
             Modifier.weight(1f).fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(bottom = if (phone) GlassPhoneBarRoom else 24.dp),
         ) {
             item {
                 Row(

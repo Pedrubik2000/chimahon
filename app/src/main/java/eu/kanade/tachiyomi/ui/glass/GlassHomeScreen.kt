@@ -51,6 +51,7 @@ import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
 import eu.kanade.tachiyomi.ui.glass.settings.glassSettingsSection
 import eu.kanade.tachiyomi.ui.glass.title.GlassTitleScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
+import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.util.system.openInBrowser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,17 +103,9 @@ object GlassHomeScreen : Screen() {
                     onSeeAll = { page = "library" },
                 )
                 page == "discover" -> GlassPhoneDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
-                // ponytail: Library, Downloads and Settings have no phone layout yet (Library waits for Pedro's pick)
-                else -> Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(
-                        GlassRailItems.first { it.first == page }.second,
-                        color = Color.White,
-                        fontSize = Glass.heading,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(stringResource(MR.strings.glass_phone_not_yet), color = Glass.secondary, fontSize = Glass.label)
-                    Pill(stringResource(MR.strings.glass_classic_view), onClick = { navigator.push(HomeScreen) })
-                }
+                // the tablet pages' own narrow layouts, with phone margins
+                page == "library" -> GlassLibraryPage(model, navigator)
+                page == "downloads" -> GlassDownloadsPage(model, navigator)
             }
             if (!phone) when (page) {
                 "home" -> GlassHomePage(model, navigator)
@@ -142,7 +135,7 @@ object GlassHomeScreen : Screen() {
                     when (action) {
                         ProblemAction.CHANGE_KEY -> {
                             glassSettingsSection.value = "sources"
-                            page = "settings"
+                            if (phone) navigator.push(SettingsScreen()) else page = "settings"
                             problemsOpen = false
                         }
                         ProblemAction.HIDE -> problemsModel.hide(p)
@@ -178,7 +171,8 @@ object GlassHomeScreen : Screen() {
                 GlassPhoneBar(
                     active = page,
                     onSelect = {
-                        page = it
+                        // ponytail: the glass Settings page is two panes; a phone gets the classic settings
+                        if (it == "settings") navigator.push(SettingsScreen()) else page = it
                         problemsOpen = false
                     },
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),

@@ -37,6 +37,8 @@ import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
+import eu.kanade.presentation.glass.GlassPhoneBarRoom
+import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.glass.FilterGroup
 import eu.kanade.tachiyomi.ui.glass.GlassFilterScaffold
 import eu.kanade.tachiyomi.ui.glass.GlassSearchField
@@ -71,6 +73,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
     val v = model.library.collectAsStateWithLifecycle().value ?: LibraryView()
     val shown = v.shown
     val set: (TitleFilters) -> Unit = { model.filters = it }
+    val phone = !isTabletUi()
 
     GlassFilterScaffold(
         panel = {
@@ -161,7 +164,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
         },
     ) { filters ->
         Column(
-            Modifier.fillMaxSize().padding(top = 24.dp, end = 32.dp),
+            Modifier.fillMaxSize().padding(top = 24.dp, end = if (phone) 16.dp else 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -177,10 +180,10 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
             filters()
             // Adaptive 120 + 18 gap: 6 columns at 1280dp landscape (852dp right of the sidebar), 5 in portrait
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(120.dp),
+                columns = if (phone) GridCells.Fixed(3) else GridCells.Adaptive(120.dp),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = if (phone) GlassPhoneBarRoom else 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (phone) 12.dp else 18.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 items(shown, key = { it.mediaId }, contentType = { 0 }) { t ->
