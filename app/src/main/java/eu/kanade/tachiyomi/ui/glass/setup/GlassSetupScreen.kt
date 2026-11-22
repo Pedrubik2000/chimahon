@@ -243,7 +243,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         lineHeight = 24.sp,
                     )
                     // the Dictionary step is the tallest: 24dp there so it needs no scroll on a landscape tablet
-                    Column(Modifier.padding(top = if (step == 4) 24.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.padding(top = if (step == 4) 12.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         when (step) {
                             0 -> AniListStep(model, signedIn, entries)
                             1 -> RealDebridStep(model)

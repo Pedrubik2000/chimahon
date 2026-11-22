@@ -117,7 +117,10 @@ object GlassHomeScreen : Screen() {
                             problemsOpen = false
                         }
                         ProblemAction.HIDE -> problemsModel.hide(p)
-                        ProblemAction.OPEN_TITLE -> p.mediaId?.let { navigator.push(GlassTitleScreen(it)) }
+                        ProblemAction.OPEN_TITLE -> p.mediaId?.let {
+                            problemsOpen = false // else it is still open when the title page is left
+                            navigator.push(GlassTitleScreen(it))
+                        }
                         ProblemAction.TRY_AGAIN -> p.mediaId?.let { id ->
                             // the Downloads card's Try again: cached coverage, else the title page fetches it
                             scope.launch {
