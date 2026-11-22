@@ -47,8 +47,9 @@ import tachiyomi.presentation.core.i18n.stringResource
 // Settings › Japanese, and the licences screen.
 
 /**
- * One panel: the person's own dictionaries (installed rows), then one row per [RecommendedDictionaries.all]. A row
- * with no state shows [idle] (the setup's switch, Settings' Download button). Scrolls inside when it does not fit.
+ * One panel: one row per [RecommendedDictionaries.all] then, when [others] is not empty, one summary row for the
+ * person's own dictionaries (Settings passes none: its classic list is on the same page). A row with no state shows
+ * [idle] (the setup's switch, Settings' Download button). At most 4 rows: no inner scroll.
  */
 @Composable
 internal fun DictionaryPanel(
@@ -57,30 +58,24 @@ internal fun DictionaryPanel(
     modifier: Modifier = Modifier,
     idle: @Composable (RecommendedDictionary) -> Unit,
 ) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .glassPanel(Glass.r16)
-            .heightIn(max = 336.dp)
-            .verticalScroll(rememberScrollState()),
-    ) {
-        others.forEachIndexed { i, name ->
+    Column(modifier.fillMaxWidth().glassPanel(Glass.r16)) {
+        RecommendedDictionaries.all.forEachIndexed { i, entry ->
             if (i > 0) Line()
+            DictionaryRow(entry, states[entry.id], idle)
+        }
+        RecommendedDictionaries.ownSummary(others)?.let { summary ->
+            Line()
             Row(
-                Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 20.dp),
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(name, fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(stringResource(MR.strings.glass_dict_own), color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
+                    Text(stringResource(MR.strings.glass_dict_own), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Installed()
             }
-        }
-        RecommendedDictionaries.all.forEachIndexed { i, entry ->
-            if (i > 0 || others.isNotEmpty()) Line()
-            DictionaryRow(entry, states[entry.id], idle)
         }
     }
 }
@@ -180,13 +175,15 @@ private fun Line() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(Glass.line))
 }
 
-/** Settings › Japanese › Usual dictionaries: the same rows, a Download button per row (queued one after another). */
+/**
+ * Settings › Japanese › Usual dictionaries: the usual rows only (the person's own are in "Imported dictionaries" on
+ * the same page), a Download button per row (queued one after another).
+ */
 @Composable
 internal fun UsualDictionariesSettings() {
     LaunchedEffect(Unit) { DictionaryDownloads.refresh() }
     val states by DictionaryDownloads.states.collectAsStateWithLifecycle()
-    val others by DictionaryDownloads.others.collectAsStateWithLifecycle()
-    DictionaryPanel(states, others, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { entry ->
+    DictionaryPanel(states, emptyList(), Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { entry ->
         SetupButton(
             stringResource(MR.strings.glass_dict_download),
             { DictionaryDownloads.start(listOf(entry)) },
@@ -208,10 +205,11 @@ class GlassDictionaryLicencesScreen : Screen() {
         val navigator = LocalNavigator.currentOrThrow
         GlassPage {
             Column(
+                // the full content width, as the glass Settings detail column (it fills; 80dp sides as the title)
                 Modifier
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 80.dp, end = 80.dp, top = 32.dp, bottom = 48.dp)
-                    .widthIn(max = 760.dp),
+                    .padding(start = 80.dp, end = 80.dp, top = 32.dp, bottom = 48.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Pill(stringResource(MR.strings.glass_back), onClick = { navigator.pop() }, icon = "chevLeft", small = true)

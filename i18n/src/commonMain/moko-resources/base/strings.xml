@@ -1025,7 +1025,7 @@
     <string name="glass_dict_failed_download">Could not download %1$s. Check the connection.</string>
     <string name="glass_dict_failed_install">Could not install %1$s: %2$s</string>
     <string name="glass_dict_try_again">Try again</string>
-    <string name="glass_dict_own">Your Yomitan dictionary</string>
+    <string name="glass_dict_own">Your own dictionaries</string>
     <string name="glass_dict_switch">Download %1$s</string>
     <string name="glass_dict_download">Download</string>
     <string name="glass_dict_usual">Usual dictionaries</string>

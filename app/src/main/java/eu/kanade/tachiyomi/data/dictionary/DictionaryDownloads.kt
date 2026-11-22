@@ -109,7 +109,8 @@ object DictionaryDownloads {
         scope.launch {
             val found = RecommendedDictionaries.scan(File(app.getExternalFilesDir(null), "dictionaries"))
             val ids = RecommendedDictionaries.installedIds(found)
-            _others.value = RecommendedDictionaries.others(found)
+            val order = Injekt.get<DictionaryPreferences>().profileStore.getActiveProfile().dictionaryOrder
+            _others.value = RecommendedDictionaries.others(found, order)
             _states.update { m ->
                 RecommendedDictionaries.all.mapNotNull { e ->
                     val s = m[e.id]

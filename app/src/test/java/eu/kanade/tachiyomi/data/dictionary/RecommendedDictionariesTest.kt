@@ -46,6 +46,30 @@ class RecommendedDictionariesTest {
     }
 
     @Test
+    fun `own dictionaries follow the profile order and leave the usual ones out`() {
+        val found = listOf(
+            Found("term", "Jitendex.org [2026-10-03]", null),
+            Found("term", "JMnedict [2026-11-22]", jmnedict.url),
+            Found("kanji", "KANJIDIC_english", kanjidic.url),
+            Found("term", "sankoku8-gpt-5.6-luna es-jp", null),
+            Found("term", "daijirin4-gpt-6-luna es-jp", null),
+            Found("frequency", "JPDB", null),
+        )
+        RecommendedDictionaries.others(found, listOf("daijirin4-gpt-6-luna es-jp", "Jitendex.org [2026-10-03]", "sankoku8-gpt-5.6-luna es-jp")) shouldBe
+            listOf("daijirin4-gpt-6-luna es-jp", "sankoku8-gpt-5.6-luna es-jp", "JPDB")
+    }
+
+    @Test
+    fun `own summary names two and counts the rest`() {
+        val names = (1..11).map { "d$it" }
+        RecommendedDictionaries.ownSummary(emptyList()) shouldBe null
+        RecommendedDictionaries.ownSummary(names.take(1)) shouldBe "d1"
+        RecommendedDictionaries.ownSummary(names.take(2)) shouldBe "d1 and d2"
+        RecommendedDictionaries.ownSummary(names.take(3)) shouldBe "d1, d2 and 1 more"
+        RecommendedDictionaries.ownSummary(names) shouldBe "d1, d2 and 9 more"
+    }
+
+    @Test
     fun `every entry has what the screens need`() {
         RecommendedDictionaries.all.map { it.id }.distinct().size shouldBe RecommendedDictionaries.all.size
         RecommendedDictionaries.all.forEach {

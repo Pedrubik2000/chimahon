@@ -108,9 +108,17 @@ object RecommendedDictionaries {
     fun installedIds(found: List<Found>): Set<String> =
         all.filter { e -> found.any { matches(e, it) } }.map { it.id }.toSet()
 
-    /** The person's own dictionaries (folder names), not one of [all]. */
-    fun others(found: List<Found>): List<String> =
+    /** The person's own dictionaries (folder names), not one of [all], in the profile's [order] (unknown ones last). */
+    fun others(found: List<Found>, order: List<String> = emptyList()): List<String> =
         found.filter { f -> all.none { matches(it, f) } }.map { it.folder }.distinct()
+            .sortedBy { order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }
+
+    /** The own-dictionaries row's line: "A", "A and B", "A, B and 9 more"; null for none (no row). */
+    fun ownSummary(own: List<String>): String? = when (own.size) {
+        0 -> null
+        1, 2 -> names(own)
+        else -> "${own[0]}, ${own[1]} and ${own.size - 2} more"
+    }
 
     fun scan(dictionariesDir: File): List<Found> =
         dictionariesDir.listFiles().orEmpty().filter { it.isDirectory }.flatMap { type ->
