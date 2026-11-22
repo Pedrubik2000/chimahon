@@ -1,0 +1,37 @@
+{
+ "total_hits": 10000,
+ "page": 1,
+ "per_page": 5,
+ "results": [
+  {
+   "record": {
+    "series_id": 4563152379,
+    "title": "Skip to Loafer",
+    "url": "https://www.mangaupdates.com/series/23gs6wr/skip-to-loafer",
+    "type": "Manga",
+    "year": "2018"
+   },
+   "hit_title": "スキップとローファー"
+  },
+  {
+   "record": {
+    "series_id": 20052156099,
+    "title": "Loafer Loafer",
+    "url": "https://www.mangaupdates.com/series/97mjao3/loafer-loafer",
+    "type": "Manga",
+    "year": "1995"
+   },
+   "hit_title": "ローファー・ローファー"
+  },
+  {
+   "record": {
+    "series_id": 64360284315,
+    "title": "Skip",
+    "url": "https://www.mangaupdates.com/series/tkeg97f/skip",
+    "type": "Manga",
+    "year": "1996"
+   },
+   "hit_title": "スキップ"
+  }
+ ]
+}
