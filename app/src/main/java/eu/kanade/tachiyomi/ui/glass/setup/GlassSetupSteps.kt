@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -122,6 +123,14 @@ internal fun RealDebridStep(model: GlassSetupModel) {
                 )
             } else if (model.realDebridDone) {
                 GlassIcon("check", size = 20.dp, modifier = Modifier.padding(end = 8.dp))
+            } else {
+                // empties the field; onKey also drops the rejected / not Premium line
+                Box(
+                    Modifier.size(48.dp).clip(CircleShape).clickable { model.onKey("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GlassIcon("close", size = 18.dp, tint = Glass.secondary, contentDescription = stringResource(MR.strings.glass_setup_clear_key))
+                }
             }
         }
         when (rd) {

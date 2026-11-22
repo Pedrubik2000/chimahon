@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,12 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -107,6 +113,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
         val step = model.step
         val isEnd = step == GlassSetupLogic.SUMMARY
         val missing = GlassSetupLogic.missing(model.facts)
+        val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         val names = listOf(
             stringResource(MR.strings.glass_setup_anilist),
             stringResource(MR.strings.glass_dl_rd),
@@ -118,8 +125,12 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
         GlassPage {
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 // portrait tablet: no room for the covers, the column keeps its width
-                if (maxWidth >= 1100.dp) {
-                    Covers(signedIn, entries, Modifier.align(Alignment.TopEnd))
+                val coversShown = maxWidth >= 1100.dp
+                // the left side ends 24dp before the covers (580 from the right edge), start 80
+                val leftWidth = maxWidth - 684.dp
+                if (coversShown) {
+                    // before sign-in the "covers show up here" line only on the AniList step
+                    Covers(signedIn, entries, emptyLine = signedIn || step == 0, modifier = Modifier.align(Alignment.TopEnd))
                 }
 
                 Box(
@@ -140,14 +151,22 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 ) {
                     names.forEachIndexed { i, n ->
                         val on = i == step
-                        val ok = model.done(i)
+                        val skipped = model.skipped(i)
+                        val ok = model.done(i) && !skipped
                         Column(
                             Modifier.width(112.dp).height(48.dp).clickable { model.step = i }.padding(top = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Box(
                                 Modifier.width(112.dp).height(4.dp).clip(CircleShape)
-                                    .background(if (on) Glass.ice else if (ok) Color.White else Glass.line),
+                                    .background(
+                                        when {
+                                            on -> Glass.ice
+                                            ok -> Color.White
+                                            skipped -> SkippedBar
+                                            else -> Glass.line
+                                        },
+                                    ),
                             )
                             Text(
                                 n,
@@ -162,9 +181,11 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
                 Column(
                     Modifier
-                        // padding, not offset: the column must end above the buttons to scroll there
-                        .padding(start = 80.dp, top = 136.dp, bottom = 140.dp)
-                        .width(520.dp)
+                        // above the keyboard (the activity is edge-to-edge), so the focused key field can scroll into view
+                        .imePadding()
+                        // padding, not offset: the column must end above the buttons to scroll there (behind the keyboard: no)
+                        .padding(start = 80.dp, top = 136.dp, bottom = if (imeOpen) 0.dp else 140.dp)
+                        .width(if (coversShown) leftWidth.coerceAtMost(520.dp) else 520.dp)
                         .verticalScroll(rememberScrollState()),
                 ) {
                     Box(
@@ -234,7 +255,8 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
                 // Back + Continue / Open Home
                 Row(
-                    Modifier.align(Alignment.BottomStart).padding(start = 80.dp, bottom = 64.dp),
+                    Modifier.align(Alignment.BottomStart).padding(start = 80.dp, bottom = 64.dp)
+                        .then(if (coversShown) Modifier.widthIn(max = leftWidth) else Modifier),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -265,7 +287,8 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         )
                         if (missing.isNotEmpty()) {
                             Row(
-                                Modifier.padding(start = 8.dp),
+                                // takes what the buttons leave and wraps there, never into the covers
+                                Modifier.weight(1f, fill = false).padding(start = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
@@ -282,12 +305,15 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
 private val StepIcons = listOf("person", "key", "folder", "bell", "book")
 
+/** A step left with "Not now": between done (white) and not started ([Glass.line]). */
+private val SkippedBar = Color.White.copy(alpha = 0.38f)
+
 private val CoverX = listOf(0, 138, 276, 414)
 private val CoverDy = listOf(0, 48, 16, 64)
 
 /** Right half: 8 quiet panels before sign-in, the person's covers (Reading first) after. Anchored to the right edge. */
 @Composable
-private fun Covers(signedIn: Boolean, entries: List<AniListLibrary.Entry>, modifier: Modifier) {
+private fun Covers(signedIn: Boolean, entries: List<AniListLibrary.Entry>, emptyLine: Boolean, modifier: Modifier) {
     val reading = entries.count { it.status == "CURRENT" }
     val planning = entries.count { it.status == "PLANNING" }
     val shown = (entries.filter { it.status == "CURRENT" } + entries.filter { it.status == "PLANNING" })
@@ -340,7 +366,7 @@ private fun Covers(signedIn: Boolean, entries: List<AniListLibrary.Entry>, modif
             if (on) {
                 GlassIcon("check", size = 18.dp, tint = Glass.ice)
                 Text(stringResource(MR.strings.glass_setup_covers_line, reading, planning), color = Glass.secondary, fontSize = Glass.body)
-            } else {
+            } else if (emptyLine) {
                 Text(stringResource(MR.strings.glass_setup_covers_empty), color = Glass.secondary, fontSize = Glass.body)
             }
         }

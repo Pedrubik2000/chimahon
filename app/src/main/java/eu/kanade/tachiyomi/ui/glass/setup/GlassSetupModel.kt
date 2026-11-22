@@ -156,6 +156,13 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         else -> false
     }
 
+    /** "Not now" on 3 or 4 and still not set: done for Continue, but not really done (dimmer bar). */
+    fun skipped(i: Int): Boolean = when (i) {
+        3 -> notificationsSkipped && !notificationsAllowed
+        4 -> dictionarySkipped && dictionary == null
+        else -> false
+    }
+
     val facts: GlassSetupLogic.Facts get() = GlassSetupLogic.Facts(done(0), done(1), done(2))
 
     fun onKey(text: String) {

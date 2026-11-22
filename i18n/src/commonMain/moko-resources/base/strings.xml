@@ -973,6 +973,7 @@
     <string name="glass_setup_api_key">API KEY</string>
     <string name="glass_setup_paste_hint">Paste your API key</string>
     <string name="glass_setup_paste">Paste</string>
+    <string name="glass_setup_clear_key">Clear the key</string>
     <string name="glass_setup_get_key">Get your key: real-debrid.com/apitoken</string>
     <string name="glass_setup_check">Check key</string>
     <string name="glass_setup_key_ok">Key accepted</string>
