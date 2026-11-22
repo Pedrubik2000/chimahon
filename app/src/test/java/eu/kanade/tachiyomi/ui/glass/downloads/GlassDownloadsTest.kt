@@ -14,6 +14,7 @@ class GlassDownloadsTest {
         vararg volumes: Int,
         reason: String? = null,
         missing: List<Int> = emptyList(),
+        delivered: List<Int> = emptyList(),
     ) = RealDebridQueue.Row(
         workId = UUID.randomUUID(),
         mediaId = mediaId,
@@ -27,6 +28,7 @@ class GlassDownloadsTest {
         reason = reason ?: if (state == State.FAILED) "not on Excnn" else null,
         servedBy = null,
         failures = emptyList(),
+        delivered = delivered,
         missing = missing,
     )
 
@@ -107,6 +109,25 @@ class GlassDownloadsTest {
         // failed, then done by a later job but not on the tablet: as the card's line, not failed
         val rows = listOf(row(1, State.FAILED, 2), row(1, State.DONE, 2))
         GlassDownloads.cells(2, read = 0, here = emptySet(), rows = rows) shouldBe listOf(Cell.NONE, Cell.NONE)
+    }
+
+    @Test
+    fun `a done job covers a failed volume only if it delivered it`() {
+        // MASHLE - the done 1-5 pack delivered only 3-5; the 1-4 fallback was a dead link
+        val done = listOf(
+            row(1, State.DONE, 1, 2, 3, 4, 5, delivered = listOf(3, 4, 5), missing = listOf(1, 2)),
+            row(1, State.DONE, 13, 14, 15, 16),
+            row(1, State.DONE, 17, 18),
+        )
+        val dead = row(1, State.FAILED, 1, 2, 3, 4, reason = "Vol. 1, 2, 3, 4 were not found; dead link: Rawxt")
+        val g = TitleGroup(1, done + dead)
+        g.failed shouldBe listOf(dead)
+        g.failedVolumes shouldBe listOf(1, 2)
+        GlassDownloads.group(done + dead).single().failed.isEmpty() shouldBe false
+        // newer builds name only the missing ones
+        TitleGroup(1, done + dead.copy(missing = listOf(1, 2))).failedVolumes shouldBe listOf(1, 2)
+        // a done row from before jobs reported what they delivered still covers what it was queued for
+        TitleGroup(1, listOf(row(1, State.DONE, 1, 2), dead)).failedVolumes shouldBe listOf(3, 4)
     }
 
     @Test

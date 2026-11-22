@@ -12,18 +12,25 @@ data class TitleGroup(val mediaId: Long?, val rows: List<RealDebridQueue.Row>) {
     val queued: List<RealDebridQueue.Row> get() = rows.filter { it.state == State.QUEUED }
     val active: Boolean get() = rows.any { it.state == State.RUNNING || it.state == State.QUEUED }
 
-    /** Failed rows (not cancelled) whose failed volumes no later job (queued, running or done) covers again. */
+    /** Volumes a job delivered or is still fetching: only these cover a failed volume. */
+    private val coveredVolumes: Set<Int> get() = rows.flatMap { GlassDownloads.coveredBy(it) }.toSet()
+
+    /** Failed rows (not cancelled) with a failed volume no job delivered or is fetching again. */
     val failed: List<RealDebridQueue.Row>
         get() {
-            val covered = rows.filter { it.state != State.FAILED }.flatMap { it.volumes }.toSet()
+            val covered = coveredVolumes
             return rows.filter {
                 val vols = GlassDownloads.failedOf(it)
                 it.state == State.FAILED && it.reason != RealDebridQueue.CANCELLED && (vols.isEmpty() || !vols.all { v -> v in covered })
             }
         }
 
-    /** Volumes to fetch again with "Try again": a pack's missing ones only. */
-    val failedVolumes: List<Int> get() = failed.flatMap { GlassDownloads.failedOf(it) }.distinct().sorted()
+    /** Volumes to fetch again with "Try again": a pack's missing ones not delivered or fetched since. */
+    val failedVolumes: List<Int>
+        get() {
+            val covered = coveredVolumes
+            return failed.flatMap { GlassDownloads.failedOf(it) }.filter { it !in covered }.distinct().sorted()
+        }
 }
 
 object GlassDownloads {
@@ -58,6 +65,16 @@ object GlassDownloads {
 
     /** A row's failed volumes: those its links did not hold, else all it was queued for. */
     fun failedOf(row: RealDebridQueue.Row): List<Int> = row.missing.ifEmpty { row.volumes }
+
+    /**
+     * The volumes a row covers: a queued or running job all it was queued for; a finished one what it delivered
+     * (a done row from before jobs reported it: queued for minus missing); a failed or cancelled one only what it delivered.
+     */
+    fun coveredBy(row: RealDebridQueue.Row): List<Int> = when (row.state) {
+        State.QUEUED, State.RUNNING -> row.volumes
+        State.DONE -> row.delivered.ifEmpty { row.volumes - row.missing.toSet() }
+        State.FAILED -> row.delivered
+    }
 
 
     /** Volumes queued or running jobs will actually add: a pack's volumes not on the tablet ([here]); no volumes = 1. */

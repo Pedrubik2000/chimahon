@@ -96,7 +96,6 @@ fun GlassHomePage(model: GlassTitlesModel, navigator: Navigator) {
 
 @Composable
 private fun Header(model: GlassTitlesModel, navigator: Navigator) {
-    val error by model.error.collectAsStateWithLifecycle()
     Row(
         Modifier.padding(start = 108.dp, top = 28.dp, end = 32.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -109,15 +108,7 @@ private fun Header(model: GlassTitlesModel, navigator: Navigator) {
         }
         // ponytail: way back to Novels/Anime/Dictionary until the new screens exist
         Pill(stringResource(MR.strings.glass_classic_view), onClick = { navigator.push(HomeScreen) }, small = true)
-        error?.let {
-            Text(
-                stringResource(MR.strings.glass_refresh_failed, it),
-                color = Glass.secondary,
-                fontSize = Glass.caption,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        // chimahon: a failed refresh is in the Needs attention panel (rail), not here
     }
 }
 
