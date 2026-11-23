@@ -604,7 +604,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 // only the files of the wanted volumes: the engine fetches just the pieces that are read
                 val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
                 // loose chapter folders or chapter archives: known before a byte is fetched
-                if (wanted.isNotEmpty() && VolumeLabels.areChapters(files.map { it.path })) throw ChaptersException()
+                if (wanted.isNotEmpty() && VolumeLabels.areChapters(files.map { it.path })) {
+                    logcat(LogPriority.WARN) { "Torrent read as chapters: ${files.take(12).map { it.path }}" }
+                    throw ChaptersException()
+                }
                 val paths = TorrentDownload.wantedFiles(files.map { it.path }, wanted).toSet()
                 if (paths.isEmpty()) error("This torrent does not have vol. ${wanted.sorted().joinToString()}")
                 // the first file has no id in the engine's answer: it is 0
@@ -871,6 +874,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
             }
             if (VolumeLabels.areChapters(names)) {
+                // the names that decided it: the file is deleted next, so this line is all that is left to check
+                logcat(LogPriority.WARN) { "Real-Debrid import: ${bundle.name} read as chapters: ${names.take(12)}" }
                 bundle.delete()
                 throw ChaptersException()
             }
