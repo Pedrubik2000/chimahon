@@ -70,7 +70,7 @@ class TorrentDownloadTest {
             "Masshuru v01-12 DL-Raw.Net/Masshuru v01-03s.rar" to 269L,
         )
         TorrentDownload.plan(perVolume, setOf(1, 2)) shouldBe
-            TorrentDownload.Plan(listOf("Masshuru v01-03s.rar"), 269L, chapters = false, everything = false)
+            TorrentDownload.Plan(listOf("Masshuru v01-03s.rar"), 269L, chapters = false, everything = false, scans = true)
         // one archive named after the whole run: its name has numbers, so it is picked, all of it
         TorrentDownload.plan(listOf("AW.TO_Masshuru vol 01-18.rar" to 2046L), setOf(1, 2)) shouldBe
             TorrentDownload.Plan(listOf("AW.TO_Masshuru vol 01-18.rar"), 2046L, chapters = false, everything = false)
@@ -78,6 +78,8 @@ class TorrentDownloadTest {
         TorrentDownload.plan(listOf("Title complete.zip" to 900L), setOf(1)).everything shouldBe true
         TorrentDownload.plan(listOf("T/Raw Chapter 001/001.jpg" to 1L, "T/Raw Chapter 002/001.jpg" to 1L), setOf(1)).chapters shouldBe true
         TorrentDownload.plan(perVolume, setOf(15)).fetched shouldBe emptyList()
+        // the mark counts only on a file that would be fetched
+        TorrentDownload.plan(perVolume, setOf(11)).let { it.fetched.isNotEmpty() to it.scans } shouldBe (true to false)
     }
 
     @Test

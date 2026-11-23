@@ -60,6 +60,8 @@ data class Coverage(
         /** A torrent's: people sharing it when the source was read, and its size as the source writes it. */
         val seeders: Int? = null,
         val size: String? = null,
+        /** Its name carries the "s" mark ([VolumeLabels.scans]): probably chapter folders, which are refused. */
+        val scans: Boolean = false,
     )
 }
 
@@ -250,13 +252,14 @@ object CoverageMatch {
 
     /**
      * Volume -> link from (chapter name, url) pairs, newest first as sources list them. The link covering the fewest
-     * volumes wins a volume (a single volume over a batch), then the first listed.
+     * volumes wins a volume (a single volume over a batch), then the first listed; a file with the "s" mark
+     * ([VolumeLabels.scans]: chapter folders, refused by the import) only where nothing else has the volume.
      */
     fun volumes(chapters: List<Pair<String, String>>): Map<Int, String> {
         val result = sortedMapOf<Int, String>()
-        chapters.map { (name, url) -> VolumeLabels.volumes(name) to url }
+        chapters.map { (name, url) -> Triple(VolumeLabels.volumes(name), url, VolumeLabels.scans(name)) }
             .filter { it.first.isNotEmpty() }
-            .sortedBy { it.first.size }
+            .sortedWith(compareBy({ it.third }, { it.first.size }))
             .forEach { (vols, url) -> vols.forEach { result.putIfAbsent(it, url) } }
         return result
     }
@@ -265,7 +268,7 @@ object CoverageMatch {
     fun files(posts: List<RealDebridSource.PostFile>): List<Coverage.File> =
         posts.mapNotNull { p ->
             VolumeLabels.volumes(p.label).takeIf { it.isNotEmpty() && p.links.isNotEmpty() }
-                ?.let { Coverage.File(it.sorted(), p.links, p.seeders, p.size) }
+                ?.let { Coverage.File(it.sorted(), p.links, p.seeders, p.size, VolumeLabels.scans(p.label)) }
         }
 
     /**
@@ -286,11 +289,16 @@ object CoverageMatch {
     fun ordered(coverages: Collection<Coverage>, order: List<Long>): List<Coverage> =
         coverages.sortedBy { c -> order.indexOf(c.sourceId).let { if (it < 0) Int.MAX_VALUE else it } }
 
-    /** (source id, link) for one volume, in source order, without the same link twice. First = the one to try. */
+    /**
+     * (source id, link) for one volume, in source order, without the same link twice; links of a file with the
+     * "s" mark ([Coverage.File.scans]) after all others. First = the one to try.
+     */
     fun links(volume: Int, inOrder: List<Coverage>): List<Pair<Long, String>> =
         inOrder.filter { it.state == Coverage.State.FOUND }
-            .mapNotNull { c -> c.volumes[volume]?.let { c.sourceId to it } }
+            .mapNotNull { c -> c.volumes[volume]?.let { l -> Triple(c.sourceId, l, c.files.any { it.scans && l in it.links }) } }
             .distinctBy { it.second }
+            .sortedBy { it.third } // stable: the source order stays inside each group
+            .map { it.first to it.second }
 
     /** Volume -> the source that gives it first, given the order. */
     fun firstSource(inOrder: List<Coverage>): Map<Int, Long> {

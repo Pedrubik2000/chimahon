@@ -60,18 +60,28 @@ object TorrentDownload {
      * [bytes] for the [wanted] volumes. [chapters]: the names are chapters, not volumes (nothing would be added).
      * [everything]: every file is fetched although the torrent has more volumes than wanted, because its names
      * do not say which file holds which volume (one archive: what is inside shows only after the download).
+     * [scans]: a fetched file's name has the "s" mark ([VolumeLabels.scans]): probably chapters inside, which the
+     * import refuses after the download.
      */
-    data class Plan(val fetched: List<String>, val bytes: Long, val chapters: Boolean, val everything: Boolean)
+    data class Plan(
+        val fetched: List<String>,
+        val bytes: Long,
+        val chapters: Boolean,
+        val everything: Boolean,
+        val scans: Boolean = false,
+    )
 
     fun plan(files: List<Pair<String, Long>>, wanted: Set<Int>): Plan {
         val paths = files.map { it.first }
         val fetched = wantedFiles(paths, wanted).toSet()
+        val names = paths.filter { it in fetched }.map { it.substringAfterLast('/') }
         return Plan(
-            fetched = paths.filter { it in fetched }.map { it.substringAfterLast('/') },
+            fetched = names,
             bytes = files.filter { it.first in fetched }.sumOf { it.second },
             chapters = VolumeLabels.areChapters(paths),
             everything = wanted.isNotEmpty() && fetched.size == paths.size &&
                 paths.all { VolumeLabels.volumes(it.substringAfterLast('/')).isEmpty() },
+            scans = names.any { VolumeLabels.scans(it) },
         )
     }
 

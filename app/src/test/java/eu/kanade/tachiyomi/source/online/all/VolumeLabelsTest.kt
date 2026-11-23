@@ -64,6 +64,14 @@ class VolumeLabelsTest {
     }
 
     @Test
+    fun `the s mark on a volume number`() {
+        listOf("Masshuru_v01-03s", "Masshuru v04s.zip", "MASHLE_01s-05.rar", "13s-16s+", "20-21s", "Masshuru v17-18s.rar (342.5 MB)")
+            .filter { !VolumeLabels.scans(it) } shouldBe emptyList()
+        listOf("Masshuru v05", "01-02b", "06w-08w", "Draft_King_27.rar (138.86 MB)", "Vols 1-3", "第01-27巻")
+            .filter { VolumeLabels.scans(it) } shouldBe emptyList()
+    }
+
+    @Test
     fun `shapes`() {
         v("04-06") shouldBe setOf(4, 5, 6)
         v("01-02b") shouldBe setOf(1, 2)

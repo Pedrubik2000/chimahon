@@ -337,7 +337,11 @@ private fun Notice(model: TorrentModel) {
                         if (plan.fetched.size > 3) "\n" + stringResource(MR.strings.glass_torrent_more_files, plan.fetched.size - 3) else "",
                 )
                 // one archive: its name may promise volumes and hold chapters; the import refuses it then
-                if (plan.everything || plan.fetched.size == 1) Dim(stringResource(MR.strings.glass_torrent_one_file))
+                if (plan.scans) {
+                    Warning(stringResource(MR.strings.glass_torrent_scans))
+                } else if (plan.everything || plan.fetched.size == 1) {
+                    Dim(stringResource(MR.strings.glass_torrent_one_file))
+                }
             }
         }
     }

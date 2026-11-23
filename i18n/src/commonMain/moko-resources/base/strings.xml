@@ -1153,6 +1153,7 @@
     <string name="glass_torrent_will_fetch">%1$s</string>
     <string name="glass_torrent_more_files">and %1$d more files</string>
     <string name="glass_torrent_one_file">One file: what is inside shows only after the download. If it holds chapters instead of volumes, nothing is added.</string>
+    <string name="glass_torrent_scans">A file name has the “s” mark (like v01-03s). Such files held chapters, not volumes, so far: it will probably download and then add nothing.</string>
     <string name="glass_torrent_is_chapters">This torrent holds chapters, not volumes. Pick another one.</string>
     <string name="glass_torrent_no_volume">This torrent does not have vol. %1$s. Pick another one.</string>
     <string name="glass_torrent_no_answer">Nobody answered yet, so what it holds is not known. It may not start.</string>

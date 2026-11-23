@@ -7,9 +7,14 @@ object ManualDownload {
 
     /**
      * One file to get in the browser: [link] and the volumes the source says it holds; [mirrors] = the same file on
-     * other hosters, to fall back on when [link] is gone ([alive]).
+     * other hosters, to fall back on when [link] is gone ([alive]). [scans]: see [Coverage.File.scans].
      */
-    data class File(val link: String, val volumes: List<Int>, val mirrors: List<String> = emptyList())
+    data class File(
+        val link: String,
+        val volumes: List<Int>,
+        val mirrors: List<String> = emptyList(),
+        val scans: Boolean = false,
+    )
 
     /**
      * One way to get the wanted volumes from one source (a source gives up to two: its smallest files, and its
@@ -27,7 +32,8 @@ object ManualDownload {
 
     /**
      * Best first: options adding all [wanted] before partial ones, partial ones adding more first, then options with
-     * no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
+     * no file marked [File.scans] (the import refuses those; a source uses one only where it has nothing else),
+     * then options with no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
      * then least [Option.extra] + [Option.alreadyHere], then the order of [coverages]. No sizes are known, none guessed.
      * Each file is on its first hoster that is not [slow].
      */
@@ -41,7 +47,7 @@ object ManualDownload {
             val files = known.filter { f -> f.volumes.any { it in want } }.mapNotNull { f ->
                 // magnets wait for torrent support
                 val links = f.links.filterNot { it.startsWith("magnet:") }.sortedBy { slow(it) }
-                links.firstOrNull()?.let { File(it, f.volumes, links.drop(1)) }
+                links.firstOrNull()?.let { File(it, f.volumes, links.drop(1), f.scans) }
             }.distinctBy { it.link }
             listOf(smallest(files, want), biggest(files, want)).filter { it.isNotEmpty() }.distinct().map { chosen ->
                 val all = chosen.flatMap { it.volumes }.toSet()
@@ -60,20 +66,24 @@ object ManualDownload {
     // sortedWith is stable: ties keep the order of coverages. adds is part of wanted, so "most adds" puts the
     // options adding everything first.
     private val order = compareByDescending<Option> { it.adds.size }
+        .thenBy { o -> o.files.any { it.scans } }
         .thenBy { o -> o.files.any { slow(it.link) } }.thenBy { it.files.size }
         .thenBy { it.extra.size + it.alreadyHere.size }
 
-    /** Per wanted volume the file holding the fewest volumes (the first listed on a tie). */
-    private fun smallest(files: List<File>, want: Set<Int>): List<File> =
-        want.sorted().mapNotNull { v -> files.filter { v in it.volumes }.minByOrNull { it.volumes.size } }.distinct()
+    /** Per wanted volume the file holding the fewest volumes (the first listed on a tie), one not [File.scans] first. */
+    private fun smallest(files: List<File>, want: Set<Int>): List<File> = want.sorted().mapNotNull { v ->
+        files.filter { v in it.volumes }.minWithOrNull(compareBy<File> { it.scans }.thenBy { it.volumes.size })
+    }.distinct()
 
-    /** Fewest files: again and again the file holding the most still-missing wanted volumes (the smaller on a tie). */
+    /** Fewest files: again and again the file holding the most still-missing wanted volumes (one not
+     * [File.scans], then the smaller, on a tie). */
     private fun biggest(files: List<File>, want: Set<Int>): List<File> {
         val left = want.toMutableSet()
         val chosen = mutableListOf<File>()
         while (left.isNotEmpty()) {
             val best = files.maxWithOrNull(
-                compareBy<File> { f -> f.volumes.count { it in left } }.thenByDescending { it.volumes.size },
+                compareBy<File> { f -> f.volumes.count { it in left } }.thenBy { !it.scans }
+                    .thenByDescending { it.volumes.size },
             )?.takeIf { f -> f.volumes.any { it in left } } ?: break
             chosen += best
             left -= best.volumes.toSet()

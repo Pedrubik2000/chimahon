@@ -35,6 +35,20 @@ class SourceCoverageTest {
     }
 
     @Test
+    fun `a file with the s mark is the last choice for Real-Debrid too`() {
+        // inside one source: the unmarked pack wins although the marked file is smaller
+        CoverageMatch.volumes(listOf("Title_v01-02s" to "s", "Title_v01-05" to "p", "Title_v06s" to "only")) shouldBe
+            mapOf(1 to "p", 2 to "p", 3 to "p", 4 to "p", 5 to "p", 6 to "only")
+        // across sources: the first source's link is of a marked file, so the second source's goes first
+        val marked = Coverage(
+            1, "A", Coverage.State.FOUND, volumes = mapOf(1 to "s"),
+            files = listOf(Coverage.File(listOf(1, 2, 3), listOf("s"), scans = true)),
+        )
+        val plain = Coverage(2, "B", Coverage.State.FOUND, volumes = mapOf(1 to "p"))
+        CoverageMatch.links(1, listOf(marked, plain)) shouldBe listOf(2L to "p", 1L to "s")
+    }
+
+    @Test
     fun `volumes from chapters, single files before batches`() {
         val volumes = CoverageMatch.volumes(
             listOf(

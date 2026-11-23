@@ -34,6 +34,23 @@ class ManualDownloadTest {
         Coverage(id, "S$id", State.FOUND, files = f.map { Coverage.File(it.first, it.second) })
 
     @Test
+    fun `a file with the s mark comes after any other way that adds as much`() {
+        fun c(id: Long, scans: Boolean, link: String) =
+            Coverage(id, "S$id", State.FOUND, files = listOf(Coverage.File(listOf(1, 2, 3), listOf(link), scans = scans)))
+        val marked = c(1, true, "https://sakurafile.com/a")
+        val rapidgator = c(2, false, "https://rapidgator.net/file/b")
+        val partial = cov(3, 1 to "https://katfile.com/c")
+        ManualDownload.options(listOf(1, 2), emptySet(), listOf(marked, rapidgator, partial)).map { it.sourceId } shouldBe
+            listOf(2L, 1L, 3L)
+        // inside one source: the unmarked file wins the volume it also has
+        val both = Coverage(
+            4, "S4", State.FOUND,
+            files = listOf(Coverage.File(listOf(1), listOf("s"), scans = true), Coverage.File(listOf(1, 2), listOf("p"))),
+        )
+        ManualDownload.options(listOf(1), emptySet(), listOf(both)).first().files.map { it.link } shouldBe listOf("p")
+    }
+
+    @Test
     fun `a source with packs and single volumes gives both ways, the pack first`() {
         val c = files(1, listOf(1) to listOf("a"), listOf(2) to listOf("b"), listOf(1, 2, 3) to listOf("p"))
         val options = ManualDownload.options(listOf(1, 2), emptySet(), listOf(c))

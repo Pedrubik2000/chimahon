@@ -31,6 +31,9 @@ object VolumeLabels {
     )
     private val separators = Regex("""[\s　_,]+""")
 
+    // a volume number with the uploaders' "s" mark: "v01-03s", "v04s", "01s-05", "13s-16s+", "20-21s"
+    private val scanMark = Regex("""(?<![a-z\d])(?:v|vol\.?)?\d{1,3}(?:-\d{1,3})?s(?![a-z])""", RegexOption.IGNORE_CASE)
+
     private val chapterWord = Regex("""(?<![a-z])(?:chapter|chap\.?|ch\.?)[\s_.-]*\d|第\s*\d+\s*話|\d\s*話""", RegexOption.IGNORE_CASE)
     private val pageFile = Regex("""\.(?:jpe?g|png|webp|avif|gif|bmp)$""", RegexOption.IGNORE_CASE)
 
@@ -46,6 +49,13 @@ object VolumeLabels {
         }.filter { it.isNotEmpty() }.distinct()
         return units.isNotEmpty() && units.count { chapterWord.containsMatchIn(halfWidthDigits(it)) } * 2 >= units.size
     }
+
+    /**
+     * Does [label] mark its volumes with an "s" ("Masshuru_v01-03s", "MASHLE_01s-05")? Seen 2026-11-23: such a
+     * file is the volumes cut into chapter folders, which the import refuses ([areChapters]).
+     */
+    // ponytail: one uploader's habit, proven on one file. If an "s" file ever imports as volumes, drop this.
+    fun scans(label: String): Boolean = scanMark.containsMatchIn(noise.replace(halfWidthDigits(label), " "))
 
     fun volumes(label: String): Set<Int> {
         val s = noise.replace(halfWidthDigits(label), " ")
