@@ -23,7 +23,7 @@ How it works:
 - Open a title, tap a volume, and it is fetched through Real-Debrid from the source that has it.
 - Volumes land in plain series folders on the tablet.
 
-The new screens are for tablets. The classic Chimahon screens stay one tap away (Settings › About › Classic view), and phones keep the classic look.
+The new screens are made for tablets. Phones can switch them on in Settings › Appearance › *New look on phones* (still in progress); otherwise they keep the classic look. The classic Chimahon screens stay one tap away (Settings › About › Classic view).
 
 ## 🏠 Home and Library
 
@@ -57,11 +57,25 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/title-notfound.jpg" alt="Title page: volumes no source could deliver are marked Not found" width="49%" />
 </p>
 
-- Every **source** shows which volumes it holds, as a bar. Sources so far: X3DL, Excnn, Rawxt, Manga Zone, BsZip, A-Z Manga and Nyaa, all through Real-Debrid.
+- Every **source** shows which volumes it holds, as a bar. Sources so far: X3DL, Excnn, Rawxt, Manga Zone, BsZip, A-Z Manga and Nyaa through Real-Debrid, and Manga Zip for downloads by hand.
 - Tap a volume and the app says **what will be added** before anything is fetched. A bigger pack or a torrent is never started without asking.
 - When a link is dead, the next source is tried, and the source's bar is corrected.
 - A volume no source could deliver is marked **Not found**, with the reason above the grid.
 - Covers of volumes you have not read can be blurred.
+
+## 📱 Phones, torrents and downloads by hand
+
+<p align="center">
+  <img src="./.github/readme-images/glass/phone-library.jpg" alt="Phone: the Library with how many volumes of each title are on the device" width="24%" />
+  <img src="./.github/readme-images/glass/phone-title.jpg" alt="Phone: a title page with its volume grid" width="24%" />
+  <img src="./.github/readme-images/glass/by-hand.jpg" alt="Download by hand: which file of which source has the volume, the quick hoster suggested first" width="24%" />
+  <img src="./.github/readme-images/glass/torrent.jpg" alt="Download as a torrent: the torrents that hold the volume, with their size and how many people share them" width="24%" />
+</p>
+
+- **Phones** (optional, still in progress): Home and Discover are made for phones; Library, Downloads and title pages are the tablet ones made narrow. Turn it on in Settings › Appearance.
+- **Download by hand**, without Real-Debrid: the app lists which file of which source holds the volume, opens the hoster's page in your browser, and imports the file you downloaded. A hoster that is quick without an account is suggested first, and dead links are checked before you wait for nothing.
+- **Torrents on the device**, without Real-Debrid: a Nyaa torrent is downloaded by the app's own engine. Before it starts, the app opens the torrent and shows what it will download and how big it is, and only the files of the volumes you asked for are fetched. The people sharing a torrent can see your IP address while it runs; the app says so first.
+- A file that holds **chapters instead of volumes** is refused and nothing is added. Files whose name suggests that are flagged and offered last.
 
 ## ⬇️ Downloads and problems
 
