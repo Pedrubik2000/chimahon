@@ -63,6 +63,7 @@ import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
+import eu.kanade.presentation.util.glassDevice
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.animedownload.AnimeDownloadManager
@@ -176,12 +177,18 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                         Modifier.weight(1f),
                         fontSize = Glass.title,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (active.isNotEmpty()) {
-                        Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
+                        // phone: the summary goes under the heading, or it squeezes "Downloads" to a letter per line
+                        if (!phone) Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
                         Pill(stringResource(MR.strings.glass_dl_cancel_all), onClick = { confirmCancel = true }, icon = "close")
                     }
                 }
+            }
+            if (phone && active.isNotEmpty()) {
+                item { Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 2, overflow = TextOverflow.Ellipsis) }
             }
             if (groups.isEmpty()) {
                 item {
@@ -304,6 +311,8 @@ private fun TitleCard(
                     .then(if (title != null && group.mediaId != null) Modifier.clickable { onOpen(title) } else Modifier),
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val phone = !isTabletUi()
+                val stateLine = if (expanded) null else titleLine(group, sourceNames, here)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         name,
@@ -317,8 +326,8 @@ private fun TitleCard(
                         running?.let { r -> (r.servedBy ?: r.sourceId)?.let(sourceNames::get) }?.let {
                             Text(stringResource(MR.strings.glass_dl_from, it), color = Glass.secondary, fontSize = Glass.caption)
                         }
-                    } else {
-                        val (line, color) = titleLine(group, sourceNames, here)
+                    } else if (!phone && stateLine != null) {
+                        val (line, color) = stateLine
                         Text(
                             line,
                             // shares the row with the name and ellipsizes; clear of the Try again pill
@@ -330,6 +339,10 @@ private fun TitleCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+                // phone: the state line goes under the name, so the name keeps the row's whole width
+                if (phone && stateLine != null) {
+                    Text(stateLine.first, color = stateLine.second, fontSize = Glass.caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 if (group.mediaId != null) {
                     val count = GlassDownloads.volumeCount(
@@ -390,9 +403,11 @@ private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolea
         Text(
             if (volumes.isEmpty()) "—" else stringResource(MR.strings.glass_dl_vol, CoverageMatch.ranges(volumes)),
             // ponytail: one width so every row's text starts at the same x; a longer label still pushes it
-            Modifier.widthIn(min = 88.dp),
+            Modifier.widthIn(min = 88.dp, max = 140.dp),
             fontSize = Glass.body,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val fraction = when {
@@ -402,7 +417,7 @@ private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolea
             }
             Meter(fraction, color = Glass.ice)
             Text(
-                if (gone) stringResource(MR.strings.glass_dl_not_on_tablet) else rowLine(row, context),
+                if (gone) stringResource(MR.strings.glass_dl_not_on_tablet, glassDevice()) else rowLine(row, context),
                 color = if (row.state == State.FAILED) Color.White else Glass.secondary,
                 fontSize = Glass.caption,
                 maxLines = 2,
@@ -587,7 +602,7 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
             SourceCard(sourceNames[id].orEmpty(), stringResource(if (on) MR.strings.glass_dl_on else MR.strings.glass_dl_off), on)
         }
 
-        Label(stringResource(MR.strings.glass_on_tablet), Modifier.padding(top = 12.dp))
+        Label(stringResource(MR.strings.glass_on_tablet, glassDevice().uppercase()), Modifier.padding(top = 12.dp))
         Column(
             Modifier.fillMaxWidth().glassPanel(Glass.r12).padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -628,7 +643,7 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
         Label(stringResource(MR.strings.glass_dl_key), Modifier.padding(top = 12.dp))
         val key = listOf(
             Cell.READ to stringResource(MR.strings.glass_dl_key_read),
-            Cell.HERE to stringResource(MR.strings.glass_dl_key_here),
+            Cell.HERE to stringResource(MR.strings.glass_dl_key_here, glassDevice()),
             Cell.DOWNLOADING to stringResource(MR.strings.glass_dl_key_downloading),
             Cell.QUEUED to stringResource(MR.strings.glass_dl_queued),
             Cell.NONE to stringResource(MR.strings.glass_dl_key_none),

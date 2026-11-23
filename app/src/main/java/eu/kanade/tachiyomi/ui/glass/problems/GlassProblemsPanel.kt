@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Pill
+import eu.kanade.presentation.util.glassDevice
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -175,8 +176,8 @@ private fun detail(p: Problem): String? = when (p.kind) {
     ProblemKind.RD_NOT_PREMIUM -> stringResource(MR.strings.glass_problems_rd_free_detail)
     ProblemKind.DOWNLOAD_FAILED -> p.detail
     // the error's own text stays on Home's header line
-    ProblemKind.ANILIST_OFFLINE -> stringResource(MR.strings.glass_problems_offline_detail)
-    ProblemKind.ANILIST_SIGNED_OUT -> stringResource(MR.strings.glass_problems_signed_out_detail)
+    ProblemKind.ANILIST_OFFLINE -> stringResource(MR.strings.glass_problems_offline_detail, glassDevice())
+    ProblemKind.ANILIST_SIGNED_OUT -> stringResource(MR.strings.glass_problems_signed_out_detail, glassDevice())
 }
 
 @Composable

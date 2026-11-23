@@ -37,7 +37,7 @@ import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
-import eu.kanade.presentation.glass.GlassPhoneBarRoom
+import eu.kanade.presentation.util.glassDevice
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.ui.glass.FilterGroup
 import eu.kanade.tachiyomi.ui.glass.GlassFilterScaffold
@@ -64,6 +64,10 @@ import tachiyomi.presentation.core.i18n.stringResource
  */
 @Composable
 fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
+    if (!isTabletUi()) {
+        GlassPhoneLibraryPage(model, navigator)
+        return
+    }
     val titles by model.titles.collectAsStateWithLifecycle()
     val all = titles.orEmpty()
     val query = model.query
@@ -73,7 +77,6 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
     val v = model.library.collectAsStateWithLifecycle().value ?: LibraryView()
     val shown = v.shown
     val set: (TitleFilters) -> Unit = { model.filters = it }
-    val phone = !isTabletUi()
 
     GlassFilterScaffold(
         panel = {
@@ -87,7 +90,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     )
                 }
             }
-            FilterGroup(stringResource(MR.strings.glass_on_tablet)) {
+            FilterGroup(stringResource(MR.strings.glass_on_tablet, glassDevice().uppercase())) {
                 Here.entries.forEach { h ->
                     GlassChip(
                         hereLabel(h),
@@ -102,47 +105,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     GlassChip(sortLabel(s), selected = sort == s, onClick = { model.sort = s })
                 }
             }
-            if (v.genres.isNotEmpty()) {
-                FilterGroup(stringResource(MR.strings.glass_discover_genres)) {
-                    v.genres.forEach { (g, n) ->
-                        GlassChip(g, selected = g in f.genres, onClick = { set(f.toggleGenre(g)) }, count = n.toString())
-                    }
-                }
-            }
-            FilterGroup(stringResource(MR.strings.glass_discover_status)) {
-                listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
-                    .forEach { (s, label) ->
-                        GlassChip(
-                            stringResource(label),
-                            selected = f.published == s,
-                            onClick = { set(f.copy(published = if (f.published == s) null else s)) },
-                            count = (v.publishedCounts[s] ?: 0).toString(),
-                        )
-                    }
-            }
-            FilterGroup(stringResource(MR.strings.glass_discover_length)) {
-                Length.entries.forEach { l ->
-                    GlassChip(
-                        stringResource(lengthLabel(l)),
-                        selected = f.length == l,
-                        onClick = { set(f.copy(length = if (f.length == l) null else l)) },
-                        count = (v.lengthCounts[l] ?: 0).toString(),
-                    )
-                }
-            }
-            if (v.tags.isNotEmpty()) {
-                FilterGroup(stringResource(MR.strings.glass_discover_tags)) {
-                    v.tags.forEach { (name, n) ->
-                        val state = when (name) {
-                            in f.tagsIn -> TagState.IN
-                            in f.tagsOut -> TagState.OUT
-                            else -> TagState.OFF
-                        }
-                        TagChip(name, state, n) { set(f.cycleTag(name)) }
-                    }
-                }
-                Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
-            }
+            LibraryMoreFilters(v, f, set)
         },
         // next to the "Filters" heading: the panel is long now
         headerAction = {
@@ -164,7 +127,7 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
         },
     ) { filters ->
         Column(
-            Modifier.fillMaxSize().padding(top = 24.dp, end = if (phone) 16.dp else 32.dp),
+            Modifier.fillMaxSize().padding(top = 24.dp, end = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -180,10 +143,10 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
             filters()
             // Adaptive 120 + 18 gap: 6 columns at 1280dp landscape (852dp right of the sidebar), 5 in portrait
             LazyVerticalGrid(
-                columns = if (phone) GridCells.Fixed(3) else GridCells.Adaptive(120.dp),
+                columns = GridCells.Adaptive(120.dp),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 4.dp, bottom = if (phone) GlassPhoneBarRoom else 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(if (phone) 12.dp else 18.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 items(shown, key = { it.mediaId }, contentType = { 0 }) { t ->
@@ -194,22 +157,68 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
     }
 }
 
+/** The groups past lists, Here and sort: genres, status, length, tags. Shared by the tablet sidebar and the phone sheet. */
 @Composable
-private fun filterLabel(f: ListFilter): String = when (f) {
+internal fun LibraryMoreFilters(v: LibraryView, f: TitleFilters, set: (TitleFilters) -> Unit) {
+    if (v.genres.isNotEmpty()) {
+        FilterGroup(stringResource(MR.strings.glass_discover_genres)) {
+            v.genres.forEach { (g, n) ->
+                GlassChip(g, selected = g in f.genres, onClick = { set(f.toggleGenre(g)) }, count = n.toString())
+            }
+        }
+    }
+    FilterGroup(stringResource(MR.strings.glass_discover_status)) {
+        listOf("FINISHED" to MR.strings.glass_discover_finished, "RELEASING" to MR.strings.glass_discover_releasing)
+            .forEach { (s, label) ->
+                GlassChip(
+                    stringResource(label),
+                    selected = f.published == s,
+                    onClick = { set(f.copy(published = if (f.published == s) null else s)) },
+                    count = (v.publishedCounts[s] ?: 0).toString(),
+                )
+            }
+    }
+    FilterGroup(stringResource(MR.strings.glass_discover_length)) {
+        Length.entries.forEach { l ->
+            GlassChip(
+                stringResource(lengthLabel(l)),
+                selected = f.length == l,
+                onClick = { set(f.copy(length = if (f.length == l) null else l)) },
+                count = (v.lengthCounts[l] ?: 0).toString(),
+            )
+        }
+    }
+    if (v.tags.isNotEmpty()) {
+        FilterGroup(stringResource(MR.strings.glass_discover_tags)) {
+            v.tags.forEach { (name, n) ->
+                val state = when (name) {
+                    in f.tagsIn -> TagState.IN
+                    in f.tagsOut -> TagState.OUT
+                    else -> TagState.OFF
+                }
+                TagChip(name, state, n) { set(f.cycleTag(name)) }
+            }
+        }
+        Text(stringResource(MR.strings.glass_discover_tags_hint), color = Glass.secondary, fontSize = Glass.caption, lineHeight = 16.sp)
+    }
+}
+
+@Composable
+internal fun filterLabel(f: ListFilter): String = when (f) {
     ListFilter.ALL -> stringResource(MR.strings.glass_all)
     ListFilter.READING -> stringResource(MR.strings.glass_status_current)
     else -> statusLabel(f.statuses.first())
 }
 
 @Composable
-private fun hereLabel(h: Here): String = when (h) {
+internal fun hereLabel(h: Here): String = when (h) {
     Here.EVERY -> stringResource(MR.strings.glass_here_every)
     Here.SOME -> stringResource(MR.strings.glass_here_some)
     Here.NOTHING -> stringResource(MR.strings.glass_here_nothing)
 }
 
 @Composable
-private fun sortLabel(s: GlassSort): String = when (s) {
+internal fun sortLabel(s: GlassSort): String = when (s) {
     GlassSort.LAST_READ -> stringResource(MR.strings.glass_sort_last_read)
     GlassSort.TITLE -> stringResource(MR.strings.glass_sort_title)
     GlassSort.VOLUMES_HERE -> stringResource(MR.strings.glass_sort_volumes_here)

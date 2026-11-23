@@ -74,6 +74,7 @@ import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.util.Screen
+import eu.kanade.presentation.util.glassDevice
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.Coverage
@@ -131,7 +132,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val count = GlassTitleState.volumeCount(entry?.volumes, coverage.values, volumes)
         val chosen = chosenId ?: GlassTitleState.defaultSource(inOrder)
         val order = GlassTitleState.fetchOrder(inOrder, chosen, fillGaps)
-        val fetchable = GlassTitleState.fetchable(GlassTitleState.missing(count, volumes, active), order)
+        val missing = GlassTitleState.missing(count, volumes, active)
+        val fetchable = GlassTitleState.fetchable(missing, order)
         val primary = GlassTitleState.primary(volumes, entry?.progressVolumes ?: 0, count, active.keys)
         val current = when (primary) {
             is Primary.Resume -> primary.volume.number
@@ -257,20 +259,21 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             }
         }
 
-        val aniList: LazyGridScope.() -> Unit = {
-            fullSpan {
-                if (entry != null) {
-                    AniListPanel(
-                        entry = entry!!,
-                        message = message,
-                        onStatus = model::setStatus,
-                        onStars = model::setStars,
-                        onOpen = { uriHandler.openUri(AnilistApi.mangaUrl(mediaId)) },
-                    )
-                } else {
-                    Text(stringResource(MR.strings.glass_title_unknown), color = Glass.secondary, fontSize = Glass.body)
-                }
+        val aniListBlock: @Composable () -> Unit = {
+            if (entry != null) {
+                AniListPanel(
+                    entry = entry!!,
+                    message = message,
+                    onStatus = model::setStatus,
+                    onStars = model::setStars,
+                    onOpen = { uriHandler.openUri(AnilistApi.mangaUrl(mediaId)) },
+                )
+            } else {
+                Text(stringResource(MR.strings.glass_title_unknown), color = Glass.secondary, fontSize = Glass.body)
             }
+        }
+        val aniList: LazyGridScope.() -> Unit = {
+            fullSpan { aniListBlock() }
         }
 
         val volumeGrid: LazyGridScope.() -> Unit = {
@@ -291,31 +294,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 }
             }
             failed.forEach { r ->
-                fullSpan {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            // chimahon: only the row's volumes not on the tablet (a pack of 1-4 for 1-2 failed 1-2)
-                            GlassDownloads.shownReason(r.reason).let { why ->
-                                val vols = CoverageMatch.ranges(r.volumes.filter { it !in here })
-                                if (why.isEmpty()) {
-                                    stringResource(MR.strings.glass_title_failed_bare, vols)
-                                } else {
-                                    stringResource(MR.strings.glass_title_failed, vols, why)
-                                }
-                            },
-                            color = Glass.secondary,
-                            fontSize = Glass.body,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Pill(
-                            stringResource(MR.strings.glass_title_try_again),
-                            onClick = { request(r.volumes.filter { it !in here && it !in active }) },
-                            small = true,
-                        )
-                    }
-                }
+                fullSpan { FailedRow(r, here, active.keys, request) }
             }
             items(cells, key = { it.number }) { cell ->
                 VolumeCellView(
@@ -335,8 +314,9 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             }
         }
 
+        val phone = !isTabletUi()
         GlassPage {
-            entry?.banner?.let { banner ->
+            if (!phone) entry?.banner?.let { banner ->
                 AsyncImage(
                     model = banner,
                     contentDescription = null,
@@ -351,8 +331,38 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         .background(Brush.verticalGradient(listOf(Glass.page.copy(alpha = 0.3f), Glass.page))),
                 )
             }
-            val phone = !isTabletUi()
-            BoxWithConstraints(
+            if (phone) GlassPhoneTitle(
+                entry = entry,
+                fallbackTitle = local?.manga?.title,
+                primary = primary,
+                current = current,
+                count = count,
+                cells = cells,
+                missing = missing,
+                fetchable = fetchable,
+                failed = failed,
+                here = here,
+                active = active.keys,
+                topRow = {
+                    TopRow(
+                        onBack = { navigator.pop() },
+                        onClassic = local?.let { l -> { navigator.push(MangaScreen(l.manga.id)) } },
+                        onRefresh = model::refreshSources,
+                        hideUnread = hideUnread,
+                        onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
+                        showHideUnread = false, // phone cells draw no covers
+                    )
+                },
+                onHome = GlassTitleState.onHome(entry?.status),
+                onAddHome = model::addToHome,
+                onOpen = openVolume,
+                onFetch = request,
+                onByHand = { navigator.push(GlassManualScreen(mediaId, missing, here.toList())) },
+                onCancel = model::cancel,
+                onSetRead = model::setRead,
+                sourceList = sourceList,
+                aniList = aniListBlock,
+            ) else BoxWithConstraints(
                 Modifier.fillMaxSize().padding(start = if (phone) 16.dp else 108.dp, end = if (phone) 16.dp else 32.dp),
             ) {
                 val grid = @Composable { modifier: Modifier, portrait: Boolean ->
@@ -436,12 +446,13 @@ private fun LazyGridScope.fullSpan(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TopRow(
+internal fun TopRow(
     onBack: () -> Unit,
     onClassic: (() -> Unit)?,
     onRefresh: () -> Unit,
     hideUnread: Boolean,
     onToggleHideUnread: () -> Unit,
+    showHideUnread: Boolean = true,
 ) {
     var open by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -454,7 +465,7 @@ private fun TopRow(
                     open = false
                     onRefresh()
                 }
-                MenuItem(
+                if (showHideUnread) MenuItem(
                     stringResource(
                         if (hideUnread) MR.strings.glass_title_show_unread_covers else MR.strings.glass_title_hide_unread_covers,
                     ),
@@ -490,22 +501,28 @@ private fun Heading(entry: AniListLibrary.Entry?, fallbackTitle: String?) {
                 lineHeight = 28.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            val status = when (entry?.mediaStatus) {
-                "FINISHED" -> stringResource(MR.strings.glass_title_finished)
-                "RELEASING" -> stringResource(MR.strings.glass_title_releasing)
-                "HIATUS" -> stringResource(MR.strings.glass_title_hiatus)
-                "CANCELLED" -> stringResource(MR.strings.glass_title_cancelled)
-                "NOT_YET_RELEASED" -> stringResource(MR.strings.glass_title_unreleased)
-                else -> null
-            }
-            val line = listOfNotNull(
-                entry?.volumes?.let { stringResource(MR.strings.glass_title_vols, it) },
-                status,
-                entry?.year?.toString(),
-            ).joinToString(" · ")
+            val line = titleMetaLine(entry)
             if (line.isNotEmpty()) Text(line, color = Glass.secondary, fontSize = Glass.body)
         }
     }
+}
+
+/** "18 vols · Finished · 2023", shared by the tablet Heading and the phone hero. */
+@Composable
+internal fun titleMetaLine(entry: AniListLibrary.Entry?): String {
+    val status = when (entry?.mediaStatus) {
+        "FINISHED" -> stringResource(MR.strings.glass_title_finished)
+        "RELEASING" -> stringResource(MR.strings.glass_title_releasing)
+        "HIATUS" -> stringResource(MR.strings.glass_title_hiatus)
+        "CANCELLED" -> stringResource(MR.strings.glass_title_cancelled)
+        "NOT_YET_RELEASED" -> stringResource(MR.strings.glass_title_unreleased)
+        else -> null
+    }
+    return listOfNotNull(
+        entry?.volumes?.let { stringResource(MR.strings.glass_title_vols, it) },
+        status,
+        entry?.year?.toString(),
+    ).joinToString(" · ")
 }
 
 @Composable
@@ -674,11 +691,39 @@ private fun AniListPanel(
     }
 }
 
+/** One failed download: its reason and a Try again pill (tablet grid and phone column). */
 @Composable
-private fun Legend(modifier: Modifier, notFound: Boolean) {
+internal fun FailedRow(r: RealDebridQueue.Row, here: Set<Int>, active: Set<Int>, request: (List<Int>) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            // chimahon: only the row's volumes not on the tablet (a pack of 1-4 for 1-2 failed 1-2)
+            GlassDownloads.shownReason(r.reason).let { why ->
+                val vols = CoverageMatch.ranges(r.volumes.filter { it !in here })
+                if (why.isEmpty()) {
+                    stringResource(MR.strings.glass_title_failed_bare, vols)
+                } else {
+                    stringResource(MR.strings.glass_title_failed, vols, why)
+                }
+            },
+            color = Glass.secondary,
+            fontSize = Glass.body,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Pill(
+            stringResource(MR.strings.glass_title_try_again),
+            onClick = { request(r.volumes.filter { it !in here && it !in active }) },
+            small = true,
+        )
+    }
+}
+
+@Composable
+internal fun Legend(modifier: Modifier, notFound: Boolean) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         LegendItem("check", stringResource(MR.strings.glass_title_legend_read), Glass.secondary)
-        LegendItem("dot", stringResource(MR.strings.glass_title_legend_here), Color.White)
+        LegendItem("dot", stringResource(MR.strings.glass_title_legend_here, glassDevice()), Color.White)
         LegendItem("download", stringResource(MR.strings.glass_title_legend_downloading), Glass.ice)
         if (notFound) LegendItem("alert", stringResource(MR.strings.glass_title_legend_not_found), Color.White)
     }
@@ -896,7 +941,7 @@ private fun FetchDialog(
 }
 
 @Composable
-private fun GlassMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable () -> Unit) {
+internal fun GlassMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
@@ -909,7 +954,7 @@ private fun GlassMenu(expanded: Boolean, onDismiss: () -> Unit, content: @Compos
 }
 
 @Composable
-private fun MenuItem(text: String, selected: Boolean = false, onClick: () -> Unit) {
+internal fun MenuItem(text: String, selected: Boolean = false, onClick: () -> Unit) {
     DropdownMenuItem(
         text = {
             Text(

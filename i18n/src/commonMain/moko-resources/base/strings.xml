@@ -890,7 +890,7 @@
     <string name="glass_dl_n_queued">%1$d queued</string>
     <string name="glass_dl_more_queued">%1$d more queued</string>
     <string name="glass_dl_done">In the library</string>
-    <string name="glass_dl_not_on_tablet">Not on the tablet</string>
+    <string name="glass_dl_not_on_tablet">Not on the %1$s</string>
     <string name="glass_dl_failed_line">Vol. %1$s: %2$s</string>
     <string name="glass_dl_not_found">Not found</string>
     <string name="glass_dl_try_again">Try again</string>
@@ -913,7 +913,7 @@
     <string name="glass_dl_storage_free">%1$s free of %2$s · manga: %3$s</string>
     <string name="glass_dl_key">KEY</string>
     <string name="glass_dl_key_read">Read</string>
-    <string name="glass_dl_key_here">On tablet</string>
+    <string name="glass_dl_key_here">On %1$s</string>
     <string name="glass_dl_key_downloading">Downloading</string>
     <string name="glass_dl_key_none">Not asked for</string>
     <string name="glass_dl_key_failed">Failed</string>
@@ -1047,9 +1047,9 @@
     <string name="glass_problems_not_found_one">Vol. %1$s was not found</string>
     <string name="glass_problems_failed">The download failed</string>
     <string name="glass_problems_offline">No connection</string>
-    <string name="glass_problems_offline_detail">Browse needs AniList. Your Library and what is on this tablet still work.</string>
+    <string name="glass_problems_offline_detail">Browse needs AniList. Your Library and what is on this %1$s still work.</string>
     <string name="glass_problems_signed_out">AniList is signed out</string>
-    <string name="glass_problems_signed_out_detail">Home, Library and Browse need AniList. What is on this tablet still works.</string>
+    <string name="glass_problems_signed_out_detail">Home, Library and Browse need AniList. What is on this %1$s still works.</string>
     <string name="glass_problems_change_key">Change key</string>
     <string name="glass_problems_hide">Hide for now</string>
     <string name="glass_problems_open_title">Open title</string>
@@ -1086,9 +1086,14 @@
     <string name="glass_title_more_anilist">More from AniList</string>
     <string name="glass_title_stars">%1$d stars</string>
     <string name="glass_title_legend_read">read</string>
-    <string name="glass_title_legend_here">on tablet</string>
+    <string name="glass_title_legend_here">on %1$s</string>
     <string name="glass_title_legend_downloading">downloading</string>
     <string name="glass_title_legend_not_found">not found</string>
+    <string name="glass_phone_title_missing">Not on this %2$s: vol. %1$s</string>
+    <string name="glass_phone_title_fetch_range">Fetch vol. %1$s</string>
+    <string name="glass_phone_title_by_hand">By hand</string>
+    <string name="glass_phone_title_legend_none">not here yet</string>
+    <string name="glass_phone_title_legend_no_source">on no source</string>
     <string name="glass_title_fetch_n">Fetch %1$d</string>
     <string name="glass_title_fetch_confirm">Fetch vol. %1$s?</string>
     <string name="glass_title_pack">Vol. %1$s comes as one pack · %2$s</string>
@@ -1230,7 +1235,8 @@
     <string name="glass_phone_show_results">Show results</string>
     <string name="glass_search">Search my %1$d titles</string>
     <string name="glass_anilist">ANILIST</string>
-    <string name="glass_on_tablet">ON THIS TABLET</string>
+    <string name="glass_on_tablet">ON THIS %1$s</string>
+    <string name="glass_phone_library_here">%1$d/%2$d on this %3$s</string>
     <string name="glass_all">All</string>
     <string name="glass_more">More</string>
     <string name="glass_status_current">Reading</string>
@@ -1400,7 +1406,7 @@
     <string name="pref_tablet_ui_mode">Tablet UI</string>
     <string name="pref_glass_ui">New look (tablet)</string>
     <string name="pref_glass_phone">New look on phones (in progress)</string>
-    <string name="pref_glass_phone_summary">Home and Discover are made for phones. Library, Downloads and title pages are the tablet ones made narrow; Settings opens the classic settings.</string>
+    <string name="pref_glass_phone_summary">Home, Discover, Library, title pages and Settings are made for phones. Downloads is the tablet one made narrow.</string>
     <string name="pref_verbose_logging">Verbose logging</string>
     <string name="pref_verbose_logging_summary">Print verbose logs to system log (reduces app performance)</string>
     <string name="pref_debug_info">Debug info</string>

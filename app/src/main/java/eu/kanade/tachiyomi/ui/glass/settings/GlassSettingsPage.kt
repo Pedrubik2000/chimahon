@@ -75,9 +75,9 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-private class Section(val id: String, val name: StringResource, val summary: StringResource)
+internal class Section(val id: String, val name: StringResource, val summary: StringResource)
 
-private val Sections = listOf(
+internal val Sections = listOf(
     Section("accounts", MR.strings.glass_settings_accounts, MR.strings.glass_settings_accounts_sub),
     Section("sources", MR.strings.glass_settings_sources, MR.strings.glass_settings_sources_sub),
     Section("downloads", MR.strings.glass_settings_downloads, MR.strings.glass_settings_downloads_sub),
@@ -107,13 +107,7 @@ fun GlassSettingsPage(navigator: Navigator) {
         }
     }
     val narrow = LocalConfiguration.current.screenWidthDp < 900
-    val prefs = remember { Injekt.get<DownloadPreferences>() }
-    val coverage = remember { Injekt.get<SourceCoverage>() }
-    val order by prefs.realDebridSourceOrder().collectAsState()
-    val off by prefs.realDebridSourcesOff().collectAsState()
-    val sourceLine = remember(order, off) {
-        coverage.sources().map { it.name }.let { n -> n.take(3).joinToString(" → ") + if (n.size > 3) " → …" else "" }
-    }
+    val sourceLine = sourceOrderLine()
     val current = Sections.first { it.id == section }
 
     Row(Modifier.fillMaxSize()) {
@@ -180,9 +174,21 @@ fun GlassSettingsPage(navigator: Navigator) {
     }
 }
 
+/** "X3DL → Excnn → Manga Zone → …": the Sources section's summary line (empty with no sources). */
+@Composable
+internal fun sourceOrderLine(): String {
+    val prefs = remember { Injekt.get<DownloadPreferences>() }
+    val coverage = remember { Injekt.get<SourceCoverage>() }
+    val order by prefs.realDebridSourceOrder().collectAsState()
+    val off by prefs.realDebridSourcesOff().collectAsState()
+    return remember(order, off) {
+        coverage.sources().map { it.name }.let { n -> n.take(3).joinToString(" → ") + if (n.size > 3) " → …" else "" }
+    }
+}
+
 /** The pane's items, from the classic screens (see the mapping in plans/chimahon_build_plan.md, phase 5). */
 @Composable
-private fun sectionItems(id: String, navigator: Navigator): List<Preference> = when (id) {
+internal fun sectionItems(id: String, navigator: Navigator): List<Preference> = when (id) {
     "accounts" -> {
         val dl = splitDownloads()
         listOfNotNull(group(stringResource(MR.strings.glass_dl_rd), dl.realDebrid)) + SettingsTrackingScreen.getPreferences()
@@ -289,7 +295,7 @@ private fun sourceOrderGroup(): Preference.PreferenceGroup = Preference.Preferen
 
 /** Real-Debrid sources in the order they are tried: rank, name, on/off, move up / down (no drag). */
 @Composable
-private fun SourceOrder() {
+internal fun SourceOrder() {
     val prefs = remember { Injekt.get<DownloadPreferences>() }
     val coverage = remember { Injekt.get<SourceCoverage>() }
     val order by prefs.realDebridSourceOrder().collectAsState()
