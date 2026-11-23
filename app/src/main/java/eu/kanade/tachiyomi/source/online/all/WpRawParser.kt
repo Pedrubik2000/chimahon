@@ -4,7 +4,7 @@ import org.jsoup.Jsoup
 import java.net.URLDecoder
 
 /**
- * WordPress raw-manga blogs whose posts carry plain hoster links (manga-zone, bszip, rawxt-scan, a-zmanga).
+ * WordPress raw-manga blogs whose posts carry plain hoster links (manga-zone, bszip, rawxt-scan, a-zmanga, manga-zip).
  * Pure, for tests. Selectors that differ per site come in [WpRawParser.Site].
  */
 object WpRawParser {
@@ -33,6 +33,8 @@ object WpRawParser {
         // BsZip's other hosters: last, so a post's preferred link stays what it was
         Regex("""dailyuploads\.net/[a-z0-9]{8,}"""),
         Regex("""alfafile\.net/file/[a-z0-9]+"""),
+        // manga-zip.is: Real-Debrid does not take it (2026-11-23), so these files are for "Download by hand"
+        Regex("""sakurafile\.com/[a-z0-9]{8,}"""),
     )
     private val hosterLink = Regex("""^https?://(?:www\.)?([^/]+/[^?#]*)""", RegexOption.IGNORE_CASE)
     private val archive = Regex("""\.(?:rar|zip|7z|cbz|cbr|pdf|epub)$""", RegexOption.IGNORE_CASE)
@@ -58,8 +60,8 @@ object WpRawParser {
             val a = item.selectFirst(site.titleLink) ?: return@mapNotNull null
             Post(a.absUrl("href"), seriesTitle(a.text()), item.selectFirst(site.cover)?.absUrl("src"))
         }.distinctBy { it.url }
-        // manga-zone, bszip, a-zmanga: page numbers; rawxt-scan: "Older posts"
-        val next = doc.selectFirst("a.next.page-numbers, a[rel=next], .nav-previous a[href]") != null
+        // manga-zone, bszip, a-zmanga: page numbers; rawxt-scan: "Older posts"; manga-zip: a "›" link
+        val next = doc.selectFirst("a.next.page-numbers, a[rel=next], .nav-previous a[href], div.navigation a:matchesOwn(^›$)") != null
         return posts to next
     }
 
@@ -69,7 +71,7 @@ object WpRawParser {
         val title = doc.selectFirst("h1.entry-title")?.text()
             ?: doc.selectFirst("div.post-main h1 a")?.text()
             ?: doc.title().substringBefore(" | ")
-        val body = doc.selectFirst("div.entry-content, div.post-main") ?: doc.body()
+        val body = doc.selectFirst("div.entry-content, div.post-main, div.posttext") ?: doc.body()
         val files = linkedMapOf<String, MutableList<Pair<Int, String>>>()
         body.select("a[href]").forEach { a ->
             val url = a.absUrl("href")

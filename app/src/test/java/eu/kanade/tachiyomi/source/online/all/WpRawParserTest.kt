@@ -8,7 +8,7 @@ class WpRawParserTest {
     private fun fixture(name: String) = javaClass.getResource("/wpraw/$name")!!.readText()
 
     private val allowed = Regex(
-        """^https?://(?:www\.)?(rapidgator\.net|rg\.to|katfile\.[a-z]+|ex-load\.com|uploady\.io|ddownload\.com|ddl\.to)/""",
+        """^https?://(?:www\.)?(rapidgator\.net|rg\.to|katfile\.[a-z]+|ex-load\.com|uploady\.io|ddownload\.com|ddl\.to|sakurafile\.com)/""",
     )
 
     // fixture number -> site, least volumes its post fixture must give
@@ -17,6 +17,7 @@ class WpRawParserTest {
         Triple(16, WpRaw.BSZIP, 1),
         Triple(9, WpRaw.RAWXT, 1),
         Triple(3, WpRaw.A_ZMANGA, 1),
+        Triple(4, WpRaw.MANGA_ZIP, 14),
     )
 
     @Test
@@ -41,6 +42,10 @@ class WpRawParserTest {
         WpRawParser.seriesTitle("ドラフトキング raw 第01-27巻 [Dorafuto Kingu vol 01-27]") shouldBe "ドラフトキング"
         WpRawParser.seriesTitle("[松田あき] 地下アイドルを影で支える俺 全03巻") shouldBe "[松田あき] 地下アイドルを影で支える俺"
         WpRawParser.seriesTitle("Title v01-05") shouldBe "Title"
+        val zip = WpRawParser.parsePost(WpRaw.MANGA_ZIP, fixture("p4.html"))
+        zip.title shouldBe "マッシュル-MASHLE-"
+        zip.volumes.first().label shouldBe "Masshuru_v01-03s"
+        VolumeLabels.volumes(zip.volumes.first().label) shouldBe setOf(1, 2, 3)
         WpRawParser.seriesTitle("[author] Title 01-05") shouldBe "[author] Title"
     }
 }

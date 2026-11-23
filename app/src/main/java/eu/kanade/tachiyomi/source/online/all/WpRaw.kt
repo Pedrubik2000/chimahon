@@ -17,13 +17,15 @@ class WpRaw(
     private val site: WpRawParser.Site,
     /** List pages: "" for the front page, else a category path ("/archives/category/..."). */
     private val listPath: String = "",
+    /** Added to a list page's address: "?s=" where only the (empty) search lists the posts. */
+    private val listQuery: String = "",
 ) : HttpSource(), RealDebridSource {
     override val lang = "ja"
     override val baseUrl = site.baseUrl
     override val supportsLatest = true
 
     override fun popularMangaRequest(page: Int) =
-        GET(baseUrl + listPath + if (page == 1) "/" else "/page/$page/", headers)
+        GET(baseUrl + listPath + (if (page == 1) "/" else "/page/$page/") + listQuery, headers)
 
     override fun popularMangaParse(response: Response) = mangasPage(response)
 
@@ -90,12 +92,16 @@ class WpRaw(
         )
         val RAWXT = WpRawParser.Site("http://rawxt-scan.com")
         val A_ZMANGA = WpRawParser.Site("https://www.a-zmanga.net")
+        val MANGA_ZIP = WpRawParser.Site("https://manga-zip.is", titleLink = "h2 a[rel=bookmark]")
 
         fun all() = listOf(
             WpRaw("Manga Zone", MANGA_ZONE),
             WpRaw("BsZip", BSZIP),
             WpRaw("Rawxt", RAWXT),
             WpRaw("A-Z Manga", A_ZMANGA, "/archives/category/%E4%B8%80%E8%88%AC%E6%BC%AB%E7%94%BB"),
+            // ponytail: sakurafile only, which Real-Debrid refuses: a Fetch falls through to the next source
+            // (hoster error), "Download by hand" uses it. Hide it from Fetch if that wait ever bothers.
+            WpRaw("Manga Zip", MANGA_ZIP, listQuery = "?s="),
         )
     }
 }
