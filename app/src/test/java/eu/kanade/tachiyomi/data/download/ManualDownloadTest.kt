@@ -30,6 +30,40 @@ class ManualDownloadTest {
         ids(listOf(1, 2), emptySet(), rg, rgShort, partial, other) shouldBe listOf(3L, 1L, 2L, 4L)
     }
 
+    private fun files(id: Long, vararg f: Pair<List<Int>, List<String>>) =
+        Coverage(id, "S$id", State.FOUND, files = f.map { Coverage.File(it.first, it.second) })
+
+    @Test
+    fun `a source with packs and single volumes gives both ways, the pack first`() {
+        val c = files(1, listOf(1) to listOf("a"), listOf(2) to listOf("b"), listOf(1, 2, 3) to listOf("p"))
+        val options = ManualDownload.options(listOf(1, 2), emptySet(), listOf(c))
+        options.map { o -> o.files.map { it.link } } shouldBe listOf(listOf("p"), listOf("a", "b"))
+    }
+
+    @Test
+    fun `a file is taken from its hoster that is not slow, and from a mirror when that one is gone`() {
+        val rg = "https://rapidgator.net/file/x"
+        val kat = "https://katfile.com/x"
+        val ddl = "https://ddownload.com/x"
+        val c = files(1, listOf(1, 2) to listOf(rg, kat, ddl, "magnet:?xt=abc"))
+        val options = ManualDownload.options(listOf(1), emptySet(), listOf(c))
+        options.single().files shouldBe listOf(ManualDownload.File(kat, listOf(1, 2), listOf(ddl, rg)))
+        ManualDownload.links(options) shouldBe listOf(kat, ddl, rg)
+        ManualDownload.alive(options, setOf(kat)).single().files.single() shouldBe
+            ManualDownload.File(ddl, listOf(1, 2), listOf(rg))
+        // nothing left: the link stays, so the screen can mark the option as gone
+        ManualDownload.alive(options, setOf(kat, ddl, rg)).single().files.single().link shouldBe kat
+    }
+
+    @Test
+    fun `a source whose file had to fall back on Rapidgator goes after one that did not`() {
+        val a = files(1, listOf(1) to listOf("https://rapidgator.net/file/a", "https://katfile.com/a"))
+        val b = files(2, listOf(1) to listOf("https://uploady.io/b"))
+        val options = ManualDownload.options(listOf(1), emptySet(), listOf(a, b))
+        options.map { it.sourceId } shouldBe listOf(1L, 2L)
+        ManualDownload.alive(options, setOf("https://katfile.com/a")).map { it.sourceId } shouldBe listOf(2L, 1L)
+    }
+
     @Test
     fun `magnets are dropped and a source with nothing wanted gives no option`() {
         val torrent = cov(1, 1 to "magnet:?xt=abc")

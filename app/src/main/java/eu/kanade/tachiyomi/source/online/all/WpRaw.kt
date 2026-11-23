@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.source.online.all
 
 import android.net.Uri
 import eu.kanade.tachiyomi.network.GET
+import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -71,6 +72,11 @@ class WpRaw(
     }
 
     override fun getChapterUrl(chapter: SChapter) = chapter.url
+
+    override suspend fun files(post: SManga) = client.newCall(chapterListRequest(post)).awaitSuccess().use { response ->
+        WpRawParser.parsePost(site, response.body.string()).volumes
+            .map { RealDebridSource.PostFile(it.label, listOf(it.link) + it.mirrors) }
+    }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> =
         throw Exception("$name volumes are imported through Real-Debrid: tap the volume")

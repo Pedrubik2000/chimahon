@@ -10,7 +10,8 @@ object X3dlParser {
     data class Post(val url: String, val title: String, val cover: String?)
 
     /** [label]: "27", "22-24" from the post's "第27巻" line, else the file name; [link]: https://uploady.io/<id>. */
-    data class Volume(val label: String, val link: String)
+    /** [mirrors]: the same file on the post's other hosters (RapidGator, frdl.io, upload42...). */
+    data class Volume(val label: String, val link: String, val mirrors: List<String> = emptyList())
 
     data class Details(val title: String, val cover: String?, val volumes: List<Volume>)
 
@@ -37,7 +38,8 @@ object X3dlParser {
     /**
      * Post page -> one volume per (label paragraph, file), in page order. Each hoster link belongs to the nearest
      * "第…巻" paragraph above it. Uploady (`link/n?url=` = plain base64) wins, else RapidGator (`wp-ads3?url=`,
-     * see [rapidGator]). Hexload, other `link/n` hosts and the "Premium" redirector are skipped.
+     * see [rapidGator]); a file on neither gives no volume (Real-Debrid may not take its hoster). The other
+     * `link/n` hosts of a kept file are its [Volume.mirrors]; the "Premium" redirector (no https) is skipped.
      */
     fun parsePost(html: String): Details {
         val doc = Jsoup.parse(html, "$BASE/wp/")
@@ -45,7 +47,7 @@ object X3dlParser {
             ?: doc.title().substringBefore(" | ")
         val content = doc.selectFirst("div.entry-content") ?: doc.body()
         var label: String? = null
-        // (label, file) -> links found, Uploady and RapidGator
+        // (label, file) -> links found, any hoster
         val found = linkedMapOf<Pair<String?, String>, MutableList<String>>()
         content.select("p, a[href*=link.x3dl.net/wp/link/n?url=], a[href*=/wp/zip/wp-ads3?url=]").forEach { el ->
             if (el.tagName() == "p") {
@@ -56,20 +58,26 @@ object X3dlParser {
             val link = if ("wp-ads3" in el.attr("href")) {
                 rapidGator(value)
             } else {
-                base64(value)?.let(::String)?.takeIf { it.startsWith("https://uploady.io/") }
+                base64(value)?.let(::String)?.takeIf { it.startsWith("https://") }
             } ?: return@forEach
             val file = size.replace(el.text().trim(), "").ifBlank { link.trimEnd('/').substringAfterLast('/') }
             found.getOrPut(label to file) { mutableListOf() } += link
         }
-        val perLabel = found.keys.groupingBy { it.first }.eachCount()
-        val volumes = found.map { (key, links) ->
+        val kept = found.mapNotNull { (key, links) ->
+            val main = links.firstOrNull { it.startsWith("https://uploady.io/") }
+                ?: links.firstOrNull { rapidGatorLink.containsMatchIn(it) }
+                ?: return@mapNotNull null
+            key to listOf(main) + (links.distinct() - main)
+        }
+        val perLabel = kept.groupingBy { it.first.first }.eachCount()
+        val volumes = kept.map { (key, links) ->
             val (label, file) = key
             val name = when {
                 label == null -> file
                 perLabel.getValue(label) > 1 -> "$label $file"
                 else -> label
             }
-            Volume(name, links.firstOrNull { it.startsWith("https://uploady.io/") } ?: links.first())
+            Volume(name, links.first(), links.drop(1))
         }
         val cover = content.selectFirst("figure.entry-thumbnail img[src]")?.absUrl("src")
         return Details(seriesTitle(title), cover, volumes)

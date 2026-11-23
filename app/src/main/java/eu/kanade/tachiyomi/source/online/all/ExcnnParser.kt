@@ -9,7 +9,7 @@ object ExcnnParser {
     data class Post(val url: String, val title: String, val cover: String?)
 
     /** [label]: "04-06" from the post's "TITLE 04-06 = excnn20-11-2026a07" line; [link]: the archive on a hoster. */
-    data class Volume(val label: String, val link: String)
+    data class Volume(val label: String, val link: String, val mirrors: List<String> = emptyList())
 
     data class Details(val title: String, val cover: String?, val volumes: List<Volume>)
 
@@ -44,7 +44,7 @@ object ExcnnParser {
 
     /**
      * Post page -> title, cover and one volume per archive, in page order. Rapidgator wins over another hoster
-     * (katfile) carrying the same file; an archive without a label line is labelled with its filename.
+     * (katfile) carrying the same file, which is kept in [Volume.mirrors]; an archive without a label line is labelled with its filename.
      */
     fun parsePost(html: String): Details {
         val doc = Jsoup.parse(html, BASE)
@@ -57,7 +57,7 @@ object ExcnnParser {
             .map { (file, urls) ->
                 // ponytail: rapidgator hardcoded as the Real-Debrid host; isLink (RD's host list) needs the network
                 val link = urls.firstOrNull { "rapidgator." in it } ?: urls.first()
-                Volume(labels[file.substringBeforeLast('.')] ?: file, link)
+                Volume(labels[file.substringBeforeLast('.')] ?: file, link, urls.distinct() - link)
             }
         val title = doc.selectFirst("h1.heading")?.text().orEmpty()
         return Details(seriesTitle(title), body.selectFirst("img[src]")?.absUrl("src"), volumes)

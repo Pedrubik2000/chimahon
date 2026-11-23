@@ -19,7 +19,9 @@ class X3dlParserTest {
         // the HTML part of a saved post page (its first n?url= link is a redirector, not a hoster: skipped)
         val post = X3dlParser.parsePost(fixture("post.html"))
         post.title shouldBe "[クロマツテツロウ] ドラフトキング"
-        post.volumes[0] shouldBe X3dlParser.Volume("27", "https://uploady.io/5a0m3t5cfxen")
+        post.volumes[0].label shouldBe "27"
+        post.volumes[0].link shouldBe "https://uploady.io/5a0m3t5cfxen"
+        post.volumes[0].mirrors.size shouldBe 1 // the same file on RapidGator
         // Uploady wherever a volume has it; 01-14 has RapidGator only
         post.volumes.map { it.label to host(it.link) } shouldBe listOf(
             "27" to "uploady.io", "26" to "uploady.io", "25" to "uploady.io", "22-24" to "uploady.io",

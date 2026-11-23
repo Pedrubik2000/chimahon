@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.source.online.all
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
+import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
@@ -80,6 +81,12 @@ class Excnn : HttpSource(), RealDebridSource {
         }.reversed()
 
     override fun getChapterUrl(chapter: SChapter) = chapter.url
+
+    override suspend fun files(post: SManga) = client.newCall(chapterListRequest(post)).awaitSuccess().use { response ->
+        ExcnnParser.parsePost(response.body.string()).volumes
+            .map { RealDebridSource.PostFile(it.label, listOf(it.link) + it.mirrors) }
+            .reversed() // as chapterListParse
+    }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> =
         throw Exception("Excnn volumes are imported through Real-Debrid: tap the volume")

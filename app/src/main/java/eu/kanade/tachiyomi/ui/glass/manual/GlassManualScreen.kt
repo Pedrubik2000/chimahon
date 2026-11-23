@@ -283,11 +283,12 @@ private class ManualModel(
         screenModelScope.launch {
             val (list, dead) = withContext(Dispatchers.IO) {
                 val list = ManualDownload.options(volumes, here.toSet(), cachedCoverage(app, mediaId))
-                list to deadLinks(list.flatMap { o -> o.files.map { it.link } }.distinct())
+                list to deadLinks(ManualDownload.links(list))
             }
             gone = dead
             // an option with a dead file goes last and is never the suggestion (sortedBy is stable)
-            options = list.sortedBy { isGone(it) }
+            // a file whose link is gone moves to a mirror that is not
+            options = ManualDownload.alive(list, dead).sortedBy { isGone(it) }
         }
         screenModelScope.launch {
             queue.rows.collect { rows ->

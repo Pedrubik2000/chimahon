@@ -39,12 +39,22 @@ data class Coverage(
     val postUrl: String? = null,
     /** Volume -> hoster link or magnet that holds it (a batch link covers several volumes). */
     val volumes: Map<Int, String> = emptyMap(),
+    /**
+     * Every archive whose name has a volume number, in the source's order, with all its links (packs and single
+     * volumes, mirrors too). [volumes] is the one-link-per-volume pick from these that a Real-Debrid fetch uses.
+     * Empty in a cache written before this field existed.
+     */
+    val files: List<File> = emptyList(),
     /** Epoch millis. */
     val fetchedAt: Long = 0,
     /** Why, for [State.NEEDS_VISIT] and [State.ERROR]. */
     val message: String? = null,
 ) {
     enum class State { FOUND, NOT_FOUND, NEEDS_VISIT, ERROR }
+
+    /** One archive: the [volumes] its name says it holds; [links]: the source's preferred hoster first, then mirrors. */
+    @Serializable
+    data class File(val volumes: List<Int>, val links: List<String>)
 }
 
 /**
@@ -78,7 +88,9 @@ class SourceCoverage(private val app: Application) {
         val gate = Semaphore(PARALLEL)
         sources().forEach { source ->
             launch {
-                val hit = cached[source.id]?.takeIf { now - it.fetchedAt < TTL }
+                // a cache from before Coverage.files is read again once
+                val hit = cached[source.id]
+                    ?.takeIf { now - it.fetchedAt < TTL && !(it.volumes.isNotEmpty() && it.files.isEmpty()) }
                 val c = hit ?: gate.withPermit { fetch(entry, source) }.also { save(entry.mediaId, it) }
                 maxVolume(c)?.let { volumeCounts.put(entry.mediaId, it, VolumeCounts.SOURCE_COVERAGE) }
                 send(c)
@@ -95,14 +107,20 @@ class SourceCoverage(private val app: Application) {
                     .ifEmpty { null }
             } ?: return base
             val chapters = posts.take(MAX_POSTS).flatMap { post ->
-                source.getMangaUpdate(post, emptyList(), fetchDetails = false, fetchChapters = true).chapters
-                    .map { it.name to it.url }
-            }
+                (source as? RealDebridSource)?.files(post)?.map { it.label to it.links }
+                    ?: source.getMangaUpdate(post, emptyList(), fetchDetails = false, fetchChapters = true).chapters
+                        .map { it.name to listOf(it.url) }
+            }.filter { it.second.isNotEmpty() }
+            val corrections = corrections()
             base.copy(
                 state = Coverage.State.FOUND,
                 postTitle = posts.first().title,
                 postUrl = source.getMangaUrl(posts.first()),
-                volumes = CoverageMatch.corrected(CoverageMatch.volumes(chapters), corrections()),
+                volumes = CoverageMatch.corrected(
+                    CoverageMatch.volumes(chapters.map { it.first to it.second.first() }),
+                    corrections,
+                ),
+                files = CoverageMatch.correctedFiles(CoverageMatch.files(chapters), corrections),
             )
         } catch (e: CancellationException) {
             throw e
@@ -133,7 +151,10 @@ class SourceCoverage(private val app: Application) {
                 writeAtomically(correctionsFile, json.encodeToString(corrections() + (link to held)))
                 val cached = read(mediaId)
                 val c = cached[sourceId] ?: return@runCatching
-                val fixed = c.copy(volumes = CoverageMatch.corrected(c.volumes, mapOf(link to held)))
+                val fixed = c.copy(
+                    volumes = CoverageMatch.corrected(c.volumes, mapOf(link to held)),
+                    files = CoverageMatch.correctedFiles(c.files, mapOf(link to held)),
+                )
                 writeAtomically(file(mediaId), json.encodeToString((cached + (sourceId to fixed)).values.toList()))
             }.onFailure { logcat(LogPriority.WARN, it) { "Coverage correction write failed" } }
         }
@@ -233,6 +254,27 @@ object CoverageMatch {
             .forEach { (vols, url) -> vols.forEach { result.putIfAbsent(it, url) } }
         return result
     }
+
+    /** Every (chapter name, links) whose name has a volume number, in order: nothing is dropped for another. */
+    fun files(chapters: List<Pair<String, List<String>>>): List<Coverage.File> =
+        chapters.mapNotNull { (name, links) ->
+            VolumeLabels.volumes(name).takeIf { it.isNotEmpty() && links.isNotEmpty() }
+                ?.let { Coverage.File(it.sorted(), links) }
+        }
+
+    /**
+     * [files] without the volumes a corrected link did not hold (its mirrors are the same archive); a file left
+     * with no volume goes.
+     */
+    fun correctedFiles(files: List<Coverage.File>, corrections: Map<String, Set<Int>>): List<Coverage.File> =
+        if (corrections.isEmpty()) {
+            files
+        } else {
+            files.mapNotNull { f ->
+                val held = f.links.firstNotNullOfOrNull { corrections[it] } ?: return@mapNotNull f
+                f.copy(volumes = f.volumes.filter { it in held }).takeIf { it.volumes.isNotEmpty() }
+            }
+        }
 
     /** [coverages] in [order] (source ids); sources not in it keep their place after. */
     fun ordered(coverages: Collection<Coverage>, order: List<Long>): List<Coverage> =

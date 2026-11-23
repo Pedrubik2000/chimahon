@@ -72,6 +72,20 @@ class SourceCoverageTest {
     }
 
     @Test
+    fun `every file with a volume number is kept with all its links`() {
+        val pack = listOf("https://rapidgator.net/file/p", "https://katfile.com/p")
+        val files = CoverageMatch.files(
+            listOf("03" to listOf("https://uploady.io/c"), "01-03" to pack, "extras" to listOf("https://uploady.io/x")),
+        )
+        files shouldBe listOf(Coverage.File(listOf(3), listOf("https://uploady.io/c")), Coverage.File(listOf(1, 2, 3), pack))
+        // a correction learnt on one link holds for its mirrors: they are the same archive
+        CoverageMatch.correctedFiles(files, mapOf(pack[0] to setOf(1, 2))) shouldBe
+            listOf(files[0], Coverage.File(listOf(1, 2), pack))
+        CoverageMatch.correctedFiles(files, mapOf("https://uploady.io/c" to emptySet())) shouldBe listOf(files[1])
+        CoverageMatch.correctedFiles(files, emptyMap()) shouldBe files
+    }
+
+    @Test
     fun ranges() {
         CoverageMatch.ranges((1..26).toList() + 28) shouldBe "1–26, 28"
         CoverageMatch.ranges(listOf(3)) shouldBe "3"

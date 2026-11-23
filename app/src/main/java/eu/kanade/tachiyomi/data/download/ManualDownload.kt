@@ -5,11 +5,15 @@ import eu.kanade.tachiyomi.data.coverage.Coverage
 /** What to download by hand (no Real-Debrid): which links of which source cover the wanted volumes. */
 object ManualDownload {
 
-    /** One file to get in the browser: [link] and the volumes the source says it holds. */
-    data class File(val link: String, val volumes: List<Int>)
+    /**
+     * One file to get in the browser: [link] and the volumes the source says it holds; [mirrors] = the same file on
+     * other hosters, to fall back on when [link] is gone ([alive]).
+     */
+    data class File(val link: String, val volumes: List<Int>, val mirrors: List<String> = emptyList())
 
     /**
-     * One way to get the wanted volumes from one source. [adds] = wanted volumes its files hold; [alreadyHere] = other
+     * One way to get the wanted volumes from one source (a source gives up to two: its smallest files, and its
+     * biggest packs). [adds] = wanted volumes its files hold; [alreadyHere] = other
      * volumes in those files that are on the device; [extra] = volumes in those files neither wanted nor here.
      */
     data class Option(
@@ -25,30 +29,74 @@ object ManualDownload {
      * Best first: options adding all [wanted] before partial ones, partial ones adding more first, then options with
      * no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
      * then least [Option.extra] + [Option.alreadyHere], then the order of [coverages]. No sizes are known, none guessed.
+     * Each file is on its first hoster that is not [slow].
      */
     fun options(wanted: Collection<Int>, here: Set<Int>, coverages: List<Coverage>): List<Option> {
         val want = wanted.toSet()
-        return coverages.filter { it.state == Coverage.State.FOUND }.mapNotNull { c ->
-            // magnets wait for torrent support
-            val links = c.volumes.filter { (v, l) -> v in want && !l.startsWith("magnet:") }.values.distinct()
-            if (links.isEmpty()) return@mapNotNull null
-            val files = links.map { l -> File(l, c.volumes.filterValues { it == l }.keys.sorted()) }
-            val all = files.flatMap { it.volumes }.toSet()
-            Option(
-                sourceId = c.sourceId,
-                sourceName = c.sourceName,
-                files = files,
-                adds = all.filter { it in want }.sorted(),
-                alreadyHere = all.filter { it !in want && it in here }.sorted(),
-                extra = all.filter { it !in want && it !in here }.sorted(),
-            )
-        }.sortedWith(
-            // sortedWith is stable: ties keep the order of coverages
-            compareBy<Option> { it.adds.size != want.size }.thenByDescending { it.adds.size }
-                .thenBy { o -> o.files.any { slow(it.link) } }.thenBy { it.files.size }
-                .thenBy { it.extra.size + it.alreadyHere.size },
-        )
+        return coverages.filter { it.state == Coverage.State.FOUND }.flatMap { c ->
+            // a cache from before Coverage.files has only the one link per volume
+            val known = c.files.ifEmpty {
+                c.volumes.values.distinct().map { l -> Coverage.File(c.volumes.filterValues { it == l }.keys.sorted(), listOf(l)) }
+            }
+            val files = known.filter { f -> f.volumes.any { it in want } }.mapNotNull { f ->
+                // magnets wait for torrent support
+                val links = f.links.filterNot { it.startsWith("magnet:") }.sortedBy { slow(it) }
+                links.firstOrNull()?.let { File(it, f.volumes, links.drop(1)) }
+            }.distinctBy { it.link }
+            listOf(smallest(files, want), biggest(files, want)).filter { it.isNotEmpty() }.distinct().map { chosen ->
+                val all = chosen.flatMap { it.volumes }.toSet()
+                Option(
+                    sourceId = c.sourceId,
+                    sourceName = c.sourceName,
+                    files = chosen,
+                    adds = all.filter { it in want }.sorted(),
+                    alreadyHere = all.filter { it !in want && it in here }.sorted(),
+                    extra = all.filter { it !in want && it !in here }.sorted(),
+                )
+            }
+        }.sortedWith(order)
     }
+
+    // sortedWith is stable: ties keep the order of coverages. adds is part of wanted, so "most adds" puts the
+    // options adding everything first.
+    private val order = compareByDescending<Option> { it.adds.size }
+        .thenBy { o -> o.files.any { slow(it.link) } }.thenBy { it.files.size }
+        .thenBy { it.extra.size + it.alreadyHere.size }
+
+    /** Per wanted volume the file holding the fewest volumes (the first listed on a tie). */
+    private fun smallest(files: List<File>, want: Set<Int>): List<File> =
+        want.sorted().mapNotNull { v -> files.filter { v in it.volumes }.minByOrNull { it.volumes.size } }.distinct()
+
+    /** Fewest files: again and again the file holding the most still-missing wanted volumes (the smaller on a tie). */
+    private fun biggest(files: List<File>, want: Set<Int>): List<File> {
+        val left = want.toMutableSet()
+        val chosen = mutableListOf<File>()
+        while (left.isNotEmpty()) {
+            val best = files.maxWithOrNull(
+                compareBy<File> { f -> f.volumes.count { it in left } }.thenByDescending { it.volumes.size },
+            )?.takeIf { f -> f.volumes.any { it in left } } ?: break
+            chosen += best
+            left -= best.volumes.toSet()
+        }
+        return chosen
+    }
+
+    /** Every link of [options], mirrors too: what the dead-link check asks. */
+    fun links(options: List<Option>): List<String> =
+        options.flatMap { o -> o.files.flatMap { listOf(it.link) + it.mirrors } }.distinct()
+
+    /**
+     * [options] with each file moved to its first link that is not in [gone] (a file with none left keeps its
+     * link: the option is dead), best first again.
+     */
+    fun alive(options: List<Option>, gone: Set<String>): List<Option> = options.map { o ->
+        o.copy(
+            files = o.files.map { f ->
+                val live = (listOf(f.link) + f.mirrors).filter { it !in gone }
+                if (live.isEmpty()) f else f.copy(link = live.first(), mirrors = live.drop(1))
+            },
+        )
+    }.sortedWith(order)
 
     /** Is [link] on a hoster too slow to use without paying? */
     // ponytail: only Rapidgator (2026-11-22: ~50-100 KB/s, no resume, a browser download died after 30 min).

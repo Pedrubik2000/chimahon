@@ -18,7 +18,8 @@ object WpRawParser {
     )
 
     data class Post(val url: String, val title: String, val cover: String?)
-    data class Volume(val label: String, val link: String)
+    /** [link]: the first hoster in [hosts] order; [mirrors]: the same file on the others, in that order. */
+    data class Volume(val label: String, val link: String, val mirrors: List<String> = emptyList())
     data class Details(val title: String, val cover: String?, val volumes: List<Volume>)
 
     // first = preferred; rapidgator also as rg.to, katfile on any TLD
@@ -74,7 +75,8 @@ object WpRawParser {
             files.getOrPut(fileName(url, a.text())) { mutableListOf() } += rank to url
         }
         val volumes = files.map { (file, links) ->
-            Volume(archive.replace(file, ""), links.minBy { it.first }.second)
+            val sorted = links.sortedBy { it.first }.map { it.second }.distinct() // stable: first listed wins a tie
+            Volume(archive.replace(file, ""), sorted.first(), sorted.drop(1))
         }
         return Details(
             seriesTitle(title),
