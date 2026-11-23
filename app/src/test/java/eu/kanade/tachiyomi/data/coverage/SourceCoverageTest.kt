@@ -49,6 +49,25 @@ class SourceCoverageTest {
     }
 
     @Test
+    fun `a torrent nobody shares is the last choice for Real-Debrid too`() {
+        // inside one source: the shared torrent wins although the dead one is smaller
+        CoverageMatch.volumes(listOf("T 第01-06巻" to "magnet:dead", "T 第01-18巻" to "magnet:live"), last = setOf("magnet:dead"))[1] shouldBe
+            "magnet:live"
+        CoverageMatch.volumes(listOf("T 第01-06巻" to "magnet:dead"), last = setOf("magnet:dead"))[1] shouldBe "magnet:dead"
+        // across sources; seeders unknown (a hoster file) or above 0 is not dead
+        val dead = Coverage(
+            1, "A", Coverage.State.FOUND, volumes = mapOf(1 to "magnet:dead"),
+            files = listOf(Coverage.File(listOf(1), listOf("magnet:dead"), seeders = 0)),
+        )
+        val live = Coverage(
+            2, "B", Coverage.State.FOUND, volumes = mapOf(1 to "magnet:live"),
+            files = listOf(Coverage.File(listOf(1), listOf("magnet:live"), seeders = 3)),
+        )
+        val hoster = Coverage(3, "C", Coverage.State.FOUND, volumes = mapOf(1 to "h"), files = listOf(Coverage.File(listOf(1), listOf("h"))))
+        CoverageMatch.links(1, listOf(dead, live, hoster)) shouldBe listOf(2L to "magnet:live", 3L to "h", 1L to "magnet:dead")
+    }
+
+    @Test
     fun `volumes from chapters, single files before batches`() {
         val volumes = CoverageMatch.volumes(
             listOf(

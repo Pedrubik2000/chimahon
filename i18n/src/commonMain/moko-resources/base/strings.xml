@@ -1179,6 +1179,7 @@
     <string name="glass_manual_adds">Adds %1$s</string>
     <string name="glass_manual_already">%1$s already here</string>
     <string name="glass_manual_lacks">Does not have %1$s</string>
+    <string name="glass_manual_scans">Probably chapters, not volumes: the file name has the “s” mark, and the import refuses such files.</string>
     <string name="glass_manual_mirror">Mirror: %1$s</string>
     <string name="glass_manual_none">No source has a link to download by hand for these volumes. Torrents are not supported by hand yet.</string>
     <string name="glass_manual_get_from">Get from %1$s</string>

@@ -418,6 +418,7 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEachIndexed { i, o ->
             val dead = model.isGone(o)
+            val marked = o.files.any { it.scans }
             val on = i == model.selected && !dead
             Column(
                 Modifier
@@ -428,7 +429,7 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
                     .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (i == 0 && !dead) {
+                if (i == 0 && !dead && !marked) {
                     Column(Modifier.padding(end = 8.dp)) {
                         CapsLabel(stringResource(MR.strings.glass_manual_suggested), Glass.ice)
                         Dim(
@@ -469,6 +470,12 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
                 } else if (o.adds.isNotEmpty()) {
                     val already = if (o.alreadyHere.isEmpty()) "" else " · " + stringResource(MR.strings.glass_manual_already, CoverageMatch.ranges(o.alreadyHere))
                     Text(stringResource(MR.strings.glass_manual_adds, CoverageMatch.ranges(o.adds)) + already, fontSize = Glass.body, modifier = Modifier.padding(end = 8.dp))
+                }
+                if (marked && !dead) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        GlassIcon("alert", size = 18.dp)
+                        Text(stringResource(MR.strings.glass_manual_scans), fontSize = Glass.body, modifier = Modifier.padding(end = 8.dp))
+                    }
                 }
                 val lacks = model.volumes.filter { it !in o.adds && it !in model.here }
                 if (lacks.isNotEmpty()) {

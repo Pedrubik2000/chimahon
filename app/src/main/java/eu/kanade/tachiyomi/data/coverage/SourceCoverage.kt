@@ -125,7 +125,10 @@ class SourceCoverage(private val app: Application) {
                 postTitle = posts.first().title,
                 postUrl = source.getMangaUrl(posts.first()),
                 volumes = CoverageMatch.corrected(
-                    CoverageMatch.volumes(chapters.map { it.label to it.links.first() }),
+                    CoverageMatch.volumes(
+                        chapters.map { it.label to it.links.first() },
+                        last = chapters.filter { it.seeders == 0 }.map { it.links.first() }.toSet(),
+                    ),
                     corrections,
                 ),
                 files = CoverageMatch.correctedFiles(CoverageMatch.files(chapters), corrections),
@@ -253,11 +256,12 @@ object CoverageMatch {
     /**
      * Volume -> link from (chapter name, url) pairs, newest first as sources list them. The link covering the fewest
      * volumes wins a volume (a single volume over a batch), then the first listed; a file with the "s" mark
-     * ([VolumeLabels.scans]: chapter folders, refused by the import) only where nothing else has the volume.
+     * ([VolumeLabels.scans]: chapter folders, refused by the import) or a link in [last] (a torrent nobody was
+     * sharing when the source was read) only where nothing else has the volume.
      */
-    fun volumes(chapters: List<Pair<String, String>>): Map<Int, String> {
+    fun volumes(chapters: List<Pair<String, String>>, last: Set<String> = emptySet()): Map<Int, String> {
         val result = sortedMapOf<Int, String>()
-        chapters.map { (name, url) -> Triple(VolumeLabels.volumes(name), url, VolumeLabels.scans(name)) }
+        chapters.map { (name, url) -> Triple(VolumeLabels.volumes(name), url, VolumeLabels.scans(name) || url in last) }
             .filter { it.first.isNotEmpty() }
             .sortedWith(compareBy({ it.third }, { it.first.size }))
             .forEach { (vols, url) -> vols.forEach { result.putIfAbsent(it, url) } }
@@ -291,11 +295,12 @@ object CoverageMatch {
 
     /**
      * (source id, link) for one volume, in source order, without the same link twice; links of a file with the
-     * "s" mark ([Coverage.File.scans]) after all others. First = the one to try.
+     * "s" mark ([Coverage.File.scans]) or of a torrent nobody was sharing (seeders 0 when the source was read)
+     * after all others. First = the one to try.
      */
     fun links(volume: Int, inOrder: List<Coverage>): List<Pair<Long, String>> =
         inOrder.filter { it.state == Coverage.State.FOUND }
-            .mapNotNull { c -> c.volumes[volume]?.let { l -> Triple(c.sourceId, l, c.files.any { it.scans && l in it.links }) } }
+            .mapNotNull { c -> c.volumes[volume]?.let { l -> Triple(c.sourceId, l, c.files.any { (it.scans || it.seeders == 0) && l in it.links }) } }
             .distinctBy { it.second }
             .sortedBy { it.third } // stable: the source order stays inside each group
             .map { it.first to it.second }
