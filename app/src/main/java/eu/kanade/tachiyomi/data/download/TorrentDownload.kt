@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.download
 
 import eu.kanade.tachiyomi.data.coverage.Coverage
+import eu.kanade.tachiyomi.source.online.all.VolumeLabels
 
 /** What to download as a torrent on this device (no Real-Debrid): which magnets hold the wanted volumes. */
 object TorrentDownload {
@@ -24,8 +25,9 @@ object TorrentDownload {
 
     /**
      * Best first: a torrent someone is sharing before one nobody is (0 seeders; unknown counts as shared), then
-     * the one adding more of [wanted], then the least [Option.extra] + [Option.alreadyHere] (less to download),
-     * then the most seeders, then the order of [coverages]. The whole torrent is downloaded: no file is picked.
+     * the one adding more of [wanted], then the most seeders (one person "sharing" often sends nothing), then the
+     * least [Option.extra] + [Option.alreadyHere], then the order of [coverages]. Size hardly counts: only the
+     * files of the wanted volumes are fetched ([wantedFiles]).
      */
     fun options(wanted: Collection<Int>, here: Set<Int>, coverages: List<Coverage>): List<Option> {
         val want = wanted.toSet()
@@ -49,7 +51,19 @@ object TorrentDownload {
         }.distinctBy { it.magnet }.sortedWith(
             // sortedWith is stable: ties keep the order of coverages
             compareBy<Option> { it.seeders == 0 }.thenByDescending { it.adds.size }
-                .thenBy { it.extra.size + it.alreadyHere.size }.thenByDescending { it.seeders ?: 0 },
+                .thenByDescending { it.seeders ?: 0 }.thenBy { it.extra.size + it.alreadyHere.size },
         )
+    }
+
+    /**
+     * Of a torrent's file [paths], those to fetch for the [wanted] volumes: the files whose own name (not the
+     * folder's) has a wanted volume number. Every file when nothing is wanted in particular or no file name has a
+     * number (one archive, loose pages); none when the names have numbers but not the wanted ones.
+     */
+    fun wantedFiles(paths: List<String>, wanted: Set<Int>): List<String> {
+        if (wanted.isEmpty()) return paths
+        val numbered = paths.associateWith { VolumeLabels.volumes(it.substringAfterLast('/')) }
+        if (numbered.values.all { it.isEmpty() }) return paths
+        return paths.filter { p -> numbered.getValue(p).any { it in wanted } }
     }
 }

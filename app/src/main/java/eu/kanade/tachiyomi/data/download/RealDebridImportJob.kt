@@ -597,7 +597,13 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             val t = TorrentServerApi.getTorrent(hash)
             val files = t.file_stats.orEmpty()
             if (files.isNotEmpty()) {
-                return (t.name ?: t.title) to files.map { f -> f.path to TorrentServerUtils.getTorrentPlayLink(t, f.id ?: 0) }
+                // only the files of the wanted volumes: the engine fetches just the pieces that are read
+                val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+                val paths = TorrentDownload.wantedFiles(files.map { it.path }, wanted).toSet()
+                if (paths.isEmpty()) error("This torrent does not have vol. ${wanted.sorted().joinToString()}")
+                // the first file has no id in the engine's answer: it is 0
+                return (t.name ?: t.title) to files.filter { it.path in paths }
+                    .map { f -> f.path to TorrentServerUtils.getTorrentPlayLink(t, f.id ?: 0) }
             }
             // not a dead link: the torrent may be shared again tomorrow, so the coverage keeps it
             if (System.currentTimeMillis() > deadline) error("Nobody is sharing this torrent right now")
@@ -778,6 +784,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             }
         } catch (e: Exception) {
             part.delete()
+            // kumahon: the engine sends nothing while no one sends it the next piece
+            if (onDevice && e is java.net.SocketTimeoutException) {
+                error("The torrent stopped: the people sharing it sent nothing for $STALL_MINUTES minutes. Try one more people share.")
+            }
             throw e
         }
         if (!part.renameTo(name)) error("Can't rename $name")
@@ -990,7 +1000,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         private const val KEY_ON_DEVICE = "on_device"
         private const val ENGINE_WAIT_SECONDS = 20
         private const val PEER_WAIT_MS = 120_000L
-        private const val STALL_MINUTES = 5L
+        private const val STALL_MINUTES = 3L
 
         // ponytail: fixed public trackers beside the engine's own list and DHT (a Nyaa magnet here is a bare
         // info hash); a setting if they go away

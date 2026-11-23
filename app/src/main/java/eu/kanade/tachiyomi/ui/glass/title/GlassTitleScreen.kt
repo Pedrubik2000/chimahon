@@ -883,9 +883,12 @@ private fun FetchDialog(
         },
         confirmButton = { Pill(stringResource(MR.strings.glass_title_fetch), onClick = onConfirm, primary = true, small = true) },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill(stringResource(MR.strings.glass_torrent_use), onClick = onTorrent, small = true)
-                Pill(stringResource(MR.strings.glass_manual_by_hand), onClick = onByHand, small = true)
+            // two rows: three pills do not fit a phone's dialog
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Pill(stringResource(MR.strings.glass_torrent_use), onClick = onTorrent, small = true)
+                    Pill(stringResource(MR.strings.glass_manual_by_hand), onClick = onByHand, small = true)
+                }
                 Pill(stringResource(MR.strings.action_cancel), onClick = onDismiss, small = true)
             }
         },

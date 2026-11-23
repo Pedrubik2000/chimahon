@@ -192,8 +192,8 @@ private class TorrentModel(
             error = ""
             return
         }
-        // the job is queued for what the torrent holds, as a pack is: what is already here is skipped by the import
-        runCatching { queue.enqueueTorrent(e, o.volumes, o.sourceId, o.magnet) }
+        // queued for the wanted volumes the torrent holds: only their files are fetched
+        runCatching { queue.enqueueTorrent(e, o.adds, o.sourceId, o.magnet) }
             .onSuccess { workId = it }
             .onFailure { error = it.message.orEmpty() }
     }
@@ -307,7 +307,6 @@ private fun Running(model: TorrentModel) {
                 Box(Modifier.size(56.dp).border(2.dp, Glass.ice, CircleShape), contentAlignment = Alignment.Center) {
                     GlassIcon("check", size = 28.dp, tint = Glass.ice)
                 }
-                // the job is queued for all the torrent's volumes: "delivered" counts those already here too
                 Text(
                     stringResource(MR.strings.glass_torrent_done, CoverageMatch.ranges(row!!.delivered.ifEmpty { row.volumes })),
                     fontSize = Glass.heading,

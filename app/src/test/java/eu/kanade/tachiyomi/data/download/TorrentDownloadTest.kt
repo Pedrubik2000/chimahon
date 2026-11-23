@@ -35,7 +35,7 @@ class TorrentDownloadTest {
     }
 
     @Test
-    fun `shared before dead, then more wanted volumes, then less extra, then more seeders`() {
+    fun `shared before dead, then more wanted volumes, then more seeders, then less extra`() {
         val dead = file(1..2, "magnet:dead", 0)
         val partial = file(1..1, "magnet:partial", 50)
         val big = file(1..18, "magnet:big", 30)
@@ -43,7 +43,24 @@ class TorrentDownloadTest {
         val exactMany = file(1..2, "magnet:exactMany", 9)
         val unknown = file(1..2, "magnet:unknown")
         magnets(listOf(1, 2), emptySet(), cov(1, dead, partial, big, exactFew, exactMany, unknown)) shouldBe
-            listOf("magnet:exactMany", "magnet:exactFew", "magnet:unknown", "magnet:big", "magnet:partial", "magnet:dead")
+            listOf("magnet:big", "magnet:exactMany", "magnet:exactFew", "magnet:unknown", "magnet:partial", "magnet:dead")
+    }
+
+    @Test
+    fun `only the files of the wanted volumes are fetched`() {
+        val pack = listOf(
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v11.rar",
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v12 DL.rar",
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v04s.rar",
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v01-03s.rar",
+        )
+        TorrentDownload.wantedFiles(pack, setOf(1, 2)) shouldBe listOf(pack[3])
+        TorrentDownload.wantedFiles(pack, setOf(4, 12)) shouldBe listOf(pack[1], pack[2])
+        TorrentDownload.wantedFiles(pack, emptySet()) shouldBe pack
+        TorrentDownload.wantedFiles(pack, setOf(15)) shouldBe emptyList()
+        // names without a volume number: one archive, or loose pages; all of it is needed
+        val one = listOf("[author] Title complete.zip")
+        TorrentDownload.wantedFiles(one, setOf(1)) shouldBe one
     }
 
     @Test
