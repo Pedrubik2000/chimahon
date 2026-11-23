@@ -22,6 +22,7 @@ import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
+import eu.kanade.tachiyomi.source.online.all.VolumeLabels
 import eu.kanade.tachiyomi.torrentServer.TorrentServerApi
 import eu.kanade.tachiyomi.torrentServer.TorrentServerUtils
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
@@ -385,6 +386,18 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // WorkManager stopped the worker ("Cancel all", system): no failed notification
             if (Injekt.get<RealDebridQueue>().isCancelled(id)) undo() // chimahon: "Cancel all" flags its jobs first
             throw e
+        } catch (e: ChaptersException) {
+            // kumahon: the link holds none of the volumes it was read as: the coverage stops offering it
+            logcat(LogPriority.WARN) { "Real-Debrid import: chapters, not volumes: ${inputData.getString(KEY_NAME) ?: id}" }
+            deleteParts()
+            val mediaId = inputData.getLong(KEY_MEDIA_ID, 0)
+            val source = inputData.getLong(KEY_SOURCE, NO_SOURCE)
+            if (mediaId > 0 && source != NO_SOURCE && !local) {
+                Injekt.get<SourceCoverage>().recordHeld(mediaId, source, link, emptySet())
+            }
+            val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+            done(listOfNotNull(inputData.getString(KEY_NAME), e.message).joinToString(": "), error = true)
+            Result.success(output(e.message, missing = wanted))
         } catch (e: DeadLinkException) {
             // chimahon: every link dead (only resolve lets one out): one summary, the volumes and the sources tried
             logcat(LogPriority.WARN, e) { "Real-Debrid: every link dead: $link" }
@@ -599,6 +612,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             if (files.isNotEmpty()) {
                 // only the files of the wanted volumes: the engine fetches just the pieces that are read
                 val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
+                // loose chapter folders or chapter archives: known before a byte is fetched
+                if (wanted.isNotEmpty() && VolumeLabels.areChapters(files.map { it.path })) throw ChaptersException()
                 val paths = TorrentDownload.wantedFiles(files.map { it.path }, wanted).toSet()
                 if (paths.isEmpty()) error("This torrent does not have vol. ${wanted.sorted().joinToString()}")
                 // the first file has no id in the engine's answer: it is 0
@@ -860,6 +875,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     // ponytail: multi-part RARs (.part1.rar...) aren't joined; libarchive reads one file
     private fun unpack(bundle: UniFile, mangaDir: UniFile) {
         val stem = bundle.name.orEmpty().substringBeforeLast('.')
+        // kumahon --> a job for given volumes: a pack of chapters is not taken for volumes ("Chapter 019" would
+        // land as vol. 19). The names are read first; nothing of it is written.
+        if (inputData.getIntArray(KEY_VOLUMES)?.isNotEmpty() == true) {
+            val names = bundle.archiveReader(applicationContext).use { reader ->
+                ArchiveInputStream(reader.address, reader.size, reader.encrypted).use { stream ->
+                    generateSequence { stream.getNextEntry() }.filter { it.isFile }.map { it.name }.toList()
+                }
+            }
+            if (VolumeLabels.areChapters(names)) {
+                bundle.delete()
+                throw ChaptersException()
+            }
+        }
+        // kumahon <--
         val seenBefore = numberedSeen // chimahon: numbered volumes in this pack = seen since here (kept or skipped)
         val unnumbered = mutableListOf<String>() // chimahon: volume files without one this unpack wrote
         bundle.archiveReader(applicationContext).use { reader ->
@@ -979,6 +1008,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
     /** The job was cancelled from RealDebridQueue: it ends as success with the error "Cancelled". */
     private class CancelledException : Exception("Cancelled")
+
+    /** kumahon: the file a job for volumes fetched holds chapters. */
+    private class ChaptersException : Exception("It holds chapters, not volumes: nothing was added")
 
     /** Real-Debrid account state for Settings: premium and days left, or a token it refused. */
     data class Account(val premium: Boolean, val daysLeft: Int, val tokenRejected: Boolean = false)

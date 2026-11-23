@@ -46,6 +46,24 @@ class VolumeLabelsTest {
     }
 
     @Test
+    fun `a pack of chapters is told from a pack of volumes`() {
+        VolumeLabels.areChapters(
+            listOf(
+                "DLRAW.TO_MASHLE - Raw Chapter 001/001.jpg",
+                "DLRAW.TO_MASHLE - Raw Chapter 001/002.jpg",
+                "DLRAW.TO_MASHLE - Raw Chapter 019/001.jpg",
+                "DLRAW.TO_cover/000.jpg",
+            ),
+        ) shouldBe true
+        VolumeLabels.areChapters(listOf("Title ch.12.zip", "Title ch.13.zip")) shouldBe true
+        VolumeLabels.areChapters(listOf("タイトル 第19話/01.png")) shouldBe true
+        VolumeLabels.areChapters(listOf("Masshuru v01-03s.rar", "Masshuru v04s.rar")) shouldBe false
+        VolumeLabels.areChapters(listOf("MASHLE 第01巻/001.jpg", "MASHLE 第02巻/001.jpg")) shouldBe false
+        VolumeLabels.areChapters(listOf("Chainsaw Man v01/001.jpg")) shouldBe false
+        VolumeLabels.areChapters(emptyList()) shouldBe false
+    }
+
+    @Test
     fun `shapes`() {
         v("04-06") shouldBe setOf(4, 5, 6)
         v("01-02b") shouldBe setOf(1, 2)

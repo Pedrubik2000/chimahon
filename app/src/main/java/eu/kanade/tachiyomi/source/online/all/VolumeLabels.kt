@@ -31,6 +31,22 @@ object VolumeLabels {
     )
     private val separators = Regex("""[\s　_,]+""")
 
+    private val chapterWord = Regex("""(?<![a-z])(?:chapter|chap\.?|ch\.?)[\s_.-]*\d|第\s*\d+\s*話|\d\s*話""", RegexOption.IGNORE_CASE)
+    private val pageFile = Regex("""\.(?:jpe?g|png|webp|avif|gif|bmp)$""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Do the file [paths] of an archive or a torrent hold chapters, not volumes? Each path counts once as its
+     * unit: a page's folder, any other file's own name. True when at least half of the units are named as a
+     * chapter ("Raw Chapter 019", "ch.12", "第19話"): "Chapter 019" is not volume 19.
+     */
+    fun areChapters(paths: List<String>): Boolean {
+        val units = paths.map { p ->
+            val parts = p.trim('/').split('/')
+            if (pageFile.containsMatchIn(parts.last())) parts.getOrNull(parts.size - 2).orEmpty() else parts.last()
+        }.filter { it.isNotEmpty() }.distinct()
+        return units.isNotEmpty() && units.count { chapterWord.containsMatchIn(halfWidthDigits(it)) } * 2 >= units.size
+    }
+
     fun volumes(label: String): Set<Int> {
         val s = noise.replace(halfWidthDigits(label), " ")
         complete.find(s)?.let { return span(1, it.groupValues[1]) }
