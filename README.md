@@ -72,7 +72,7 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/torrent.jpg" alt="Download as a torrent: the torrents that hold the volume, with their size and how many people share them" width="24%" />
 </p>
 
-- **Phones** (optional, still in progress): Home and Discover are made for phones; Library, Downloads and title pages are the tablet ones made narrow. Turn it on in Settings › Appearance.
+- **Phones** (optional, still in progress): Home, Discover, Library, title pages and Settings are made for phones; Downloads is the tablet one made narrow. Turn it on in Settings › Appearance.
 - **Download by hand**, without Real-Debrid: the app lists which file of which source holds the volume, opens the hoster's page in your browser, and imports the file you downloaded. A hoster that is quick without an account is suggested first, and dead links are checked before you wait for nothing.
 - **Torrents on the device**, without Real-Debrid: a Nyaa torrent is downloaded by the app's own engine. Before it starts, the app opens the torrent and shows what it will download and how big it is, and only the files of the volumes you asked for are fetched. The people sharing a torrent can see your IP address while it runs; the app says so first.
 - A file that holds **chapters instead of volumes** is refused and nothing is added. Files whose name suggests that are flagged and offered last.
