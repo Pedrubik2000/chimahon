@@ -3,7 +3,10 @@ package eu.kanade.tachiyomi.ui.glass.setup
 /** The pure part of the first-run setup (canvas `Setup-2`): when it shows, where it starts, what it says is missing. */
 object GlassSetupLogic {
 
-    /** The three facts Open Home needs. None of them needs the network. */
+    /**
+     * What the setup knows without the network. Open Home needs [aniList] and [storage]; [realDebrid] is for the
+     * summary only since 1.2.1: volumes also come by hand and by torrent, so a key can wait.
+     */
     data class Facts(val aniList: Boolean, val realDebrid: Boolean, val storage: Boolean)
 
     /** Steps 0-4 (AniList, Real-Debrid, Storage, Notifications, Dictionary), then the summary. */
@@ -13,13 +16,12 @@ object GlassSetupLogic {
     /** The step names as the bars, the summary rows and [missingLine] say them. */
     val NAMES = listOf("AniList", "Real-Debrid", "Storage", "Notifications", "Dictionary")
 
-    /** Steps 0-2 are needed, 3 and 4 can be skipped. */
-    fun needed(step: Int): Boolean = step in 0..2
+    /** AniList (0) and Storage (2) are needed; Real-Debrid (1), Notifications (3) and Dictionary (4) can be skipped. */
+    fun needed(step: Int): Boolean = step == 0 || step == 2
 
-    /** Indices (0-2) of the facts that are missing, in step order. */
+    /** Indices of the needed facts that are missing, in step order. */
     fun missing(facts: Facts): List<Int> = listOfNotNull(
         0.takeUnless { facts.aniList },
-        1.takeUnless { facts.realDebrid },
         2.takeUnless { facts.storage },
     )
 
@@ -30,7 +32,7 @@ object GlassSetupLogic {
     /** The first missing step, or the summary when nothing is missing. */
     fun firstStep(facts: Facts): Int = missing(facts).firstOrNull() ?: SUMMARY
 
-    /** "Finish Storage first", "Finish Real-Debrid and Storage first", "Finish AniList, Real-Debrid and Storage first". */
+    /** "Finish Storage first", "Finish AniList and Storage first" (three names read "A, B and C"). */
     fun missingLine(names: List<String>): String {
         val list = if (names.size > 1) names.dropLast(1).joinToString(", ") + " and " + names.last() else names.firstOrNull().orEmpty()
         return "Finish $list first"

@@ -160,11 +160,16 @@ internal fun RealDebridStep(model: GlassSetupModel) {
     if (rd == Rd.PREMIUM) {
         DoneCard(stringResource(MR.strings.glass_setup_key_ok), stringResource(MR.strings.glass_dl_rd_premium, model.daysLeft))
     } else {
-        SetupButton(
-            stringResource(if (rd == Rd.CHECKING) MR.strings.glass_dl_rd_checking else MR.strings.glass_setup_check),
-            model::checkKey,
-            enabled = !empty && rd != Rd.CHECKING,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SetupButton(
+                stringResource(if (rd == Rd.CHECKING) MR.strings.glass_dl_rd_checking else MR.strings.glass_setup_check),
+                model::checkKey,
+                enabled = !empty && rd != Rd.CHECKING,
+            )
+            // since 1.2.1 volumes also come by hand and as torrents: the key can wait
+            SetupButton(stringResource(MR.strings.glass_setup_not_now), model::skipRealDebrid, primary = false)
+        }
+        if (model.realDebridSkipped) Note(stringResource(MR.strings.glass_setup_rd_skipped))
     }
 }
 
@@ -339,22 +344,22 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
     )
     val skipped = listOf(
         false,
-        false,
+        model.realDebridSkipped,
         false,
         model.notificationsSkipped,
         model.dictionarySkipped,
     )
     val skippedText = listOf(
         "",
-        "",
+        stringResource(MR.strings.glass_setup_rd_skip_row),
         "",
         stringResource(MR.strings.glass_setup_notifications_skip_row),
         stringResource(MR.strings.glass_setup_dictionary_skip_row),
     )
     val notDone = stringResource(MR.strings.glass_setup_not_done)
     val notSet = stringResource(MR.strings.glass_setup_not_set)
-    // "done" for 3 and 4 includes skipped; a row is "ok" only when really set
-    val ok = listOf(model.done(0), model.done(1), model.done(2), model.notificationsAllowed, model.dictionary != null)
+    // "done" for 1, 3 and 4 includes skipped; a row is "ok" only when really set
+    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null)
     Column(Modifier.width(520.dp).glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
         names.forEachIndexed { i, n ->
             val fix = !ok[i] && GlassSetupLogic.needed(i)

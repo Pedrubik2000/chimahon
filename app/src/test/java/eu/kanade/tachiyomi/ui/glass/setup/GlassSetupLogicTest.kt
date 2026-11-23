@@ -11,10 +11,10 @@ class GlassSetupLogicTest {
     }
 
     @Test
-    fun `the setup shows in the new look until done, whenever one fact is missing`() {
+    fun `the setup shows in the new look until done, whenever a needed fact is missing`() {
         all.size shouldBe 8
         all.forEach { f ->
-            val complete = f.aniList && f.realDebrid && f.storage
+            val complete = f.aniList && f.storage // a Real-Debrid key can wait
             GlassSetupLogic.shows(glassRoot = true, done = false, facts = f) shouldBe !complete
             GlassSetupLogic.shows(glassRoot = true, done = true, facts = f) shouldBe false
             GlassSetupLogic.shows(glassRoot = false, done = false, facts = f) shouldBe false
@@ -26,13 +26,14 @@ class GlassSetupLogicTest {
         all.forEach { f ->
             val expected = when {
                 !f.aniList -> 0
-                !f.realDebrid -> 1
                 !f.storage -> 2
                 else -> GlassSetupLogic.SUMMARY
             }
             GlassSetupLogic.firstStep(f) shouldBe expected
         }
-        GlassSetupLogic.missing(Facts(aniList = true, realDebrid = false, storage = false)) shouldBe listOf(1, 2)
+        GlassSetupLogic.missing(Facts(aniList = true, realDebrid = false, storage = false)) shouldBe listOf(2)
+        GlassSetupLogic.missing(Facts(aniList = true, realDebrid = false, storage = true)) shouldBe emptyList()
+        listOf(0, 1, 2, 3, 4).filter { GlassSetupLogic.needed(it) } shouldBe listOf(0, 2)
     }
 
     @Test
@@ -46,6 +47,7 @@ class GlassSetupLogicTest {
     @Test
     fun `step tags`() {
         GlassSetupLogic.tag(0, 3) shouldBe "NEEDED"
+        GlassSetupLogic.tag(1, 2) shouldBe "CAN SKIP"
         GlassSetupLogic.tag(3, 0) shouldBe "CAN SKIP"
         GlassSetupLogic.tag(GlassSetupLogic.SUMMARY, 0) shouldBe "READY"
         GlassSetupLogic.tag(GlassSetupLogic.SUMMARY, 1) shouldBe "1 NEEDED STEP LEFT"

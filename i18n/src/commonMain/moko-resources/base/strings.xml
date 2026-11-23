@@ -956,7 +956,9 @@
     <string name="glass_setup_notifications">Notifications</string>
     <string name="glass_setup_dictionary">Dictionary</string>
     <string name="glass_setup_anilist_why">Home, Library and Discover come from your AniList manga list.</string>
-    <string name="glass_setup_rd_why">Volumes are downloaded through your Real-Debrid account.</string>
+    <string name="glass_setup_rd_why">Volumes are downloaded through your Real-Debrid account. Without one you can still download by hand or as a torrent.</string>
+    <string name="glass_setup_rd_skipped">Skipped. Volumes can still be downloaded by hand or as a torrent. You can add a key later in Settings.</string>
+    <string name="glass_setup_rd_skip_row">Skipped · add a key in Settings</string>
     <string name="glass_setup_storage_why">Each series is a folder here. Nothing else is stored anywhere else.</string>
     <string name="glass_setup_notifications_why">Tells you when a download is done or a volume was not found.</string>
     <string name="glass_setup_dictionary_why">Tap a word on a page to look it up.</string>

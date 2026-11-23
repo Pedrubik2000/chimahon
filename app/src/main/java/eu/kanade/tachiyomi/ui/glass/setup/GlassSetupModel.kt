@@ -93,6 +93,10 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
     var seriesCount by mutableStateOf<Int?>(null)
         private set
 
+    // Real-Debrid "Not now" (kept in memory only): volumes also come by hand and as torrents, so a key can wait
+    var realDebridSkipped by mutableStateOf(false)
+        private set
+
     // Notifications ("Not now" is kept in memory only)
     var notificationsAllowed by mutableStateOf(false)
     var notificationsSkipped by mutableStateOf(false)
@@ -184,7 +188,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
 
     fun done(i: Int): Boolean = when (i) {
         0 -> signedIn.value
-        1 -> realDebridDone
+        1 -> realDebridDone || realDebridSkipped
         2 -> storageOk
         3 -> notificationsAllowed || notificationsSkipped
         // canvas Dict-1: Continue once one is installed, downloading or skipped
@@ -192,8 +196,9 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         else -> false
     }
 
-    /** "Not now" on 3 or 4 and still not set: done for Continue, but not really done (dimmer bar). */
+    /** "Not now" on 1, 3 or 4 and still not set: done for Continue, but not really done (dimmer bar). */
     fun skipped(i: Int): Boolean = when (i) {
+        1 -> realDebridSkipped && !realDebridDone
         3 -> notificationsSkipped && !notificationsAllowed
         4 -> dictionarySkipped && dictionary == null
         else -> false
@@ -233,6 +238,11 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         // from PermissionStep (onboarding): below API 33 there is nothing to ask
         notificationsAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun skipRealDebrid() {
+        realDebridSkipped = true
+        step = 2
     }
 
     fun skipNotifications() {
