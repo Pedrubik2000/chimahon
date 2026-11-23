@@ -11,7 +11,8 @@ import tachiyomi.domain.manga.model.Manga
 /** A built-in source whose chapter urls are hoster links or magnets, imported through [RealDebridImportJob]. */
 interface RealDebridSource {
     /** One archive of a post: its chapter name, and its links: the chapter's url first, then the same file on other hosters. */
-    data class PostFile(val label: String, val links: List<String>)
+    /** [seeders] / [size]: a torrent's, when the source says them. */
+    data class PostFile(val label: String, val links: List<String>, val seeders: Int? = null, val size: String? = null)
 
     /** A post's archives in chapter order with every hoster link; null = one link per chapter, read the chapters. */
     suspend fun files(post: SManga): List<PostFile>? = null

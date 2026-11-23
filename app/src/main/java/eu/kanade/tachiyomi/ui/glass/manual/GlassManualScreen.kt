@@ -61,6 +61,7 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.ManualDownload
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
+import eu.kanade.tachiyomi.data.download.TorrentDownload
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
 import eu.kanade.tachiyomi.util.system.openInBrowser
@@ -137,14 +138,23 @@ class GlassManualScreen(
                     Rule()
                     Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         when (step) {
-                            Step.PICK -> if (option != null) {
-                                WideButton(
-                                    stringResource(MR.strings.glass_manual_get_from, option.sourceName),
-                                    { model.opened = false; model.step = Step.STEPS },
-                                    Modifier.fillMaxWidth(),
-                                    primary = true,
-                                    icon = "chevRight",
-                                )
+                            Step.PICK -> {
+                                if (option != null) {
+                                    WideButton(
+                                        stringResource(MR.strings.glass_manual_get_from, option.sourceName),
+                                        { model.opened = false; model.step = Step.STEPS },
+                                        Modifier.fillMaxWidth(),
+                                        primary = true,
+                                        icon = "chevRight",
+                                    )
+                                }
+                                if (model.hasTorrent) {
+                                    WideButton(
+                                        stringResource(MR.strings.glass_torrent_instead),
+                                        { navigator.replace(GlassTorrentScreen(mediaId, volumes, here)) },
+                                        Modifier.fillMaxWidth(),
+                                    )
+                                }
                             }
                             Step.STEPS -> {
                                 if (option != null && !many) {
@@ -245,6 +255,9 @@ private class ManualModel(
     var options by mutableStateOf<List<ManualDownload.Option>?>(null)
     var selected by mutableIntStateOf(0)
 
+    /** a torrent holds some of the wanted volumes: the page offers the torrent way too */
+    var hasTorrent by mutableStateOf(false)
+
     /** links whose hoster page says the file is gone ([ManualDownload.gone]) */
     var gone by mutableStateOf<Set<String>>(emptySet())
 
@@ -282,7 +295,10 @@ private class ManualModel(
         // write from another thread before that composition is applied is lost (the list stayed empty for good).
         screenModelScope.launch {
             val (list, dead) = withContext(Dispatchers.IO) {
-                val list = ManualDownload.options(volumes, here.toSet(), cachedCoverage(app, mediaId))
+                val coverage = cachedCoverage(app, mediaId)
+                val torrent = TorrentDownload.options(volumes, here.toSet(), coverage).isNotEmpty()
+                withContext(Dispatchers.Main) { hasTorrent = torrent }
+                val list = ManualDownload.options(volumes, here.toSet(), coverage)
                 list to deadLinks(ManualDownload.links(list))
             }
             gone = dead
@@ -362,7 +378,7 @@ private class ManualModel(
 }
 
 @Composable
-private fun TopBar(title: String, vols: String, onBack: () -> Unit) {
+internal fun TopBar(title: String, vols: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(64.dp).padding(end = 16.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(Glass.button).clip(CircleShape).clickable(onClick = onBack), contentAlignment = Alignment.Center) {
             GlassIcon("chevLeft", size = 24.dp)
@@ -375,17 +391,17 @@ private fun TopBar(title: String, vols: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun Rule() {
+internal fun Rule() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(Glass.line))
 }
 
 @Composable
-private fun Heading(text: String) {
+internal fun Heading(text: String) {
     Text(text, fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
-private fun Dim(text: String, modifier: Modifier = Modifier) {
+internal fun Dim(text: String, modifier: Modifier = Modifier) {
     Text(text, fontSize = Glass.body, color = Glass.secondary, modifier = modifier)
 }
 
@@ -677,7 +693,7 @@ private fun DoneBody(model: ManualModel, context: Context, askDelete: () -> Unit
 
 /** A 48dp button that fills the width it is given, text centred; white = primary. */
 @Composable
-private fun WideButton(
+internal fun WideButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -709,7 +725,7 @@ private fun WideButton(
 }
 
 @Composable
-private fun CapsLabel(text: String, color: Color = Glass.secondary) {
+internal fun CapsLabel(text: String, color: Color = Glass.secondary) {
     Text(
         text.uppercase(),
         color = color,

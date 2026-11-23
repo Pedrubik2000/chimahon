@@ -67,6 +67,14 @@ class Nyaa : HttpSource(), RealDebridSource {
         ),
     )
 
+    // the search result carries everything (see fetchChapterList): no network call
+    override suspend fun files(post: SManga): List<RealDebridSource.PostFile> {
+        val (size, seeders) = NyaaParser.sizeAndSeeders(post.description.orEmpty())
+        return listOf(
+            RealDebridSource.PostFile(post.title, listOf("magnet:?xt=urn:btih:" + post.url.substringAfter('#')), seeders, size),
+        )
+    }
+
     override fun getMangaUrl(manga: SManga) = baseUrl + manga.url.substringBefore('#')
 
     override fun getChapterUrl(chapter: SChapter) = chapter.url
@@ -82,6 +90,13 @@ class Nyaa : HttpSource(), RealDebridSource {
 /** Pure, for tests (kept out of [Nyaa] so a test doesn't load HttpSource). */
 object NyaaParser {
     data class Entry(val url: String, val title: String, val hash: String, val description: String)
+
+    private val seedersText = Regex("""(\d+) seeders""")
+
+    /** [Entry.description] ("1.2 GiB · 12 seeders") -> size and seeders, null for what it does not say. */
+    fun sizeAndSeeders(description: String): Pair<String?, Int?> =
+        description.substringBefore(" · ").trim().takeIf { it.isNotEmpty() && it != "null" } to
+            seedersText.find(description)?.groupValues?.get(1)?.toIntOrNull()
 
     /** RSS items -> (view url, title, info hash, "size · N seeders"). */
     fun parseRss(xml: String): List<Entry> =

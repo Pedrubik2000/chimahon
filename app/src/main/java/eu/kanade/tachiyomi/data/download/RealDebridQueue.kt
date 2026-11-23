@@ -127,6 +127,18 @@ class RealDebridQueue(private val app: Application) {
         )
     }
 
+    /** Fetches one torrent with this device's own torrent engine (no Real-Debrid) as [volumes] of [entry]. */
+    fun enqueueTorrent(entry: AniListLibrary.Entry, volumes: Collection<Int>, sourceId: Long, magnet: String): UUID =
+        RealDebridImportJob.start(
+            app,
+            magnet,
+            name = entry.native ?: entry.romaji,
+            mediaId = entry.mediaId,
+            volumes = volumes.sorted(),
+            sourceId = sourceId,
+            onDevice = true,
+        )
+
     /** Cancels one job; the others of its queue keep their place. */
     fun cancel(workId: UUID) = updateCancelled { it + workId.toString() }
 

@@ -85,6 +85,7 @@ import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
 import eu.kanade.tachiyomi.ui.glass.downloads.TitleGroup
 import eu.kanade.tachiyomi.ui.glass.downloads.hatched
 import eu.kanade.tachiyomi.ui.glass.manual.GlassManualScreen
+import eu.kanade.tachiyomi.ui.glass.manual.GlassTorrentScreen
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
@@ -420,6 +421,10 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 onByHand = {
                     confirm = null
                     navigator.push(GlassManualScreen(mediaId, vols, here.toList()))
+                },
+                onTorrent = {
+                    confirm = null
+                    navigator.push(GlassTorrentScreen(mediaId, vols, here.toList()))
                 },
             )
         }
@@ -835,6 +840,7 @@ private fun FetchDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onByHand: () -> Unit,
+    onTorrent: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -878,6 +884,7 @@ private fun FetchDialog(
         confirmButton = { Pill(stringResource(MR.strings.glass_title_fetch), onClick = onConfirm, primary = true, small = true) },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Pill(stringResource(MR.strings.glass_torrent_use), onClick = onTorrent, small = true)
                 Pill(stringResource(MR.strings.glass_manual_by_hand), onClick = onByHand, small = true)
                 Pill(stringResource(MR.strings.action_cancel), onClick = onDismiss, small = true)
             }

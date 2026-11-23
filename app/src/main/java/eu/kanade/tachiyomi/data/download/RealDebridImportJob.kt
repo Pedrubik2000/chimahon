@@ -17,10 +17,13 @@ import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.torrentServer.service.TorrentServerService
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
+import eu.kanade.tachiyomi.torrentServer.TorrentServerApi
+import eu.kanade.tachiyomi.torrentServer.TorrentServerUtils
 import eu.kanade.tachiyomi.ui.browse.source.ImportHandler
 import eu.kanade.tachiyomi.ui.browse.source.MangaImportUtil
 import eu.kanade.tachiyomi.util.system.notificationBuilder
@@ -124,6 +127,20 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     /** Files the person downloaded by hand ([KEY_URIS]): no Real-Debrid anywhere in this job. */
     private val local get() = inputData.getStringArray(KEY_URIS) != null
 
+    // kumahon --> a magnet fetched by this device's own torrent engine: no Real-Debrid anywhere in this job
+    private val onDevice get() = inputData.getBoolean(KEY_ON_DEVICE, false)
+
+    /** Info hash of the torrent the engine holds for this job, and whether this job started the engine. */
+    private var deviceTorrent: String? = null
+    private var startedEngine = false
+
+    /** The engine hands a piece over when the swarm gave it: no end to the call, a long wait for a slow piece. */
+    private val patient by lazy {
+        client.newBuilder().callTimeout(0, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(STALL_MINUTES, java.util.concurrent.TimeUnit.MINUTES).build()
+    }
+    // kumahon <--
+
     /** Local mode, one wanted volume and one picked file: the volume a name without a number is. */
     private var lone: Int? = null
 
@@ -131,7 +148,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private var loneSource: String? = null
 
     /** Notification title: neutral in local mode. */
-    private fun heading() = if (local) "Importing ${inputData.getString(KEY_NAME).orEmpty()}".trim() else "Real-Debrid"
+    private fun heading() = when {
+        local -> "Importing ${inputData.getString(KEY_NAME).orEmpty()}".trim()
+        onDevice -> "Torrent"
+        else -> "Real-Debrid"
+    }
 
     override suspend fun getForegroundInfo() = foreground(if (local) "Reading the files" else "Real-Debrid")
 
@@ -191,7 +212,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         val link = inputData.getString(KEY_LINK) ?: return Result.success(output("No link"))
         // files the person downloaded by hand (content URIs): no Real-Debrid at all, no fallback links
         val uris = inputData.getStringArray(KEY_URIS)?.toList()
-        if (uris == null && token.isEmpty()) {
+        if (uris == null && !onDevice && token.isEmpty()) {
             done("Set the Real-Debrid API token in Settings > Downloads", error = true)
             return Result.success(output("No Real-Debrid token"))
         }
@@ -391,6 +412,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 done("Failed: ${e.message}", error = true)
                 Result.success(output(e.message ?: e.javaClass.simpleName))
             }
+        } finally {
+            stopDeviceTorrent()
         }
     }
 
@@ -437,7 +460,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         error("No link") // not reached: the last candidate returns or throws
     }
 
-    private suspend fun filesOf(url: String) = if (url.startsWith("magnet:")) torrentFiles(url) else linkFiles(url)
+    private suspend fun filesOf(url: String) = when {
+        !url.startsWith("magnet:") -> linkFiles(url)
+        onDevice -> deviceTorrentFiles(url)
+        else -> torrentFiles(url)
+    }
 
     /** Downloads [files] of one link into [mangaDir]; bundles are unpacked. */
     private suspend fun fetch(files: List<Pair<String, String>>, mangaDir: UniFile, title: String) {
@@ -545,6 +572,49 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             delay(5_000)
         }
     }
+
+    // kumahon --> torrents on the device, with the torrent engine the anime side ships (TorrServer)
+    /**
+     * Torrent name + (path inside the torrent, the engine's http address of that file) per file, once the swarm
+     * gave the file list. The engine runs inside this worker (already a foreground service), not through
+     * [TorrentServerService]: starting that service from the background can be refused.
+     */
+    private suspend fun deviceTorrentFiles(magnet: String): Pair<String, List<Pair<String, String>>> {
+        status("Torrent: starting")
+        progress(STEP_WAITING)
+        if (TorrentServerApi.echo() == "") {
+            torrServer.TorrServer.startTorrentServer(applicationContext.filesDir.absolutePath)
+            startedEngine = true
+            if (!TorrentServerService.wait(ENGINE_WAIT_SECONDS)) error("The torrent engine did not start")
+            TorrentServerUtils.setTrackersList()
+        }
+        val added = TorrentServerApi.addTorrent(magnet + TRACKERS, inputData.getString(KEY_NAME).orEmpty())
+        val hash = added.hash ?: error("The torrent engine did not take the magnet")
+        deviceTorrent = hash
+        val deadline = System.currentTimeMillis() + PEER_WAIT_MS
+        while (true) {
+            checkCancelled()
+            val t = TorrentServerApi.getTorrent(hash)
+            val files = t.file_stats.orEmpty()
+            if (files.isNotEmpty()) {
+                return (t.name ?: t.title) to files.map { f -> f.path to TorrentServerUtils.getTorrentPlayLink(t, f.id ?: 0) }
+            }
+            // not a dead link: the torrent may be shared again tomorrow, so the coverage keeps it
+            if (System.currentTimeMillis() > deadline) error("Nobody is sharing this torrent right now")
+            status("Torrent: looking for people sharing it")
+            delay(3_000)
+        }
+    }
+
+    /** Whatever way the job ends: the engine forgets the torrent, and stops when this job started it. */
+    private fun stopDeviceTorrent() {
+        deviceTorrent?.let { hash -> runCatching { TorrentServerApi.remTorrent(hash) } }
+        if (startedEngine) {
+            runCatching { torrServer.TorrServer.stopTorrentServer() }
+            runCatching { TorrentServerApi.shutdown() }
+        }
+    }
+    // kumahon <--
 
     private fun linkFiles(link: String): Pair<String, List<Pair<String, String>>> {
         if (".download.real-debrid.com/" in link) { // already a direct download link
@@ -700,7 +770,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             if (url.startsWith("content://")) { // a file the person picked: copied, never touched
                 val size = openable(url).second
                 openLocal(url).use { part.openOutputStream().use { out -> if (report) copyReporting(it, out, size) else it.copyTo(out) } }
-            } else client.newCall(Request.Builder().url(url).build()).execute().use { r ->
+            } else (if (onDevice) patient else client).newCall(Request.Builder().url(url).build()).execute().use { r ->
                 if (!r.isSuccessful) error("Download $name: HTTP ${r.code}")
                 part.openOutputStream().use { out ->
                     if (report) copyReporting(r.body.byteStream(), out, r.body.contentLength()) else r.body.byteStream().copyTo(out)
@@ -916,6 +986,19 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         /** Content URIs of the files the person downloaded by hand: present = local mode. */
         private const val KEY_URIS = "uris"
 
+        /** kumahon: true = the magnet is fetched by this device's torrent engine, not by Real-Debrid. */
+        private const val KEY_ON_DEVICE = "on_device"
+        private const val ENGINE_WAIT_SECONDS = 20
+        private const val PEER_WAIT_MS = 120_000L
+        private const val STALL_MINUTES = 5L
+
+        // ponytail: fixed public trackers beside the engine's own list and DHT (a Nyaa magnet here is a bare
+        // info hash); a setting if they go away
+        private const val TRACKERS = "&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce" +
+            "&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce" +
+            "&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce" +
+            "&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce"
+
         /** chimahon: each fallback link's volumes, "1,2,3" (parallel to [KEY_FALLBACKS]). */
         private const val KEY_FALLBACK_VOLUMES = "fallback_volumes"
         private const val ID_TORRENT_PROGRESS = -2205
@@ -1090,9 +1173,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             fallbacks: List<Pair<Long, String>> = emptyList(),
             fallbackVolumes: List<Collection<Int>> = emptyList(),
             uris: List<String>? = null,
+            onDevice: Boolean = false,
         ): UUID {
             val input = Data.Builder().putString(KEY_LINK, link).putString(KEY_NAME, name)
             uris?.let { input.putStringArray(KEY_URIS, it.toTypedArray()) }
+            if (onDevice) input.putBoolean(KEY_ON_DEVICE, true)
             mediaId?.let { input.putLong(KEY_MEDIA_ID, it) }
             if (volumes.isNotEmpty()) input.putIntArray(KEY_VOLUMES, volumes.toIntArray())
             sourceId?.let { input.putLong(KEY_SOURCE, it) }

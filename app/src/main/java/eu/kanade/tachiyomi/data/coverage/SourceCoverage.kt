@@ -54,7 +54,13 @@ data class Coverage(
 
     /** One archive: the [volumes] its name says it holds; [links]: the source's preferred hoster first, then mirrors. */
     @Serializable
-    data class File(val volumes: List<Int>, val links: List<String>)
+    data class File(
+        val volumes: List<Int>,
+        val links: List<String>,
+        /** A torrent's: people sharing it when the source was read, and its size as the source writes it. */
+        val seeders: Int? = null,
+        val size: String? = null,
+    )
 }
 
 /**
@@ -107,17 +113,17 @@ class SourceCoverage(private val app: Application) {
                     .ifEmpty { null }
             } ?: return base
             val chapters = posts.take(MAX_POSTS).flatMap { post ->
-                (source as? RealDebridSource)?.files(post)?.map { it.label to it.links }
+                (source as? RealDebridSource)?.files(post)
                     ?: source.getMangaUpdate(post, emptyList(), fetchDetails = false, fetchChapters = true).chapters
-                        .map { it.name to listOf(it.url) }
-            }.filter { it.second.isNotEmpty() }
+                        .map { RealDebridSource.PostFile(it.name, listOf(it.url)) }
+            }.filter { it.links.isNotEmpty() }
             val corrections = corrections()
             base.copy(
                 state = Coverage.State.FOUND,
                 postTitle = posts.first().title,
                 postUrl = source.getMangaUrl(posts.first()),
                 volumes = CoverageMatch.corrected(
-                    CoverageMatch.volumes(chapters.map { it.first to it.second.first() }),
+                    CoverageMatch.volumes(chapters.map { it.label to it.links.first() }),
                     corrections,
                 ),
                 files = CoverageMatch.correctedFiles(CoverageMatch.files(chapters), corrections),
@@ -255,11 +261,11 @@ object CoverageMatch {
         return result
     }
 
-    /** Every (chapter name, links) whose name has a volume number, in order: nothing is dropped for another. */
-    fun files(chapters: List<Pair<String, List<String>>>): List<Coverage.File> =
-        chapters.mapNotNull { (name, links) ->
-            VolumeLabels.volumes(name).takeIf { it.isNotEmpty() && links.isNotEmpty() }
-                ?.let { Coverage.File(it.sorted(), links) }
+    /** Every archive whose name has a volume number, in order: nothing is dropped for another. */
+    fun files(posts: List<RealDebridSource.PostFile>): List<Coverage.File> =
+        posts.mapNotNull { p ->
+            VolumeLabels.volumes(p.label).takeIf { it.isNotEmpty() && p.links.isNotEmpty() }
+                ?.let { Coverage.File(it.sorted(), p.links, p.seeders, p.size) }
         }
 
     /**

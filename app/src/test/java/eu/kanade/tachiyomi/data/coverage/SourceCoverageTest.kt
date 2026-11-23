@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.coverage
 
 import eu.kanade.tachiyomi.source.online.all.ExcnnParser
 import eu.kanade.tachiyomi.source.online.all.NyaaParser
+import eu.kanade.tachiyomi.source.online.all.RealDebridSource
 import eu.kanade.tachiyomi.source.online.all.X3dlParser
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -75,8 +76,16 @@ class SourceCoverageTest {
     fun `every file with a volume number is kept with all its links`() {
         val pack = listOf("https://rapidgator.net/file/p", "https://katfile.com/p")
         val files = CoverageMatch.files(
-            listOf("03" to listOf("https://uploady.io/c"), "01-03" to pack, "extras" to listOf("https://uploady.io/x")),
+            listOf(
+                RealDebridSource.PostFile("03", listOf("https://uploady.io/c")),
+                RealDebridSource.PostFile("01-03", pack),
+                RealDebridSource.PostFile("extras", listOf("https://uploady.io/x")),
+            ),
         )
+        CoverageMatch.files(listOf(RealDebridSource.PostFile("第01-02巻", listOf("magnet:?xt=urn:btih:aa"), 7, "120 MiB"))) shouldBe
+            listOf(Coverage.File(listOf(1, 2), listOf("magnet:?xt=urn:btih:aa"), 7, "120 MiB"))
+        NyaaParser.sizeAndSeeders("120.5 MiB · 7 seeders") shouldBe ("120.5 MiB" to 7)
+        NyaaParser.sizeAndSeeders("null · null seeders") shouldBe (null to null)
         files shouldBe listOf(Coverage.File(listOf(3), listOf("https://uploady.io/c")), Coverage.File(listOf(1, 2, 3), pack))
         // a correction learnt on one link holds for its mirrors: they are the same archive
         CoverageMatch.correctedFiles(files, mapOf(pack[0] to setOf(1, 2))) shouldBe
