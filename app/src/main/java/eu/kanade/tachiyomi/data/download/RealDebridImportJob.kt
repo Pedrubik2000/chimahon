@@ -605,7 +605,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 val wanted = inputData.getIntArray(KEY_VOLUMES)?.toSet().orEmpty()
                 // loose chapter folders or chapter archives: known before a byte is fetched
                 if (wanted.isNotEmpty() && VolumeLabels.areChapters(files.map { it.path })) {
-                    logcat(LogPriority.WARN) { "Torrent read as chapters: ${files.take(12).map { it.path }}" }
+                    val folders = files.map { it.path.substringBeforeLast('/') }.distinct().take(12)
+                    logcat(LogPriority.WARN) { "Torrent read as chapters: $folders" }
                     throw ChaptersException()
                 }
                 val paths = TorrentDownload.wantedFiles(files.map { it.path }, wanted).toSet()
@@ -874,8 +875,10 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
             }
             if (VolumeLabels.areChapters(names)) {
-                // the names that decided it: the file is deleted next, so this line is all that is left to check
-                logcat(LogPriority.WARN) { "Real-Debrid import: ${bundle.name} read as chapters: ${names.take(12)}" }
+                // the folders (or loose files) that decided it: the file is deleted next, so this line is all that
+                // is left to check. Folders, not entries: the first 12 entries can all be one cover folder's pages.
+                val folders = names.map { it.substringBeforeLast('/') }.distinct().take(12)
+                logcat(LogPriority.WARN) { "Real-Debrid import: ${bundle.name} read as chapters: $folders" }
                 bundle.delete()
                 throw ChaptersException()
             }
