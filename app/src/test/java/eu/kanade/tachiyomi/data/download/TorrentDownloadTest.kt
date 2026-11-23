@@ -64,6 +64,23 @@ class TorrentDownloadTest {
     }
 
     @Test
+    fun `the plan says what Start would fetch`() {
+        val perVolume = listOf(
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v11.rar" to 25L,
+            "Masshuru v01-12 DL-Raw.Net/Masshuru v01-03s.rar" to 269L,
+        )
+        TorrentDownload.plan(perVolume, setOf(1, 2)) shouldBe
+            TorrentDownload.Plan(listOf("Masshuru v01-03s.rar"), 269L, chapters = false, everything = false)
+        // one archive named after the whole run: its name has numbers, so it is picked, all of it
+        TorrentDownload.plan(listOf("AW.TO_Masshuru vol 01-18.rar" to 2046L), setOf(1, 2)) shouldBe
+            TorrentDownload.Plan(listOf("AW.TO_Masshuru vol 01-18.rar"), 2046L, chapters = false, everything = false)
+        // no numbers at all: everything, and the plan says so
+        TorrentDownload.plan(listOf("Title complete.zip" to 900L), setOf(1)).everything shouldBe true
+        TorrentDownload.plan(listOf("T/Raw Chapter 001/001.jpg" to 1L, "T/Raw Chapter 002/001.jpg" to 1L), setOf(1)).chapters shouldBe true
+        TorrentDownload.plan(perVolume, setOf(15)).fetched shouldBe emptyList()
+    }
+
+    @Test
     fun `the same torrent listed by two sources is offered once`() {
         magnets(listOf(1), emptySet(), cov(1, file(1..1, "magnet:x", 3)), cov(2, file(1..1, "magnet:x", 3))) shouldBe
             listOf("magnet:x")

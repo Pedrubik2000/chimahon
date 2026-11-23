@@ -1148,6 +1148,14 @@
     <string name="glass_torrent_seeders_unknown">Not known how many share it</string>
     <string name="glass_torrent_get">Get this torrent</string>
     <string name="glass_torrent_notice_title">Before it starts</string>
+    <string name="glass_torrent_holds">What it will download</string>
+    <string name="glass_torrent_looking">Opening the torrent to see what it holds…</string>
+    <string name="glass_torrent_will_fetch">%1$s</string>
+    <string name="glass_torrent_more_files">and %1$d more files</string>
+    <string name="glass_torrent_one_file">One file: what is inside shows only after the download. If it holds chapters instead of volumes, nothing is added.</string>
+    <string name="glass_torrent_is_chapters">This torrent holds chapters, not volumes. Pick another one.</string>
+    <string name="glass_torrent_no_volume">This torrent does not have vol. %1$s. Pick another one.</string>
+    <string name="glass_torrent_no_answer">Nobody answered yet, so what it holds is not known. It may not start.</string>
     <string name="glass_torrent_notice_ip">The people sharing this file can see your internet address (IP) while it downloads. A VPN hides it; that choice is yours.</string>
     <string name="glass_torrent_notice_share">While it downloads, kumahon also sends parts of the file to others. It stops when the download ends.</string>
     <string name="glass_torrent_notice_data">It uses data and battery. Wi-Fi is better.</string>

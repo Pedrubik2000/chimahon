@@ -56,6 +56,26 @@ object TorrentDownload {
     }
 
     /**
+     * What Start would do with a torrent whose [files] (path, bytes) are known: the [fetched] files and their
+     * [bytes] for the [wanted] volumes. [chapters]: the names are chapters, not volumes (nothing would be added).
+     * [everything]: every file is fetched although the torrent has more volumes than wanted, because its names
+     * do not say which file holds which volume (one archive: what is inside shows only after the download).
+     */
+    data class Plan(val fetched: List<String>, val bytes: Long, val chapters: Boolean, val everything: Boolean)
+
+    fun plan(files: List<Pair<String, Long>>, wanted: Set<Int>): Plan {
+        val paths = files.map { it.first }
+        val fetched = wantedFiles(paths, wanted).toSet()
+        return Plan(
+            fetched = paths.filter { it in fetched }.map { it.substringAfterLast('/') },
+            bytes = files.filter { it.first in fetched }.sumOf { it.second },
+            chapters = VolumeLabels.areChapters(paths),
+            everything = wanted.isNotEmpty() && fetched.size == paths.size &&
+                paths.all { VolumeLabels.volumes(it.substringAfterLast('/')).isEmpty() },
+        )
+    }
+
+    /**
      * Of a torrent's file [paths], those to fetch for the [wanted] volumes: the files whose own name (not the
      * folder's) has a wanted volume number. Every file when nothing is wanted in particular or no file name has a
      * number (one archive, loose pages); none when the names have numbers but not the wanted ones.

@@ -17,7 +17,6 @@ import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.notification.Notifications
-import eu.kanade.tachiyomi.data.torrentServer.service.TorrentServerService
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.network.NetworkHelper
@@ -131,9 +130,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     // kumahon --> a magnet fetched by this device's own torrent engine: no Real-Debrid anywhere in this job
     private val onDevice get() = inputData.getBoolean(KEY_ON_DEVICE, false)
 
-    /** Info hash of the torrent the engine holds for this job, and whether this job started the engine. */
+    /** Info hash of the torrent the engine holds for this job. */
     private var deviceTorrent: String? = null
-    private var startedEngine = false
 
     /** The engine hands a piece over when the swarm gave it: no end to the call, a long wait for a slow piece. */
     private val patient by lazy {
@@ -589,20 +587,13 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     // kumahon --> torrents on the device, with the torrent engine the anime side ships (TorrServer)
     /**
      * Torrent name + (path inside the torrent, the engine's http address of that file) per file, once the swarm
-     * gave the file list. The engine runs inside this worker (already a foreground service), not through
-     * [TorrentServerService]: starting that service from the background can be refused.
+     * gave the file list. The engine runs inside this worker (already a foreground service): [TorrentEngine].
      */
     private suspend fun deviceTorrentFiles(magnet: String): Pair<String, List<Pair<String, String>>> {
         status("Torrent: starting")
         progress(STEP_WAITING)
-        if (TorrentServerApi.echo() == "") {
-            torrServer.TorrServer.startTorrentServer(applicationContext.filesDir.absolutePath)
-            startedEngine = true
-            if (!TorrentServerService.wait(ENGINE_WAIT_SECONDS)) error("The torrent engine did not start")
-            TorrentServerUtils.setTrackersList()
-        }
-        val added = TorrentServerApi.addTorrent(magnet + TRACKERS, inputData.getString(KEY_NAME).orEmpty())
-        val hash = added.hash ?: error("The torrent engine did not take the magnet")
+        TorrentEngine.ensure(applicationContext)
+        val hash = TorrentEngine.add(magnet, inputData.getString(KEY_NAME).orEmpty())
         deviceTorrent = hash
         val deadline = System.currentTimeMillis() + PEER_WAIT_MS
         while (true) {
@@ -627,13 +618,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         }
     }
 
-    /** Whatever way the job ends: the engine forgets the torrent, and stops when this job started it. */
+    /** Whatever way the job ends: the engine forgets the torrent, and stops when nothing else uses it. */
     private fun stopDeviceTorrent() {
-        deviceTorrent?.let { hash -> runCatching { TorrentServerApi.remTorrent(hash) } }
-        if (startedEngine) {
-            runCatching { torrServer.TorrServer.stopTorrentServer() }
-            runCatching { TorrentServerApi.shutdown() }
-        }
+        deviceTorrent?.let(TorrentEngine::remove)
     }
     // kumahon <--
 
@@ -1030,16 +1017,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
 
         /** kumahon: true = the magnet is fetched by this device's torrent engine, not by Real-Debrid. */
         private const val KEY_ON_DEVICE = "on_device"
-        private const val ENGINE_WAIT_SECONDS = 20
         private const val PEER_WAIT_MS = 120_000L
         private const val STALL_MINUTES = 3L
 
-        // ponytail: fixed public trackers beside the engine's own list and DHT (a Nyaa magnet here is a bare
-        // info hash); a setting if they go away
-        private const val TRACKERS = "&tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce" +
-            "&tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce" +
-            "&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce" +
-            "&tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce"
 
         /** chimahon: each fallback link's volumes, "1,2,3" (parallel to [KEY_FALLBACKS]). */
         private const val KEY_FALLBACK_VOLUMES = "fallback_volumes"

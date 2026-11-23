@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.glass.manual
 
 import android.app.Application
+import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,8 +49,11 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.coverage.CoverageMatch
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.download.TorrentDownload
+import eu.kanade.tachiyomi.data.download.TorrentEngine
 import eu.kanade.tachiyomi.ui.glass.downloads.cachedCoverage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tachiyomi.i18n.MR
@@ -81,7 +86,7 @@ class GlassTorrentScreen(
 
         val goBack = {
             // leaving while it runs is fine: the download goes on, the Downloads page shows it
-            if (step == TorrentStep.NOTICE) model.step = TorrentStep.PICK else navigator.pop()
+            if (step == TorrentStep.NOTICE) model.backToPick() else navigator.pop()
             Unit
         }
         BackHandler(enabled = step == TorrentStep.NOTICE, onBack = goBack)
@@ -94,7 +99,7 @@ class GlassTorrentScreen(
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp)) {
                         when (step) {
                             TorrentStep.PICK -> if (options != null) PickTorrent(model, options)
-                            TorrentStep.NOTICE -> Notice()
+                            TorrentStep.NOTICE -> Notice(model)
                             TorrentStep.RUN -> Running(model)
                         }
                     }
@@ -107,13 +112,13 @@ class GlassTorrentScreen(
                             TorrentStep.PICK -> if (option != null) {
                                 WideButton(
                                     stringResource(MR.strings.glass_torrent_get),
-                                    { model.step = TorrentStep.NOTICE },
+                                    { model.look(option) },
                                     Modifier.fillMaxWidth(),
                                     primary = true,
                                     icon = "chevRight",
                                 )
                             }
-                            TorrentStep.NOTICE -> if (option != null) {
+                            TorrentStep.NOTICE -> if (option != null && model.canStart) {
                                 WideButton(
                                     stringResource(MR.strings.glass_torrent_start),
                                     { model.start(option) },
@@ -198,6 +203,34 @@ private class TorrentModel(
             .onFailure { error = it.message.orEmpty() }
     }
 
+    /** null = still looking; what the torrent holds, or [Peek.plan] null when nobody answered. */
+    class Peek(val plan: TorrentDownload.Plan?)
+
+    var peek by mutableStateOf<Peek?>(null)
+    private var peekJob: Job? = null
+
+    /** Start is offered once the look is over, and not for a torrent that would add nothing. */
+    val canStart: Boolean
+        get() = peek?.let { p -> p.plan == null || (!p.plan.chapters && p.plan.fetched.isNotEmpty()) } ?: false
+
+    /** To the notice, and meanwhile: open the torrent (no download) to say what Start will fetch. */
+    fun look(o: TorrentDownload.Option) {
+        step = TorrentStep.NOTICE
+        peek = null
+        peekJob?.cancel()
+        peekJob = screenModelScope.launch {
+            val files = runCatching { TorrentEngine.peek(app, o.magnet) }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrNull()
+            peek = Peek(files?.let { TorrentDownload.plan(it, o.adds.toSet()) })
+        }
+    }
+
+    fun backToPick() {
+        peekJob?.cancel()
+        step = TorrentStep.PICK
+    }
+
     fun cancel() {
         workId?.let(queue::cancel)
     }
@@ -279,7 +312,35 @@ private fun PickTorrent(model: TorrentModel, options: List<TorrentDownload.Optio
 }
 
 @Composable
-private fun Notice() {
+private fun Notice(model: TorrentModel) {
+    val context = LocalContext.current
+    val peek = model.peek
+    val plan = peek?.plan
+    Heading(stringResource(MR.strings.glass_torrent_holds))
+    Column(
+        Modifier.padding(top = 14.dp, bottom = 24.dp).fillMaxWidth().glassPanel().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        when {
+            peek == null -> Dim(stringResource(MR.strings.glass_torrent_looking))
+            plan == null -> Warning(stringResource(MR.strings.glass_torrent_no_answer))
+            plan.chapters -> Warning(stringResource(MR.strings.glass_torrent_is_chapters))
+            plan.fetched.isEmpty() -> Warning(stringResource(MR.strings.glass_torrent_no_volume, CoverageMatch.ranges(model.volumes)))
+            else -> {
+                Text(
+                    stringResource(MR.strings.glass_torrent_will_fetch, Formatter.formatShortFileSize(context, plan.bytes)),
+                    fontSize = Glass.label,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Dim(
+                    plan.fetched.take(3).joinToString("\n") +
+                        if (plan.fetched.size > 3) "\n" + stringResource(MR.strings.glass_torrent_more_files, plan.fetched.size - 3) else "",
+                )
+                // one archive: its name may promise volumes and hold chapters; the import refuses it then
+                if (plan.everything || plan.fetched.size == 1) Dim(stringResource(MR.strings.glass_torrent_one_file))
+            }
+        }
+    }
     Heading(stringResource(MR.strings.glass_torrent_notice_title))
     Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
@@ -293,6 +354,14 @@ private fun Notice() {
                 modifier = Modifier.fillMaxWidth().glassPanel().padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun Warning(text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        GlassIcon("alert", size = 18.dp)
+        Text(text, fontSize = Glass.body)
     }
 }
 
