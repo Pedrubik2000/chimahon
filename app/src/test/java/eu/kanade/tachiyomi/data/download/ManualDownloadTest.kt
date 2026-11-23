@@ -22,6 +22,15 @@ class ManualDownloadTest {
     }
 
     @Test
+    fun `a Rapidgator pack comes after two files on another hoster, but before a partial source`() {
+        val rg = cov(1, 1 to "https://rapidgator.net/file/p", 2 to "https://rapidgator.net/file/p")
+        val rgShort = cov(2, 1 to "https://rg.to/file/p", 2 to "https://rg.to/file/p")
+        val other = cov(3, 1 to "https://uploady.io/a", 2 to "https://katfile.com/b")
+        val partial = cov(4, 1 to "https://hexload.com/x")
+        ids(listOf(1, 2), emptySet(), rg, rgShort, partial, other) shouldBe listOf(3L, 1L, 2L, 4L)
+    }
+
+    @Test
     fun `magnets are dropped and a source with nothing wanted gives no option`() {
         val torrent = cov(1, 1 to "magnet:?xt=abc")
         val other = cov(2, 5 to "z")

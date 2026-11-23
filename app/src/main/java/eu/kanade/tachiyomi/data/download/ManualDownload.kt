@@ -22,8 +22,8 @@ object ManualDownload {
     )
 
     /**
-     * Best first: options adding all [wanted] before partial ones, partial ones adding more first, then fewest files
-     * (a big pack = fewest captchas),
+     * Best first: options adding all [wanted] before partial ones, partial ones adding more first, then options with
+     * no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
      * then least [Option.extra] + [Option.alreadyHere], then the order of [coverages]. No sizes are known, none guessed.
      */
     fun options(wanted: Collection<Int>, here: Set<Int>, coverages: List<Coverage>): List<Option> {
@@ -44,10 +44,16 @@ object ManualDownload {
             )
         }.sortedWith(
             // sortedWith is stable: ties keep the order of coverages
-            compareBy<Option> { it.adds.size != want.size }.thenByDescending { it.adds.size }.thenBy { it.files.size }
+            compareBy<Option> { it.adds.size != want.size }.thenByDescending { it.adds.size }
+                .thenBy { o -> o.files.any { slow(it.link) } }.thenBy { it.files.size }
                 .thenBy { it.extra.size + it.alreadyHere.size },
         )
     }
+
+    /** Is [link] on a hoster too slow to use without paying? */
+    // ponytail: only Rapidgator (2026-11-22: ~50-100 KB/s, no resume, a browser download died after 30 min).
+    // Add a host here when another one proves as bad; measure speeds if a real ranking is ever needed.
+    fun slow(link: String): Boolean = host(link) in setOf("rapidgator.net", "rg.to")
 
     /**
      * Does a hoster's answer to a plain request for a file's page say the file is gone? [landed] = the address
