@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -100,7 +101,8 @@ internal fun RealDebridStep(model: GlassSetupModel) {
         val shape = RoundedCornerShape(Glass.r12)
         Row(
             Modifier
-                .width(520.dp)
+                .widthIn(max = 520.dp)
+                .fillMaxWidth()
                 .height(56.dp)
                 .clip(shape)
                 .background(Glass.panel)
@@ -257,7 +259,7 @@ internal fun DictionaryStep(model: GlassSetupModel) {
     val busy = model.dictionaryDownloading
     // canvas Dict-1: rows with switches, one Download pill; the pill's label follows the switches. 12dp, not the
     // frame's 16dp, so the panel, own line, actions and licence fit a landscape tablet screen with no scroll.
-    Column(Modifier.width(520.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DictionaryPanel(states) { entry ->
                 if (busy) {
@@ -360,7 +362,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
     val notSet = stringResource(MR.strings.glass_setup_not_set)
     // "done" for 1, 3 and 4 includes skipped; a row is "ok" only when really set
     val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null)
-    Column(Modifier.width(520.dp).glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
+    Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
         names.forEachIndexed { i, n ->
             val fix = !ok[i] && GlassSetupLogic.needed(i)
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
@@ -449,7 +451,7 @@ internal fun SetupButton(
 @Composable
 private fun DoneCard(title: String, sub: String?) {
     Row(
-        Modifier.width(520.dp).height(72.dp).glassPanel(Glass.r16).padding(horizontal = 20.dp),
+        Modifier.widthIn(max = 520.dp).fillMaxWidth().height(72.dp).glassPanel(Glass.r16).padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {

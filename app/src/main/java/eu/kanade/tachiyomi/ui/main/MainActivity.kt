@@ -274,9 +274,9 @@ class MainActivity : BaseActivity() {
             val glassRoot = remember { Injekt.get<UiPreferences>().run { glassUi().get() to glassPhone().get() } }
                 .let { (glass, phone) -> glass && (tablet || phone) }
             // chimahon: the new look's first-run setup is the root (not pushed: Home's one-per-run folder sync must
-            // see the folder picked in it) when AniList, a Real-Debrid key or the storage folder is missing
-            // (tablets only: the setup has no phone layout yet; the phone pages say what is missing themselves)
-            val glassSetup = remember(glassRoot, tablet) { glassRoot && tablet && GlassSetupScreen.needed(this@MainActivity) }
+            // see the folder picked in it) when AniList or the storage folder is missing (a Real-Debrid key can
+            // wait). Phones too, in the new look: the setup has a narrow layout.
+            val glassSetup = remember(glassRoot) { glassRoot && GlassSetupScreen.needed(this@MainActivity) }
             Navigator(
                 screen = when {
                     glassSetup -> GlassSetupScreen()

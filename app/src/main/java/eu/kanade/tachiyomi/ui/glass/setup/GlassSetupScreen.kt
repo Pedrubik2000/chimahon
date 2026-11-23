@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -124,6 +125,10 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
         GlassPage {
             BoxWithConstraints(Modifier.fillMaxSize()) {
+                // a phone: the same steps in one narrow column, bars without their names
+                val phone = maxWidth < 600.dp
+                val edge = if (phone) 20.dp else 80.dp
+                val barsWidth = maxWidth - 96.dp // phone: from 76dp (after the bear) to the right margin
                 // portrait tablet: no room for the covers, the column keeps its width
                 val coversShown = maxWidth >= 1100.dp
                 // the left side ends 24dp before the covers (580 from the right edge), start 80
@@ -135,8 +140,8 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
                 Box(
                     Modifier
-                        .offset(x = 80.dp, y = 32.dp)
-                        .size(56.dp)
+                        .offset(x = edge, y = if (phone) 24.dp else 32.dp)
+                        .size(if (phone) 44.dp else 56.dp)
                         .clip(CircleShape)
                         .background(Glass.bear)
                         .semantics { contentDescription = "chimahon" },
@@ -146,19 +151,23 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 }
                 val stepsLabel = stringResource(MR.strings.glass_setup_steps)
                 Row(
-                    Modifier.offset(x = 168.dp, y = 36.dp).semantics { contentDescription = stepsLabel },
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Modifier
+                        .offset(x = if (phone) 76.dp else 168.dp, y = if (phone) 22.dp else 36.dp)
+                        .then(if (phone) Modifier.width(barsWidth) else Modifier)
+                        .semantics { contentDescription = stepsLabel },
+                    horizontalArrangement = Arrangement.spacedBy(if (phone) 6.dp else 12.dp),
                 ) {
                     names.forEachIndexed { i, n ->
                         val on = i == step
                         val skipped = model.skipped(i)
                         val ok = model.done(i) && !skipped
                         Column(
-                            Modifier.width(112.dp).height(48.dp).clickable { model.step = i }.padding(top = 8.dp),
+                            (if (phone) Modifier.weight(1f) else Modifier.width(112.dp))
+                                .height(48.dp).clickable { model.step = i }.padding(top = if (phone) 22.dp else 8.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Box(
-                                Modifier.width(112.dp).height(4.dp).clip(CircleShape)
+                                (if (phone) Modifier.fillMaxWidth() else Modifier.width(112.dp)).height(4.dp).clip(CircleShape)
                                     .background(
                                         when {
                                             on -> Glass.ice
@@ -168,13 +177,16 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                                         },
                                     ),
                             )
-                            Text(
-                                n,
-                                color = if (on || ok) Color.White else Glass.secondary,
-                                fontSize = Glass.caption,
-                                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                                maxLines = 1,
-                            )
+                            // a phone has no room for five names: the step's title below says which one it is
+                            if (!phone) {
+                                Text(
+                                    n,
+                                    color = if (on || ok) Color.White else Glass.secondary,
+                                    fontSize = Glass.caption,
+                                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 }
@@ -185,8 +197,19 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         .imePadding()
                         // padding, not offset: the column must end above the buttons (64 + 48dp) to scroll there
                         // (behind the keyboard: no); 116 leaves 4dp, room the Dictionary step needs on a tablet
-                        .padding(start = 80.dp, top = 136.dp, bottom = if (imeOpen) 0.dp else 116.dp)
-                        .width(if (coversShown) leftWidth.coerceAtMost(520.dp) else 520.dp)
+                        .padding(
+                            start = edge,
+                            end = if (phone) edge else 0.dp,
+                            top = if (phone) 92.dp else 136.dp,
+                            bottom = if (imeOpen) 0.dp else if (phone) 96.dp else 116.dp,
+                        )
+                        .then(
+                            when {
+                                phone -> Modifier.fillMaxWidth()
+                                coversShown -> Modifier.width(leftWidth.coerceAtMost(520.dp))
+                                else -> Modifier.width(520.dp)
+                            },
+                        )
                         .verticalScroll(rememberScrollState()),
                 ) {
                     Box(
@@ -257,7 +280,8 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
 
                 // Back + Continue / Open Home
                 Row(
-                    Modifier.align(Alignment.BottomStart).padding(start = 80.dp, bottom = 64.dp)
+                    Modifier.align(Alignment.BottomStart)
+                        .padding(start = edge, end = if (phone) edge else 0.dp, bottom = if (phone) 28.dp else 64.dp)
                         .then(if (coversShown) Modifier.widthIn(max = leftWidth) else Modifier),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
