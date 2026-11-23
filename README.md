@@ -13,14 +13,14 @@
 
 kumahon (熊 bear + 本 book) is a fork of [Chimahon](https://github.com/sohilsayed/chimahon) that lets you download manga from raw-manga websites and [nyaa.si](https://nyaa.si) with one tap.
 
-It needs an [AniList](https://anilist.co) account and a [Real-Debrid](https://real-debrid.com) Premium account.
+It needs an [AniList](https://anilist.co) account. A [Real-Debrid](https://real-debrid.com) Premium account is optional: with one a volume is fetched in one tap, without one it comes by hand or as a torrent.
 
 **Not supported:** light novels (at least for now) and mokuro files.
 
 How it works:
 
 - Your AniList manga list is the library. Home, Library and Discover come from it.
-- Open a title, tap a volume, and it is fetched through Real-Debrid from the source that has it.
+- Open a title, tap a volume, and it is fetched through Real-Debrid from the source that has it. Without a Real-Debrid account the same tap offers a download by hand or a torrent.
 - Volumes land in plain series folders on the tablet.
 
 The new screens are made for tablets. Phones can switch them on in Settings › Appearance › *New look on phones* (still in progress); otherwise they keep the classic look. The classic Chimahon screens stay one tap away (Settings › About › Classic view).
@@ -94,14 +94,14 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/settings-dictionaries.jpg" alt="Settings: the usual dictionaries to download" width="49%" />
 </p>
 
-- **First-run setup**, one step per screen: AniList, a Real-Debrid key (checked on the spot), the storage folder, notifications and a dictionary.
+- **First-run setup**, one step per screen: AniList, a Real-Debrid key (optional, checked on the spot), the storage folder, notifications and a dictionary. Phones in the new look get the same steps in one column.
 - **Usual dictionaries** in one tap: Jitendex, JMnedict and KANJIDIC, kept up to date, next to any Yomitan dictionary you import yourself.
 
 ## 📥 Download
 
 Builds are on the [Releases](https://github.com/Pedrubik2000/kumahon/releases) page: arm64 for tablets and phones, armeabi-v7a for older devices and TVs. The app installs as "kumahon", next to the original Chimahon.
 
-You need an Android tablet (Android 8.0 or higher), an AniList account and a Real-Debrid Premium account.
+You need an Android tablet or phone (Android 8.0 or higher) and an AniList account. A Real-Debrid Premium account is optional.
 
 ## 📖 What it keeps from Chimahon
 
