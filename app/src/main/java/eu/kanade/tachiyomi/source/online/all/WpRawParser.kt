@@ -30,6 +30,9 @@ object WpRawParser {
         Regex("""uploady\.io/[a-z0-9]{8,}"""),
         Regex("""ddownload\.com/[a-z0-9]{8,}"""),
         Regex("""ddl\.to/[a-z0-9]{8,}"""),
+        // BsZip's other hosters: last, so a post's preferred link stays what it was
+        Regex("""dailyuploads\.net/[a-z0-9]{8,}"""),
+        Regex("""alfafile\.net/file/[a-z0-9]+"""),
     )
     private val hosterLink = Regex("""^https?://(?:www\.)?([^/]+/[^?#]*)""", RegexOption.IGNORE_CASE)
     private val archive = Regex("""\.(?:rar|zip|7z|cbz|cbr|pdf|epub)$""", RegexOption.IGNORE_CASE)

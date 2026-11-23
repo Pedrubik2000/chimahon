@@ -23,8 +23,12 @@ object VolumeLabels {
         RegexOption.IGNORE_CASE,
     )
 
-    // a whole word of digits: "03", "04-06", "01-02b", "02w", "20-21s", "01-09w6"
-    private val bare = Regex("""^(\d{1,3})(?:-(\d{1,3}))?(?:[a-z]{1,2}\d?)?$""", RegexOption.IGNORE_CASE)
+    // a whole word of digits: "03", "04-06", "01-02b", "02w", "20-21s", "01-09w6", and with a scan mark on the
+    // first number too: "01s-05", "06w-08w", "13s-16s+" (BsZip), "01b-08" (X3DL)
+    private val bare = Regex(
+        """^(\d{1,3})(?:[a-z]{1,2}\d?)?(?:-(\d{1,3}))?(?:[a-z]{1,2}\d?)?\+?$""",
+        RegexOption.IGNORE_CASE,
+    )
     private val separators = Regex("""[\s　_,]+""")
 
     fun volumes(label: String): Set<Int> {
