@@ -106,7 +106,8 @@ private fun DictionaryRow(entry: RecommendedDictionary, state: State?, idle: @Co
                     color = Glass.secondary,
                     fontSize = Glass.body,
                     lineHeight = 18.sp,
-                    maxLines = 1,
+                    // one line on a tablet; a phone's narrow row needs the second
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

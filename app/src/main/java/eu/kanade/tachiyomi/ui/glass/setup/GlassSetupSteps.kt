@@ -367,8 +367,9 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
             val fix = !ok[i] && GlassSetupLogic.needed(i)
             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
             Row(
-                // chimahon: 44, not the canvas' 52: five rows fit above the buttons on a 800dp-high landscape tablet
-                Modifier.fillMaxWidth().height(44.dp),
+                // chimahon: 44, not the canvas' 52: five rows fit above the buttons on a 800dp-high landscape tablet.
+                // At least 44: on a phone a value takes two lines ("Skipped · add a key in Settings").
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -389,7 +390,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
                     Modifier.weight(1f),
                     color = if (fix) Color.White else Glass.secondary,
                     fontSize = Glass.body,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (fix) {
