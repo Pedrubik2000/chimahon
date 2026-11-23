@@ -433,7 +433,9 @@ private fun PickBody(model: ManualModel, options: List<ManualDownload.Option>) {
                     Column(Modifier.padding(end = 8.dp)) {
                         CapsLabel(stringResource(MR.strings.glass_manual_suggested), Glass.ice)
                         Dim(
-                            if (o.files.size == 1) {
+                            if (o.files.all { ManualDownload.fast(it.link) }) {
+                                stringResource(MR.strings.glass_manual_why_fast, ManualDownload.host(o.files.first().link))
+                            } else if (o.files.size == 1) {
                                 stringResource(MR.strings.glass_manual_why_one)
                             } else {
                                 stringResource(MR.strings.glass_manual_why_many, o.files.size)

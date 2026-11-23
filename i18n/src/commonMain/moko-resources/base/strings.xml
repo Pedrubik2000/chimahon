@@ -1170,6 +1170,7 @@
     <string name="glass_manual_by_hand">Download by hand</string>
     <string name="glass_manual_sub">Free, but slow: the hoster makes you wait.</string>
     <string name="glass_manual_suggested">Suggested</string>
+    <string name="glass_manual_why_fast">%1$s is quick without an account</string>
     <string name="glass_manual_why_one">One file has every volume: one wait in the browser</string>
     <string name="glass_manual_why_many">Fewest files: %1$d waits in the browser</string>
     <string name="glass_manual_vols_files">Vol. %1$s · %2$d files</string>

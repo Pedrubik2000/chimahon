@@ -33,9 +33,9 @@ object ManualDownload {
     /**
      * Best first: options adding all [wanted] before partial ones, partial ones adding more first, then options with
      * no file marked [File.scans] (the import refuses those; a source uses one only where it has nothing else),
-     * then options with no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
+     * then options whose files are all on a [fast] hoster, then options with no file on a [slow] hoster, then fewest files (a big pack = fewest captchas),
      * then least [Option.extra] + [Option.alreadyHere], then the order of [coverages]. No sizes are known, none guessed.
-     * Each file is on its first hoster that is not [slow].
+     * Each file is on a [fast] hoster if it has one, else on its first hoster that is not [slow].
      */
     fun options(wanted: Collection<Int>, here: Set<Int>, coverages: List<Coverage>): List<Option> {
         val want = wanted.toSet()
@@ -46,7 +46,7 @@ object ManualDownload {
             }
             val files = known.filter { f -> f.volumes.any { it in want } }.mapNotNull { f ->
                 // magnets wait for torrent support
-                val links = f.links.filterNot { it.startsWith("magnet:") }.sortedBy { slow(it) }
+                val links = f.links.filterNot { it.startsWith("magnet:") }.sortedWith(compareBy({ !fast(it) }, { slow(it) }))
                 links.firstOrNull()?.let { File(it, f.volumes, links.drop(1), f.scans) }
             }.distinctBy { it.link }
             listOf(smallest(files, want), biggest(files, want)).filter { it.isNotEmpty() }.distinct().map { chosen ->
@@ -67,6 +67,7 @@ object ManualDownload {
     // options adding everything first.
     private val order = compareByDescending<Option> { it.adds.size }
         .thenBy { o -> o.files.any { it.scans } }
+        .thenBy { o -> !o.files.all { fast(it.link) } }
         .thenBy { o -> o.files.any { slow(it.link) } }.thenBy { it.files.size }
         .thenBy { it.extra.size + it.alreadyHere.size }
 
@@ -107,6 +108,11 @@ object ManualDownload {
             },
         )
     }.sortedWith(order)
+
+    /** Is [link] on a hoster that is quick without paying? */
+    // ponytail: only sakurafile.com, proven once (2026-11-23: 33 MB in under 4 minutes, no long wait). Add a host
+    // when another one proves as good; measure speeds if a real ranking is ever needed.
+    fun fast(link: String): Boolean = host(link) == "sakurafile.com"
 
     /** Is [link] on a hoster too slow to use without paying? */
     // ponytail: only Rapidgator (2026-11-22: ~50-100 KB/s, no resume, a browser download died after 30 min).

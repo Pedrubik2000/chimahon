@@ -51,6 +51,21 @@ class ManualDownloadTest {
     }
 
     @Test
+    fun `a fast hoster is suggested before a pack elsewhere, but not when its file has the s mark`() {
+        val pack = files(1, listOf(1, 2) to listOf("https://katfile.com/p"))
+        val fast = files(2, listOf(1) to listOf("https://sakurafile.com/a"), listOf(2) to listOf("https://sakurafile.com/b"))
+        ManualDownload.options(listOf(1, 2), emptySet(), listOf(pack, fast)).map { it.sourceId } shouldBe listOf(2L, 1L)
+        val marked = Coverage(
+            3, "S3", State.FOUND,
+            files = listOf(Coverage.File(listOf(1, 2), listOf("https://sakurafile.com/s"), scans = true)),
+        )
+        ManualDownload.options(listOf(1, 2), emptySet(), listOf(marked, pack)).map { it.sourceId } shouldBe listOf(1L, 3L)
+        // a file with a fast mirror is taken from it
+        val mirror = files(4, listOf(1) to listOf("https://katfile.com/x", "https://sakurafile.com/x"))
+        ManualDownload.options(listOf(1), emptySet(), listOf(mirror)).single().files.single().link shouldBe "https://sakurafile.com/x"
+    }
+
+    @Test
     fun `a source with packs and single volumes gives both ways, the pack first`() {
         val c = files(1, listOf(1) to listOf("a"), listOf(2) to listOf("b"), listOf(1, 2, 3) to listOf("p"))
         val options = ManualDownload.options(listOf(1, 2), emptySet(), listOf(c))
