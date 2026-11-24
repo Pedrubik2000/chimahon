@@ -65,6 +65,9 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
         fun keyOf(card: Srs.Card): String? =
             WordKey.cardKey(card.word, runCatching { JSONObject(card.fields).optString("Reading") }.getOrDefault(""))
 
+        /** The hub address is this device ("127.0.0.1:47823", "localhost"): kumapie runs here and its provider answers. */
+        fun isLocalHub(hub: String): Boolean = hub.trim().substringBefore(':').lowercase().let { it == "127.0.0.1" || it == "localhost" }
+
         private class Answer(val status: Int, val body: ByteArray, val sig: String?)
 
         private fun post(url: String, body: ByteArray, headers: Map<String, String>): Answer = (URL(url).openConnection() as HttpURLConnection).run {
@@ -192,6 +195,12 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             val ours = byKey(store.cards().map { it.id to keyOf(it) })
             val take = pick(incoming, { it.optLong("id", -1) }, { it.optString("key") }, store.revlogIds(), ours)
             if (take.isNotEmpty()) store.take(take)
+            // The words kumapie counts as known (an older kumapie without these keys: the list stays as it was).
+            if (answer.has("events") || answer.has("known")) {
+                val known = KnownWords.of(answer, store.fsrs)
+                store.replaceKnown(known)
+                log("known words from kumapie: ${known.size}")
+            }
             say("ok: sent ${events.length()}, took ${take.size}")
             log("sync with kumapie ok: sent ${events.length()}, took ${take.size}")
             true

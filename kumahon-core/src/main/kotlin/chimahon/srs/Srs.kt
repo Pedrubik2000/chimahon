@@ -177,6 +177,18 @@ class Srs(val db: SqlDb, private val device: String) {
         replayAll()
     }
 
+    /** Replaces the words kumapie counts as known ([KnownWords]) in one transaction. */
+    fun replaceKnown(entries: Set<String>) = db.tx {
+        db.exec("DELETE FROM known_words")
+        for (e in entries) db.exec("INSERT OR IGNORE INTO known_words (entry) VALUES (?)", arrayOf(e))
+    }
+
+    fun knownKeys(): Set<String> = db.query("SELECT entry FROM known_words") { it.string(0) }.toSet()
+
+    /** Is this word (and reading) in kumapie's known list ([KnownWords.isKnown])? */
+    fun isKnown(word: String, reading: String): Boolean =
+        db.query("SELECT 1 FROM known_words WHERE entry IN (?, ?)", arrayOf(word, WordKey.japaneseKey(word, reading))) { it.int(0) }.isNotEmpty()
+
     private fun insert(table: String, v: Map<String, Any?>, or: String = "") =
         db.exec("INSERT $or INTO $table (${v.keys.joinToString()}) VALUES (${v.keys.joinToString { "?" }})", v.values.toTypedArray())
 
@@ -266,6 +278,8 @@ class Srs(val db: SqlDb, private val device: String) {
                 id INTEGER PRIMARY KEY, card INTEGER NOT NULL, time INTEGER NOT NULL,
                 title TEXT, volume TEXT, page INTEGER, sentence TEXT, image TEXT)""",
             "CREATE INDEX IF NOT EXISTS contexts_card ON contexts(card)",
+            // What kumapie's last sync answer says is known ([KnownWords]): replaced whole on each sync.
+            "CREATE TABLE IF NOT EXISTS known_words (entry TEXT PRIMARY KEY)",
         )
 
         val SCHEMA = listOf(

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.util.LruCache
 import chimahon.srs.Cards
+import chimahon.srs.PeerSync
 import chimahon.srs.Srs
 import org.json.JSONArray
 import org.json.JSONObject
@@ -170,6 +171,8 @@ object KumapieColours {
         return Where(title, volume, body.optInt("page", -1).takeIf { it >= 0 }, said)
     }
 
+    private val OWN_ACTIONS = setOf("state", "rate", "undo")
+
     /** kumapie's provider can be reached (its app is installed); false = kumahon's own store answers ratings. */
     fun present(context: Context): Boolean = authority(context) != null
 
@@ -178,7 +181,9 @@ object KumapieColours {
         val action = body.getString("action")
         if (action != "state" && action != "rate" && action != "undo") return "null" // mark, reload, sense: kumapie only, as before
         val srs = Cards.store(context)
-        val card = Cards.find(context, body.optString("word"), body.optString("reading")) ?: return "null" // no card: nothing rated, as before
+        val card = Cards.find(context, body.optString("word"), body.optString("reading"))
+            // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
+            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) """{"state":"k"}""" else "null"
         val out = JSONObject()
         when (action) {
             "state" -> out.put("state", Srs.state(card.due))
@@ -196,10 +201,19 @@ object KumapieColours {
         return out.toString()
     }
 
+    /**
+     * kumahon is paired with a kumapie on ANOTHER device (hub not 127.0.0.1/localhost): word state (popup) comes from kumahon's own
+     * cards and the known list that sync brought, even when a kumapie is installed here. The tablet (hub 127.0.0.1) keeps its provider.
+     */
+    fun remoteHub(context: Context): Boolean = runCatching {
+        Cards.peer(context).let { it.paired() && !PeerSync.isLocalHub(it.hub()) }
+    }.getOrDefault(false)
+
     fun call(context: Context, bodyJson: String): String = runCatching {
-        val authority = authority(context) ?: return@runCatching own(context, JSONObject(bodyJson))
         val body = JSONObject(bodyJson)
         val action = body.getString("action")
+        val authority = authority(context)?.takeIf { !(remoteHub(context) && action in OWN_ACTIONS) }
+            ?: return@runCatching own(context, body)
         if (action == "sense") {
             // The AI sense box: kumapie's "sense" (check = does this word get a box, else the vote); its JSON as is.
             val ask = Bundle().apply {
