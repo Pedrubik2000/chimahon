@@ -23,7 +23,7 @@ How it works:
 - Open a title, tap a volume, and it is fetched through Real-Debrid from the source that has it. Without a Real-Debrid account the same tap offers a download by hand or a torrent.
 - Volumes land in plain series folders on the tablet.
 
-The new screens are made for tablets. Phones can switch them on in Settings › Appearance › *New look on phones* (still in progress); otherwise they keep the classic look. The classic Chimahon screens stay one tap away (Settings › About › Classic view).
+The new screens are made for tablets, and phones get their own narrow version (Settings › Appearance › *New look on phones* switches it off). The classic Chimahon screens stay one tap away (Settings › About › Classic view).
 
 ## 🏠 Home and Library
 
@@ -72,7 +72,7 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/torrent.jpg" alt="Download as a torrent: the torrents that hold the volume, with their size and how many people share them" width="24%" />
 </p>
 
-- **Phones** (optional, still in progress): Home, Discover, Library, title pages and Settings are made for phones; Downloads is the tablet one made narrow. Turn it on in Settings › Appearance.
+- **Phones**: Home, Discover, Library, title pages and Settings are made for phones; Downloads is the tablet one made narrow. Settings › Appearance switches it off.
 - **Download by hand**, without Real-Debrid: the app lists which file of which source holds the volume, opens the hoster's page in your browser, and imports the file you downloaded. A hoster that is quick without an account is suggested first, and dead links are checked before you wait for nothing.
 - **Torrents on the device**, without Real-Debrid: a Nyaa torrent is downloaded by the app's own engine. Before it starts, the app opens the torrent and shows what it will download and how big it is, and only the files of the volumes you asked for are fetched. The people sharing a torrent can see your IP address while it runs; the app says so first.
 - A file that holds **chapters instead of volumes** is refused and nothing is added. Files whose name suggests that are flagged and offered last.
@@ -94,8 +94,13 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/settings-dictionaries.jpg" alt="Settings: the usual dictionaries to download" width="49%" />
 </p>
 
-- **First-run setup**, one step per screen: AniList, a Real-Debrid key (optional, checked on the spot), the storage folder, notifications and a dictionary. Phones in the new look get the same steps in one column.
+- **First-run setup**, one step per screen: AniList, a Real-Debrid key (optional, checked on the spot), the storage folder, notifications and a dictionary. Phones get the same steps in one column.
 - **Usual dictionaries** in one tap: Jitendex, JMnedict and KANJIDIC, kept up to date, next to any Yomitan dictionary you import yourself.
+
+## 🃏 Review
+
+- Tap **+** on a word you look up and it becomes a flashcard inside the app, with the sentence it came from. Anki is not needed (if Anki is set up, the card goes there too).
+- **Review** on the rail shows how many cards are due. Cards are scheduled with FSRS-6; Undo takes back the last answer.
 
 ## 📥 Download
 
