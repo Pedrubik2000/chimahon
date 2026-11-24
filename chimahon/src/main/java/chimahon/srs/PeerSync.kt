@@ -192,7 +192,9 @@ object PeerSync {
             true
         } catch (e: Exception) {
             Log.w("kumahon", "sync with kumapie failed: $e")
-            say(context, e.message ?: e.toString())
+            say(context, if (e is java.net.ConnectException) {
+                "kumapie is not answering: open kumapie once, or turn on its \"Also while kumapie is closed\" switch (sync settings). Trying again later"
+            } else e.message ?: e.toString())
             false
         }
     }

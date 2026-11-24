@@ -1,6 +1,7 @@
 package eu.kanade.presentation.more.settings.screen
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +14,7 @@ import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tachiyomi.i18n.kmk.KMR
@@ -38,6 +40,13 @@ object SettingsAnkiScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         var status by remember { mutableStateOf(PeerSync.status(context)) }
         var hub by remember { mutableStateOf(PeerSync.hub(context)) }
+        // Background syncs (Review, retries) change the line while this page is open: read it again every few seconds.
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(5_000)
+                if (status != "Working...") status = PeerSync.status(context)
+            }
+        }
         return Preference.PreferenceGroup(
             title = "kumapie",
             preferenceItems = persistentListOf(
