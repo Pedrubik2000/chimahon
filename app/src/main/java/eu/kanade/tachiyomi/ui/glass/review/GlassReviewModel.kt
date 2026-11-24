@@ -15,7 +15,6 @@ import chimahon.srs.Srs
 import eu.kanade.presentation.glass.glassReviewDue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -80,35 +79,14 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     private var shownAt = 0L
     private var ratingBusy = false // a rating is being written (main thread only)
     private var loadJob: Job? = null
-    private var syncJob: Job? = null
-    private var unsynced = false // an answer or undo not yet sent to kumapie (main thread only)
 
     /** Sync once 60 s pass without a new answer or undo: each one restarts the wait (one sync per burst, not per answer). */
-    private fun syncLater() {
-        unsynced = true
-        syncJob?.cancel()
-        syncJob = screenModelScope.launch {
-            delay(SYNC_QUIET_MS)
-            unsynced = false
-            withContext(Dispatchers.IO) { Cards.sync(app) }
-        }
-    }
-
-    /** The page closed: what was answered since the last sync still goes out, on a scope that outlives this model. */
-    override fun onDispose() {
-        syncJob?.cancel()
-        if (unsynced) {
-            unsynced = false
-            val context = app
-            Cards.later { Cards.sync(context) }
-        }
-    }
+    private fun syncLater() = ReviewSyncJob.later(app)
 
     /** The page opened: read the queue, sync with kumapie, then read it again if nothing was answered meanwhile. */
     fun start() {
         if (session.canReload) load()
         screenModelScope.launch {
-            unsynced = false // the sync below sends everything answered so far
             withContext(Dispatchers.IO) { Cards.sync(app) }
             if (session.canReload) load()
         }
@@ -240,9 +218,5 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
                 intervals = read.second
             }
         }
-    }
-
-    private companion object {
-        const val SYNC_QUIET_MS = 60_000L
     }
 }

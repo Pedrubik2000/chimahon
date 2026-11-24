@@ -188,6 +188,7 @@ object PeerSync {
             val take = pick(incoming, { it.optLong("id", -1) }, { it.optString("key") }, store.revlogIds(), ours)
             if (take.isNotEmpty()) store.take(take)
             say(context, "ok: sent ${events.length()}, took ${take.size}")
+            Log.i("kumahon", "sync with kumapie ok: sent ${events.length()}, took ${take.size}")
             true
         } catch (e: Exception) {
             Log.w("kumahon", "sync with kumapie failed: $e")

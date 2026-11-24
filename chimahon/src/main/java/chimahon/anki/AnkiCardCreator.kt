@@ -216,6 +216,11 @@ sealed class AnkiResult {
 // Field map parsing
 // =============================================================================
 
+/** Plain text keeps a ruby's base only: readings (rt, rp) go, ruby tags vanish without a space ("<ruby>自<rt>じ</rt></ruby>分" -> "自分"). */
+internal fun dropRuby(html: String): String = html
+    .replace(Regex("(?is)<(rt|rp)\\b[^>]*>.*?</\\1>"), "")
+    .replace(Regex("(?i)</?ruby\\b[^>]*>"), "")
+
 object AnkiCardCreator {
 
     private const val TAG = "AnkiCardCreator"
@@ -1788,7 +1793,7 @@ object AnkiCardCreator {
     }
 
     private fun glossaryToPlainText(raw: String): String {
-        val html = glossaryToHtml(raw)
+        val html = dropRuby(glossaryToHtml(raw))
         val text = html
             .replace(Regex("(?i)<br\\s*/?>"), "\n")
             .replace(Regex("(?i)</(p|li|div|tr|h[1-6])>"), "\n")
