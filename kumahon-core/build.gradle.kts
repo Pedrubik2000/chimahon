@@ -12,6 +12,7 @@ dependencies {
     testImplementation(libs.org.json)
     testRuntimeOnly(libs.sqlite.jdbc)
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotest.assertions)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

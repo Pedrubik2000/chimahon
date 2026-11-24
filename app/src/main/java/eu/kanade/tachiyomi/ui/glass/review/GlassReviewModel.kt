@@ -103,6 +103,8 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
         val ms = SystemClock.elapsedRealtime() - shownAt
         screenModelScope.launch {
             val ok = io.withLock {
+                // a sync's reload may have swapped the session while we waited for the lock: never rate a card twice
+                if (session.current != c.id) return@withLock false
                 withContext(Dispatchers.IO) {
                     try {
                         Cards.store(app).rate(c.id, rating, answerMs = ms)
@@ -126,17 +128,26 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     fun undo() {
         if (ratingBusy) return
         val id = session.prev?.current ?: return
+        val before = session
         session = session.undo()
         glassReviewDue.intValue = session.queue.size
         screenModelScope.launch {
-            io.withLock {
+            val ok = io.withLock {
                 withContext(Dispatchers.IO) {
                     try {
                         Cards.store(app).undo(id)
+                        true
                     } catch (e: Exception) {
                         Log.w("kumahon", "review undo failed: $e")
+                        false
                     }
                 }
+            }
+            if (!ok) {
+                // the rating is still in the store: put the sitting back, or the card would be answered twice
+                session = before
+                glassReviewDue.intValue = session.queue.size
+                showCurrent()
             }
             syncLater()
         }
@@ -146,8 +157,9 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     private fun load() {
         loadJob?.cancel()
         loadJob = screenModelScope.launch {
-            val l = io.withLock {
-                withContext(Dispatchers.IO) {
+            // the session swap happens inside the lock: a waiting answer() must see the new session when it resumes
+            io.withLock {
+                val l = withContext(Dispatchers.IO) {
                     try {
                         val s = Cards.store(app)
                         val due = s.due(System.currentTimeMillis())
@@ -158,20 +170,20 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
                         null
                     }
                 }
-            }
-            loading = false
-            if (l == null) return@launch
-            if (l.due.isNotEmpty()) {
-                if (session.canReload) {
-                    l.due.forEach { cards[it.id] = it }
-                    session = ReviewLogic.Session.start(l.due.map { it.id }, l.due.filter { it.due == null }.map { it.id }.toSet())
-                    showCurrent()
+                loading = false
+                if (l == null) return@withLock
+                if (l.due.isNotEmpty()) {
+                    if (session.canReload) {
+                        l.due.forEach { cards[it.id] = it }
+                        session = ReviewLogic.Session.start(l.due.map { it.id }, l.due.filter { it.due == null }.map { it.id }.toSet())
+                        showCurrent()
+                    }
+                } else {
+                    storeEmpty = l.noCards
+                    nextDue = l.next
                 }
-            } else {
-                storeEmpty = l.noCards
-                nextDue = l.next
+                glassReviewDue.intValue = session.queue.size
             }
-            glassReviewDue.intValue = session.queue.size
         }
     }
 
