@@ -69,12 +69,130 @@ class JapaneseModelTest {
         server.createContext("/") { ex -> val b = "<html>error</html>".toByteArray(); ex.sendResponseHeaders(200, b.size.toLong()); ex.responseBody.use { it.write(b) } }
         server.start()
         try {
-            val m = JapaneseModel(tmp) { "http://127.0.0.1:${server.address.port}" }
+            val offline = { u: String, f: File -> if (u.startsWith("http://127.")) JapaneseModel.httpGet(u, f) else throw java.io.IOException("offline") }
+            val m = JapaneseModel(tmp, { "http://127.0.0.1:${server.address.port}" }, offline)
             m.download()
             assertEquals(true, m.failure!!.contains("not a dictionary file"))
             assertEquals(emptyList<String>(), tmp.list()!!.filter { it.endsWith(".part") || it.endsWith(".tmp") || it.endsWith(".whl") })
             assertEquals(false, m.splitterFiles.any { it.exists() })
         } finally { server.stop(0) }
+    }
+
+    // The public release: a fake fetcher serves the manifest and the files, no network.
+    private class Release(var version: String = "v1") {
+        val gz = byteArrayOf(0x1f, 0x8b.toByte()) + ByteArray(1_100_000) { 1 }
+        val dic = ByteArray(1_100_000) { 2 }
+        var gzServed = gz
+        val calls = ArrayList<String>()
+        private fun sha(b: ByteArray) = java.security.MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
+        fun manifest(gzSize: Long = gz.size.toLong()) = """{"version":"$version","base":"https://x/r/","files":[
+            {"name":"jiten-lexicon.tsv.gz","size":$gzSize,"sha256":"${sha(gz)}"},
+            {"name":"jiten_user_core.dic","size":${dic.size},"sha256":"${sha(dic)}"}]}"""
+        var manifestText = manifest()
+        val fetcher = { u: String, f: File ->
+            calls += u
+            when (u) {
+                "https://x/m.json" -> f.writeText(manifestText)
+                "https://x/r/jiten-lexicon.tsv.gz" -> f.writeBytes(gzServed)
+                "https://x/r/jiten_user_core.dic" -> f.writeBytes(dic)
+                else -> throw java.io.IOException("404 $u")
+            }
+        }
+    }
+
+    /** The stored last check moves 25 hours back. */
+    private fun aDayLater(tmp: File) = File(tmp, "jiten-splitter.version").let { it.writeText(it.readText().lines()[0] + "\n" + (System.currentTimeMillis() - 25 * 3_600_000L)) }
+
+    private fun readyDir(tmp: File) = tmp.also { File(it, "sudachi-core-${JapaneseModel.VERSION}.dic").writeBytes(ByteArray(10)) }
+
+    @Test fun manifestParses() {
+        val (v, base, files) = JapaneseModel.parseManifest(Release().manifest())
+        assertEquals("v1", v)
+        assertEquals("https://x/r/", base)
+        assertEquals(listOf("jiten-lexicon.tsv.gz", "jiten_user_core.dic"), files.map { it.name })
+        assertEquals(1_100_000L, files[1].size)
+    }
+
+    @Test fun releaseFilesAreFetchedOnceAndNotAgainWhileTheVersionHolds(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val r = Release()
+        val m = JapaneseModel(readyDir(tmp), fetcher = r.fetcher, manifestUrl = "https://x/m.json")
+        assertEquals(true, m.splitterWanted())
+        m.download()
+        assertEquals(null, m.failure)
+        assertEquals(true, m.splitterReady)
+        assertEquals(false, m.splitterWanted()) // checked just now
+        assertEquals(3, r.calls.size)
+        // A day later, same version: only the manifest is read.
+        aDayLater(tmp)
+        assertEquals(true, m.splitterWanted())
+        r.calls.clear()
+        m.download()
+        assertEquals(listOf("https://x/m.json"), r.calls)
+        assertEquals(false, m.splitterWanted())
+        // A new version replaces both files.
+        r.version = "v2"; r.manifestText = r.manifest()
+        aDayLater(tmp)
+        r.calls.clear()
+        m.download()
+        assertEquals(3, r.calls.size)
+        assertEquals("v2", File(tmp, "jiten-splitter.version").readText().lines()[0])
+    }
+
+    @Test fun wrongSizeOrShaIsRejectedAndDeleted(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val r = Release()
+        val m = JapaneseModel(readyDir(tmp), fetcher = r.fetcher, manifestUrl = "https://x/m.json")
+        r.gzServed = r.gz.copyOf().also { it[100] = 9 } // same size, other bytes
+        m.download()
+        assertEquals(true, m.failure!!.contains("sha256"))
+        assertEquals(false, m.splitterFiles.any { it.exists() })
+        r.gzServed = r.gz + 0.toByte() // other size
+        m.download()
+        assertEquals(true, m.failure!!.contains("manifest says"))
+        assertEquals(emptyList<String>(), tmp.list()!!.filter { it.endsWith(".part") || it.endsWith(".new") })
+        assertEquals(false, m.splitterFiles.any { it.exists() })
+        r.gzServed = r.gz
+        m.download()
+        assertEquals(true, m.splitterReady)
+    }
+
+    /** A release that matches its sha256 but doesn't load here: dropped once, not fetched again until its version changes. */
+    @Test fun droppedReleaseIsNotFetchedAgain(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val r = Release()
+        val m = JapaneseModel(readyDir(tmp), fetcher = r.fetcher, manifestUrl = "https://x/m.json")
+        m.download()
+        assertEquals(true, m.splitterReady)
+        m.dropSplitter(RuntimeException("doesn't load"))
+        assertEquals(false, m.splitterReady)
+        assertEquals(false, m.splitterWanted()) // dropped, checked just now: no manifest read per text either
+        aDayLater(tmp)
+        assertEquals(true, m.splitterWanted())
+        r.calls.clear()
+        m.download() // same version: the manifest only
+        assertEquals(listOf("https://x/m.json"), r.calls)
+        assertEquals(false, m.splitterReady)
+        assertEquals(false, m.splitterWanted())
+        aDayLater(tmp)
+        r.version = "v2"; r.manifestText = r.manifest()
+        r.calls.clear()
+        m.download() // new version: fetched
+        assertEquals(3, r.calls.size)
+        assertEquals(true, m.splitterReady)
+    }
+
+    @Test fun baseWithoutSlashIsJoined(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val r = Release()
+        r.manifestText = r.manifestText.replace("https://x/r/", "https://x/r")
+        JapaneseModel(readyDir(tmp), fetcher = r.fetcher, manifestUrl = "https://x/m.json").download()
+        assertEquals(true, r.calls.contains("https://x/r/jiten_user_core.dic"))
+    }
+
+    @Test fun serverFirstThenRelease(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val r = Release()
+        val m = JapaneseModel(readyDir(tmp), { "https://srv/" }, r.fetcher, "https://x/m.json")
+        m.download() // https://srv/api/models/... is a 404 in the fake: the release serves
+        assertEquals(null, m.failure)
+        assertEquals(true, r.calls.first().startsWith("https://srv/api/models/"))
+        assertEquals(true, m.splitterReady)
     }
 
     @Test fun notDownloadedGivesNoWords() = assertEquals(null, JapaneseModel(File("no-such-dir")).words("猫"))

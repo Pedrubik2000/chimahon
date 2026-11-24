@@ -6,6 +6,8 @@ import com.worksap.nlp.sudachi.Tokenizer
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.security.MessageDigest
+import org.json.JSONObject
 import java.util.zip.ZipInputStream
 
 /**
@@ -13,15 +15,40 @@ import java.util.zip.ZipInputStream
  * splitter once its two files are here), pure JVM so Android and the desktop app share it. [dir] is the data folder (Android
  * `filesDir/sudachi`, desktop `%APPDATA%\kumahon\sudachi`). The Sudachi core dictionary (~80 MB, 200 MB unpacked) comes from the
  * sudachidict-core wheel on PyPI, exactly as kumapie does; Jiten's files (`jiten-lexicon.tsv.gz` 25 MB, `jiten_user_core.dic`
- * 20 MB) from `<server>/api/models/<file>` (dojo-feed), only when a [server] is set; without them Sudachi + [join] split alone.
+ * 20 MB) from `<server>/api/models/<file>` (dojo-feed) when a [server] is set, else from kumapie's public release ([MANIFEST]:
+ * size and sha256 checked, replaced when its `version` changes, looked at once a day); without them Sudachi + [join] split alone.
+ * [fetcher] writes a URL's bytes to a file (tests pass a fake).
  */
-class JapaneseModel(private val dir: File, private val server: () -> String = { "" }) {
+class JapaneseModel(
+    private val dir: File,
+    private val server: () -> String = { "" },
+    private val fetcher: (String, File) -> Unit = { u, f -> httpGet(u, f) },
+    private val manifestUrl: String = MANIFEST,
+) {
     val dic = File(dir, "sudachi-core-$VERSION.dic")
     val isReady: Boolean get() = dic.exists()
     val splitterFiles = SPLITTER_FILES.map { File(dir, it) }
     val splitterReady: Boolean get() = isReady && splitterFiles.all { it.exists() }
     @Volatile var failure: String? = null
         private set
+    /**
+     * `<version>` or `dropped:<version>` (files of that release that don't load here), a newline, the time of the last manifest
+     * check (ms). Absent: files from a server, or none.
+     */
+    private val versionFile = File(dir, "jiten-splitter.version")
+    private fun state(): Triple<String, Boolean, Long>? = runCatching {
+        val l = versionFile.readText().trim().lines()
+        val v = l[0].trim()
+        // an old file holds only the version: check time 0 = the next daily check runs at once
+        Triple(v.removePrefix("dropped:"), v.startsWith("dropped:"), l.getOrNull(1)?.trim()?.toLongOrNull() ?: 0L)
+    }.getOrNull()
+    private fun writeState(version: String, dropped: Boolean) = versionFile.writeText("${if (dropped) "dropped:" else ""}$version\n${System.currentTimeMillis()}")
+    /** Jiten's files are missing (and not dropped from this release), or the release manifest wasn't read for a day: [download] has something to do. */
+    fun splitterWanted(): Boolean {
+        if (!isReady) return false
+        val st = state() ?: return !splitterReady
+        return System.currentTimeMillis() - st.third > DAY || (!splitterReady && !st.second)
+    }
     /** When Jiten's files were last thrown away as unusable ([words]); the caller waits before fetching them again. */
     @Volatile var droppedAt = 0L
         private set
@@ -34,8 +61,7 @@ class JapaneseModel(private val dir: File, private val server: () -> String = { 
         try {
             dir.mkdirs()
             if (!isReady) sudachi()
-            val s = server().trim().trimEnd('/')
-            if (s.isNotEmpty()) for (f in splitterFiles) if (!f.exists()) fetch("$s/api/models/${f.name}", f, MIN_SPLITTER_FILE, gzip = f.name.endsWith(".gz"))
+            fetchJiten()
             failure = null
         } catch (e: Exception) {
             failure = e.message ?: e.toString()
@@ -43,24 +69,55 @@ class JapaneseModel(private val dir: File, private val server: () -> String = { 
         }
     }
 
-    /** Half-downloaded files of a failed attempt (the wheel, the unpacked dictionary, `.part` files): never kept. */
-    private fun leftovers() {
-        for (f in listOf(File(dir, "sudachidict-core.whl"), File(dir, "${dic.name}.tmp")) + (listOf(dic, File(dir, "sudachidict-core.whl")) + splitterFiles).map { File(it.path + ".part") }) f.delete()
+    /** Jiten's files: the server's when set (missing ones only), then the release for what is missing or out of date. */
+    private fun fetchJiten() {
+        val s = server().trim().trimEnd('/')
+        var serverError: Exception? = null
+        if (s.isNotEmpty()) try {
+            for (f in splitterFiles) if (!f.exists()) fetch("$s/api/models/${f.name}", f, MIN_SPLITTER_FILE, gzip = f.name.endsWith(".gz"))
+        } catch (e: Exception) { serverError = e }
+        if (!splitterWanted()) { serverError?.let { throw it }; return }
+        try { release() } catch (e: Exception) { throw if (serverError == null) e else IOException("server: ${serverError.message}; release: ${e.message}") }
     }
 
-    /** A downloaded file is used only when whole (the size the server announced) and of the right kind: a bad one must not kill the colours. */
-    private fun fetch(url: String, to: File, minSize: Long, gzip: Boolean = false) {
+    /** One file of the release manifest. */
+    data class Entry(val name: String, val size: Long, val sha256: String)
+
+    /** Reads the release manifest; replaces the files only when its version differs from the stored one (or a file is missing). */
+    private fun release() {
+        val tmp = File(dir, "jiten-splitter.json.part")
+        val (version, base, entries) = try { fetcher(manifestUrl, tmp); parseManifest(tmp.readText()) } finally { tmp.delete() }
+        val wanted = SPLITTER_FILES.map { n -> entries.firstOrNull { it.name == n } ?: throw IOException("the release manifest has no $n") }
+        val st = state()
+        // Same version: nothing to fetch (and, when its files didn't load here, nothing until the version changes).
+        if (st != null && st.first == version && (st.second || splitterReady)) { writeState(version, st.second); return }
+        // Both files whole and checked before either is replaced.
+        val staged = wanted.map { e -> File(dir, e.name + ".new").also { fetch(base.trimEnd('/') + "/" + e.name, it, MIN_SPLITTER_FILE, e.name.endsWith(".gz"), e) } }
+        // No splitter in use or loading while the pair changes (lock order as in [words]: SPLIT, then Companion).
+        synchronized(SPLIT) {
+            synchronized(Companion) {
+                jiten = null
+                for ((f, to) in staged.zip(splitterFiles)) java.nio.file.Files.move(f.toPath(), to.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+        writeState(version, false)
+    }
+
+    /** Half-downloaded files of a failed attempt (the wheel, the unpacked dictionary, `.part` and `.new` files): never kept. */
+    private fun leftovers() {
+        val staged = splitterFiles.map { File(it.path + ".new") }
+        for (f in listOf(File(dir, "sudachidict-core.whl"), File(dir, "${dic.name}.tmp"), File(dir, "jiten-splitter.json.part")) + staged +
+            (listOf(dic, File(dir, "sudachidict-core.whl")) + splitterFiles + staged).map { File(it.path + ".part") }) f.delete()
+    }
+
+    /** A downloaded file is used only when whole (the size the server announced; with [expect], its size and sha256) and of the right kind: a bad one must not kill the colours. */
+    private fun fetch(url: String, to: File, minSize: Long, gzip: Boolean = false, expect: Entry? = null) {
         val part = File(to.path + ".part")
         try {
-            (java.net.URL(url).openConnection() as HttpURLConnection).run {
-                connectTimeout = 15_000
-                readTimeout = 60_000
-                try {
-                    if (responseCode != 200) throw IOException("$url: HTTP $responseCode")
-                    val announced = contentLengthLong
-                    inputStream.use { i -> part.outputStream().use { i.copyTo(it) } }
-                    if (announced > 0 && part.length() != announced) throw IOException("${to.name}: got ${part.length()} of $announced bytes")
-                } finally { disconnect() }
+            fetcher(url, part)
+            if (expect != null) {
+                if (part.length() != expect.size) throw IOException("${expect.name}: ${part.length()} bytes, the manifest says ${expect.size}")
+                if (sha256(part) != expect.sha256.lowercase()) throw IOException("${expect.name}: sha256 differs from the manifest")
             }
             if (part.length() < minSize) throw IOException("${to.name}: only ${part.length()} bytes, not a dictionary file")
             if (gzip) part.inputStream().use { if (it.read() != 0x1f || it.read() != 0x8b) throw IOException("${to.name}: not a gzip file") }
@@ -111,9 +168,10 @@ class JapaneseModel(private val dir: File, private val server: () -> String = { 
     }
 
     /** Jiten's files don't load (a bad download): deleted, and Sudachi + [join] split alone, as without them. */
-    private fun dropSplitter(e: Exception) {
+    internal fun dropSplitter(e: Exception) {
         synchronized(Companion) { jiten = null }
         for (f in splitterFiles) f.delete()
+        state()?.let { writeState(it.first, true) } // this release doesn't load here: not fetched again until its version changes
         droppedAt = System.currentTimeMillis()
         failure = "Jiten's files dropped: ${e.message ?: e}"
     }
@@ -206,6 +264,39 @@ class JapaneseModel(private val dir: File, private val server: () -> String = { 
                 boundary = t.pos == "補助記号" || t.pos == "空白"
             }
             return out
+        }
+
+        /** kumapie's public release: the manifest names the files (base URL, size, sha256) and their version. */
+        const val MANIFEST = "https://github.com/Pedrubik2000/kumapie-tv/releases/download/jiten-splitter/jiten-splitter.json"
+        private const val DAY = 24 * 3_600_000L
+
+        /** `{version, base, files:[{name,size,sha256}]}`. */
+        fun parseManifest(json: String): Triple<String, String, List<Entry>> {
+            val o = JSONObject(json)
+            val files = o.getJSONArray("files")
+            return Triple(o.getString("version"), o.getString("base"), (0 until files.length()).map {
+                files.getJSONObject(it).let { f -> Entry(f.getString("name"), f.getLong("size"), f.getString("sha256")) }
+            })
+        }
+
+        private fun sha256(f: File): String {
+            val md = MessageDigest.getInstance("SHA-256")
+            f.inputStream().use { i -> val b = ByteArray(1 shl 16); while (true) { val n = i.read(b); if (n < 0) break; md.update(b, 0, n) } }
+            return md.digest().joinToString("") { "%02x".format(it) }
+        }
+
+        /** Writes [url]'s body to [to]; HttpURLConnection follows GitHub's https->https redirects (cross-host too) itself. */
+        fun httpGet(url: String, to: File) {
+            (java.net.URL(url).openConnection() as HttpURLConnection).run {
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                try {
+                    if (responseCode != 200) throw IOException("$url: HTTP $responseCode")
+                    val announced = contentLengthLong
+                    inputStream.use { i -> to.outputStream().use { i.copyTo(it) } }
+                    if (announced > 0 && to.length() != announced) throw IOException("${to.name}: got ${to.length()} of $announced bytes")
+                } finally { disconnect() }
+            }
         }
 
         const val VERSION = "20260723.1"

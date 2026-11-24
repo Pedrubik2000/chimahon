@@ -43,7 +43,7 @@ object KumapieColours {
     @Synchronized
     private fun colourer(context: Context): WordColourer {
         val app = context.applicationContext
-        val model = japanese ?: JapaneseModel(java.io.File(app.filesDir, "sudachi")) { server(app) }.also { japanese = it }
+        val model = japanese ?: JapaneseModel(java.io.File(app.filesDir, "sudachi"), server = { server(app) }).also { japanese = it }
         return colourer ?: WordColourer({ Cards.store(app) }, model::words, model::autoKnown, model::spellings).also { colourer = it }
     }
 
@@ -72,7 +72,7 @@ object KumapieColours {
     private fun download(context: Context) {
         val model = japanese ?: return
         if (System.currentTimeMillis() < retryAt || System.currentTimeMillis() - model.droppedAt < RETRY_MS) return
-        if (!model.isReady && metered(context)) return
+        if (metered(context)) return // Sudachi's 80 MB, Jiten's 45 MB and the daily look at the release: Wi-Fi only
         if (!downloading.compareAndSet(false, true)) return
         downloader.execute {
             try {
@@ -393,7 +393,7 @@ object KumapieColours {
         val colouring = colourer(context)
         val model = japanese ?: return null
         if (!model.isReady) { download(context); return askKumapie(context, text) }
-        if (!model.splitterReady && server(context).isNotBlank()) download(context) // Jiten's files still to come: fetched meanwhile
+        if (model.splitterWanted()) download(context) // Jiten's files still to come (or a day since the release was read): fetched meanwhile
         val rows = runCatching { colouring.rows(text).map { Triple(it.start, it.length, it.state) } }
             .onFailure { Log.w("KumapieColours", "own colours failed: $it") }.getOrNull() ?: return null
         return entry(text, rows)

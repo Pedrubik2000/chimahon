@@ -71,8 +71,8 @@ object SettingsAnkiScreen : SearchableSettings {
                     content = {
                         EditTextPreferenceWidget(
                             title = "Jiten data server (optional)",
-                            subtitle = colouringServer.ifBlank { "none: Sudachi alone splits the words" },
-                            dialogSubtitle = "The dojo server's address (https://...:8445): the splitter Jiten's two files (45 MB) come from it, as in kumapie",
+                            subtitle = colouringServer.ifBlank { "none: the files come from the public kumapie release" },
+                            dialogSubtitle = "Leave empty: Jiten's two splitter files (45 MB) come from the public kumapie release. Or the dojo server's address (https://...:8445), tried first",
                             icon = null,
                             value = colouringServer,
                             formatSubtitle = false,
