@@ -46,7 +46,7 @@ class UiPreferences(
     fun glassUi() = preferenceStore.getBoolean("pref_glass_ui", true)
 
     // ponytail: off until the phone Library, title page, Downloads, Settings and setup exist; then drop this pref
-    fun glassPhone() = preferenceStore.getBoolean("pref_glass_phone", false)
+    fun glassPhone() = preferenceStore.getBoolean("pref_glass_phone", true)
 
     // chimahon: the new look's first-run setup was finished (or not needed); app state, like onboarding_complete
     fun glassSetupDone() = preferenceStore.getBoolean(Preference.appStateKey("glass_setup_done"), false)
