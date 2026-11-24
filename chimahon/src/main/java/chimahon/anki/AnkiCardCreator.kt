@@ -260,8 +260,8 @@ object AnkiCardCreator {
 
     /**
      * The Anki path as it always was ([addToAnkiOnly], kumapie first), then kumahon's own card store:
-     * - kumapie present (it made the card, or had it): in the background, pull its card into the own store
-     *   ([Cards.sync] adopts it with its history) and save this sentence as a new context of it.
+     * - kumapie present (it made the card, or had it): in the background, make this device's own card of the word (unless it
+     *   has one) with this sentence as a context, then [Cards.sync] (kumapie's reviews of the word reach it as events).
      * - kumapie absent: make the card in the own store too (unless it has it) with its context; when Anki could not
      *   run (not configured, no permission) that makes the word mined: the answer is [AnkiResult.Success].
      * Opening a card (OpenCard) is not mining: nothing more.
@@ -305,10 +305,11 @@ object AnkiCardCreator {
         if (chimahon.ocr.KumapieColours.present(context)) {
             if (answer is AnkiResult.Success || answer is AnkiResult.CardExists) {
                 Cards.later {
-                    Cards.sync(context, listOf(word to reading))
-                    Cards.find(context, word, reading)?.let {
-                        Cards.addContext(context, it.id, media?.mangaTitle, media?.chapterName, null, sentence, screenshotBytes)
-                    }
+                    Cards.addMined(
+                        context, word, reading, sentence, plainMeaning(result), media?.mangaTitle, media?.chapterName,
+                        page = null, image = screenshotBytes,
+                    )
+                    Cards.sync(context)
                 }
             }
             return answer

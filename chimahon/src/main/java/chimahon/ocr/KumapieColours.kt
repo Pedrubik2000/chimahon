@@ -236,15 +236,15 @@ object KumapieColours {
             }
             if (out.containsKey("undone")) put("undone", out.getBoolean("undone"))
         }
-        // kumapie wrote the rating (or took it back): kumahon only pulls the result into its own store, after the answer.
+        // kumapie wrote the rating (or took it back); kumahon writes no row for it: it makes sure it has its own card of the word
+        // (no meaning at hand here: empty) with this context, then one sync brings kumapie's event onto that card.
         if (action == "rate" && (answer.optJSONObject("rated")?.optJSONArray("notes")?.length() ?: 0) > 0) {
             val word = body.optString("word")
             val reading = body.optString("reading")
             val where = whereOf(body)
             Cards.later {
-                Cards.sync(context, listOf(word to reading))
-                val card = Cards.find(context, word, reading)
-                if (card != null && where != null) Cards.addContext(context, card.id, where.title, where.volume, where.page, where.sentence)
+                if (word.isNotBlank()) Cards.addMined(context, word, reading, where?.sentence.orEmpty(), "", where?.title, where?.volume, where?.page)
+                Cards.sync(context)
             }
         } else if (action == "undo" && answer.optBoolean("undone")) {
             Cards.later { Cards.sync(context) }
@@ -277,17 +277,6 @@ object KumapieColours {
         }
         context.contentResolver.call(Uri.parse("content://$authority"), "update", null, extras)?.getBoolean("updated") == true
     }.onFailure { Log.w("KumapieColours", "kumapie update: $it") }.getOrDefault(false)
-
-    /**
-     * kumapie's card store, synced (its provider's `srs`): [request] goes as `json`, its answer comes back parsed; null when
-     * kumapie can't (not installed, no permission, no card store, any error). Blocking: call it off the UI thread.
-     */
-    fun srs(context: Context, request: JSONObject): JSONObject? = runCatching {
-        val authority = authority(context) ?: return@runCatching null
-        val extras = Bundle().apply { putString("json", request.toString()) }
-        context.contentResolver.call(Uri.parse("content://$authority"), "srs", null, extras)
-            ?.getString("json")?.let(::JSONObject)
-    }.onFailure { Log.w("KumapieColours", "kumapie srs: $it") }.getOrNull()
 
     private fun authority(context: Context): String? =
         PACKAGES.firstOrNull { context.packageManager.resolveContentProvider("$it.words", 0) != null }?.let { "$it.words" }

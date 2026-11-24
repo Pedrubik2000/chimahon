@@ -11,7 +11,6 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
-import android.util.Log
 import kotlin.random.Random
 
 /**
@@ -137,23 +136,6 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
             put("page", page); put("sentence", sentence); put("image", image)
         })
 
-    /**
-     * Ids of the (not deleted) cards kumapie said belong to this word, in the `words` table (local, never synced), oldest first.
-     * [reading] empty = any reading of the word. Compared in hiragana.
-     */
-    fun wordCards(word: String, reading: String): List<Long> {
-        val args = if (reading.isEmpty()) arrayOf(word) else arrayOf(word, CardWord.hira(reading))
-        return db.rawQuery("SELECT DISTINCT w.card FROM words w JOIN cards c ON c.id = w.card WHERE w.word = ?" +
-            (if (reading.isEmpty()) "" else " AND w.reading = ?") +
-            " AND (' ' || c.tags || ' ') NOT LIKE '% $DELETED %' ORDER BY w.card", args)
-            .use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-    }
-
-    /** Remembers that [card] is the card of this word and reading (own cards, or what kumapie adopted). */
-    fun linkWord(word: String, reading: String, card: Long) {
-        db.execSQL("INSERT OR IGNORE INTO words (word, reading, card) VALUES (?, ?, ?)", arrayOf<Any>(word, CardWord.hira(reading), card))
-    }
-
     /** Where [card] was met, newest first. */
     fun contexts(card: Long): List<CardContext> = db.rawQuery("SELECT id, card, time, title, volume, page, sentence, image FROM contexts WHERE card = ? ORDER BY time DESC, id DESC", arrayOf("$card"))
         .use { c -> buildList { while (c.moveToNext()) add(CardContext(c.getLong(0), c.getLong(1), c.getLong(2), c.getStringOrNull(3), c.getStringOrNull(4), if (c.isNull(5)) null else c.getInt(5), c.getStringOrNull(6), c.getStringOrNull(7))) } }
@@ -180,12 +162,13 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
 
     /** The cached state of these cards (null = all) again from their revlog, after a sync brought other devices' rows. */
     fun replayAll(only: Set<Long>? = null) {
-        val rows = HashMap<Long, MutableList<Pair<Long, Int>>>()
-        db.rawQuery("SELECT card, time, rating FROM revlog ORDER BY time, id", null).use { c ->
-            while (c.moveToNext()) if (only == null || c.getLong(0) in only) rows.getOrPut(c.getLong(0)) { mutableListOf() }.add(c.getLong(1) to c.getInt(2))
-        }
+        // The history is read inside the transaction that writes the cache: a rate() committed in between can't be overwritten by a stale state.
         db.beginTransaction()
         try {
+            val rows = HashMap<Long, MutableList<Pair<Long, Int>>>()
+            db.rawQuery("SELECT card, time, rating FROM revlog ORDER BY time, id", null).use { c ->
+                while (c.moveToNext()) if (only == null || c.getLong(0) in only) rows.getOrPut(c.getLong(0)) { mutableListOf() }.add(c.getLong(1) to c.getInt(2))
+            }
             for ((id, r) in rows) replay(r, fsrs).let { cache(id, it?.state, it?.lastReview) }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
@@ -212,137 +195,6 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
         replayAll()
     }
 
-    /**
-     * What one [sync] call did: [ok] false = nothing written, outbox kept; [more]/[read] come from the answer; [pending] = outbox
-     * rows still waiting; [adopted] = the answer's "adopted" (word, hiragana reading -> card ids); [got] = rows taken from the answer.
-     */
-    data class Synced(val ok: Boolean, val more: Boolean = false, val read: Boolean = false, val pending: Int = 0,
-                      val adopted: Map<Pair<String, String>, List<Long>> = emptyMap(), val got: Int = 0)
-
-    /** Request field "have": every card (deleted ones too) -> [revlog rows this store has for it, cards.modified, newest revlog id (0 = none)]; one query. */
-    fun have(): JSONObject = JSONObject().also { h ->
-        db.rawQuery("SELECT c.id, COALESCE(r.n, 0), c.modified, COALESCE(r.m, 0) FROM cards c LEFT JOIN (SELECT card, COUNT(*) AS n, MAX(id) AS m FROM revlog GROUP BY card) r ON r.card = c.id", null)
-            .use { c -> while (c.moveToNext()) h.put("${c.getLong(0)}", JSONArray().put(c.getLong(1)).put(c.getLong(2)).put(c.getLong(3))) }
-    }
-
-    fun pending(): Int = db.rawQuery("SELECT COUNT(*) FROM outbox", null).use { if (it.moveToFirst()) it.getInt(0) else 0 }
-
-    /**
-     * Sends this device's new rows (the outbox: kept when [send] answers null) as many as fit [BUDGET] characters (one row
-     * at least, at most [BATCH]) and takes everyone else's from the answer. [send] is the transport: it takes the request
-     * ({"lang","since","cards","revlog","exposures"}; the caller adds "have" and "words") and answers
-     * {"seq","meta","cards","revlog","exposures","in","missing","refused","adopted","read","more"},
-     * or null / {"error"} / no "seq" = no sync: [Synced.ok] false, nothing written, outbox kept. The first sync takes the
-     * whole store. Call again while [Synced.more] or [Synced.pending].
-     * Exception, as in kumapie: an answer whose meta `imported_from` differs from ours empties the store (unsent rows
-     * included, `contexts` rows stay and may point at cards that are gone) and syncs again. A peer that must never
-     * cause that leaves `imported_from` out of its meta.
-     * Blocking: call it off the main thread.
-     */
-    fun sync(send: (JSONObject) -> JSONObject?): Synced {
-        // Cards first, then revlog, then exposures, oldest id first: a rating is never sent before its card.
-        // At most [BATCH] candidates, of which as many as fit [BUDGET] characters are sent; the rest stays in the outbox.
-        val queued = db.rawQuery("SELECT kind, id FROM outbox ORDER BY CASE kind WHEN 'cards' THEN 0 WHEN 'revlog' THEN 1 ELSE 2 END, id LIMIT $BATCH", null)
-            .use { c -> buildList { while (c.moveToNext()) add(c.getString(0) to c.getLong(1)) } }
-            .map { (kind, id) -> Triple(kind, id, row(kind, id)) }
-        val out = queued.take(takeBySize(queued.map { it.third?.toString()?.length ?: 0 }))
-        val body = JSONObject().put("lang", LANG).put("since", meta("sync_seq")?.toLong() ?: 0L)
-        val sentModified = HashMap<Long, Long>() // card id -> `modified` of the row as sent
-        for (t in SYNCED) body.put(t, JSONArray(out.filter { it.first == t }.mapNotNull { (_, id, json) ->
-            json?.also { if (t == "cards") sentModified[id] = it.getLong("modified") }
-        }))
-        val got = send(body)
-        if (got == null || got.has("error") || !got.has("seq")) return Synced(false, pending = pending())
-        // The other side's store was made again (a new kuma3 import, before the switch): start over from it.
-        val imported = got.optJSONObject("meta")?.optString("imported_from")?.takeIf { it.isNotEmpty() }
-        val mine = meta("imported_from")
-        if (imported != null && mine != null && imported != mine) {
-            Log.w("kumahon", "srs $LANG: the other store is new ($mine -> $imported): downloading it again")
-            db.beginTransaction()
-            try {
-                for (t in listOf("meta", "cards", "revlog", "exposures", "outbox")) db.execSQL("DROP TABLE $t")
-                SCHEMA.forEach(db::execSQL)
-                db.execSQL("DELETE FROM words") // the old card ids mean nothing in the new store
-                db.setTransactionSuccessful()
-            } finally { db.endTransaction() }
-            scheduler = null
-            return sync(send)
-        }
-        val rated = HashSet<Long>()
-        val adopted = HashMap<Pair<String, String>, MutableList<Long>>()
-        val refused = HashSet<Long>() // cards the peer will never take
-        val refusedIds = got.optJSONArray("refused")
-        for (i in 0 until (refusedIds?.length() ?: 0)) {
-            val id = refusedIds!!.optLong(i, -1L)
-            if (id >= 0) refused.add(id)
-        }
-        var n = 0
-        db.beginTransaction()
-        try {
-            got.optJSONObject("meta")?.let { m -> m.keys().forEach { k -> db.insertWithOnConflict("meta", null, values(JSONObject().put("key", k).put("value", m.getString(k))), SQLiteDatabase.CONFLICT_REPLACE) } }
-            for (o in got.optJSONArray("cards").objects()) {
-                val v = values(o)
-                val old = db.rawQuery("SELECT modified FROM cards WHERE id = ?", arrayOf("${o.getLong("id")}")).use { if (it.moveToFirst()) it.getLong(0) else null }
-                when {
-                    old == null -> db.insertOrThrow("cards", null, v)
-                    o.getLong("modified") > old -> db.update("cards", v, "id = ?", arrayOf("${o.getLong("id")}"))
-                    else -> continue
-                }
-                n++
-            }
-            for (t in listOf("revlog", "exposures")) for (o in got.optJSONArray(t).objects()) {
-                if (db.insertWithOnConflict(t, null, values(o), SQLiteDatabase.CONFLICT_IGNORE) != -1L) {
-                    n++
-                    if (t == "revlog") rated += o.getLong("card")
-                }
-            }
-            for ((kind, id) in out) {
-                val sent = if (kind == "cards") sentModified[id] else null
-                // A card edited while [send] ran has a newer `modified` than the one sent: its entry stays.
-                if (sent != null) db.execSQL("DELETE FROM outbox WHERE kind = 'cards' AND id = ? AND (SELECT modified FROM cards WHERE id = ?) = ?", arrayOf<Any>(id, id, sent))
-                else db.delete("outbox", "kind = ? AND id = ?", arrayOf(kind, "$id"))
-            }
-            // Cards kumapie says it doesn't have: the card and all its rows go out again (after the deletes above, so they stay queued).
-            val missing = got.optJSONArray("missing")
-            for (i in 0 until (missing?.length() ?: 0)) {
-                val id = missing!!.optLong(i, -1L)
-                if (id < 0 || id in refused || card(id) == null) continue
-                db.execSQL("INSERT OR IGNORE INTO outbox (kind, id) VALUES ('cards', ?)", arrayOf<Any>(id))
-                db.execSQL("INSERT OR IGNORE INTO outbox (kind, id) SELECT 'revlog', id FROM revlog WHERE card = ?", arrayOf<Any>(id))
-                db.execSQL("INSERT OR IGNORE INTO outbox (kind, id) SELECT 'exposures', id FROM exposures WHERE card = ?", arrayOf<Any>(id))
-            }
-            // Refused cards: nothing of theirs is ever sent, so the outbox can empty (rows stay in the store).
-            for (id in refused) {
-                db.execSQL("DELETE FROM outbox WHERE kind = 'cards' AND id = ?", arrayOf<Any>(id))
-                db.execSQL("DELETE FROM outbox WHERE kind = 'revlog' AND id IN (SELECT id FROM revlog WHERE card = ?)", arrayOf<Any>(id))
-                db.execSQL("DELETE FROM outbox WHERE kind = 'exposures' AND id IN (SELECT id FROM exposures WHERE card = ?)", arrayOf<Any>(id))
-            }
-            // Which cards kumapie matched to each word we asked about: kept locally (never synced) for [wordCards].
-            for (o in got.optJSONArray("adopted").objects()) {
-                val word = o.optString("word")
-                val reading = CardWord.hira(o.optString("reading"))
-                val ids = o.optJSONArray("cards")
-                if (word.isEmpty() || ids == null) continue
-                val list = adopted.getOrPut(word to reading) { mutableListOf() }
-                for (i in 0 until ids.length()) {
-                    val id = ids.optLong(i, -1L)
-                    if (id < 0) continue
-                    db.execSQL("INSERT OR IGNORE INTO words (word, reading, card) VALUES (?, ?, ?)", arrayOf<Any>(word, reading, id))
-                    if (id !in list) list += id
-                }
-            }
-            db.insertWithOnConflict("meta", null, values(JSONObject().put("key", "sync_seq").put("value", "${got.getLong("seq")}")), SQLiteDatabase.CONFLICT_REPLACE)
-            db.setTransactionSuccessful()
-        } finally { db.endTransaction() }
-        if (refused.isNotEmpty()) Log.w("kumahon", "srs $LANG: kumapie refuses ${refused.size} cards, their unsent rows were dropped from the outbox: ${refused.take(5)}")
-        scheduler = null // the PC may have sent new parameters
-        if (got.optJSONObject("meta")?.has("params") == true && meta("replayed_params") != meta("params")) {
-            replayAll() // new parameters: every card again
-            db.insertWithOnConflict("meta", null, values(JSONObject().put("key", "replayed_params").put("value", meta("params"))), SQLiteDatabase.CONFLICT_REPLACE)
-        } else if (rated.isNotEmpty()) replayAll(rated)
-        return Synced(true, got.optBoolean("more", false), got.optBoolean("read", false), pending(), adopted, n)
-    }
-
     /** A row this device made: stored, and queued for the PC. */
     private fun append(table: String, v: ContentValues) {
         db.beginTransaction()
@@ -351,12 +203,6 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
             db.insertWithOnConflict("outbox", null, ContentValues().apply { put("kind", table); put("id", v.getAsLong("id")) }, SQLiteDatabase.CONFLICT_IGNORE)
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
-    }
-
-    /** One row as the PC takes it (cards without the FSRS cache columns: every device replays its own). */
-    private fun row(table: String, id: Long): JSONObject? = db.rawQuery("SELECT * FROM $table WHERE id = ?", arrayOf("$id")).use { c ->
-        if (!c.moveToFirst()) return null
-        json(c).apply { if (table == "cards") CACHE.forEach(::remove) }
     }
 
     fun dump(): JSONObject = JSONObject().apply {
@@ -383,8 +229,6 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
         }
     }
 
-    private fun JSONArray?.objects(): List<JSONObject> = if (this == null) emptyList() else List(length()) { getJSONObject(it) }
-
     private fun history(cardId: Long) = db.rawQuery("SELECT time, rating FROM revlog WHERE card = ? ORDER BY time, id", arrayOf("$cardId"))
         .use { c -> buildList { while (c.moveToNext()) add(c.getLong(0) to c.getInt(1)) } }
 
@@ -402,22 +246,6 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
 
         /** kumahon is Japanese only; the `lang` column and the sync JSON keep the code so rows stay compatible with kumapie. */
         const val LANG = "ja"
-        /** Most outbox rows considered per [sync] call. */
-        const val BATCH = 300
-        /** Characters of row JSON per [sync] request (Binder carries about 1 MB = 500k chars per transaction; "have" and "words" come on top). */
-        const val BUDGET = 120_000
-
-        /** How many rows to send: [sizes] (JSON length of each, in outbox order) while the running total stays within [budget]; at least one if any. */
-        fun takeBySize(sizes: List<Int>, budget: Int = BUDGET): Int {
-            var total = 0
-            for ((i, s) in sizes.withIndex()) {
-                if (i > 0 && total + s > budget) return i
-                total += s
-            }
-            return sizes.size
-        }
-        private val SYNCED = listOf("cards", "revlog", "exposures")
-        private val CACHE = setOf("stability", "difficulty", "last_review", "due")
 
         /** Row id for revlog and exposures: ms * 1000 + a random 0..999, so two devices never collide. */
         fun newId(timeMs: Long = System.currentTimeMillis()) = timeMs * 1000 + Random.nextInt(1000)
@@ -467,17 +295,12 @@ class Srs(context: Context, private val device: String = android.os.Build.MODEL)
 
         private fun Cursor.getStringOrNull(i: Int) = if (isNull(i)) null else getString(i)
 
-        /**
-         * kumahon only, never synced, run on EVERY open (IF NOT EXISTS: a db file made before a table was added gets it too, and
-         * the imported_from reset keeps them): where a card was met, and which cards kumapie matched to a word (hiragana reading).
-         */
+        /** kumahon only, never synced, run on EVERY open (IF NOT EXISTS: a db file made before a table was added gets it too): where a card was met. */
         val LOCAL = listOf(
             """CREATE TABLE IF NOT EXISTS contexts (
                 id INTEGER PRIMARY KEY, card INTEGER NOT NULL, time INTEGER NOT NULL,
                 title TEXT, volume TEXT, page INTEGER, sentence TEXT, image TEXT)""",
             "CREATE INDEX IF NOT EXISTS contexts_card ON contexts(card)",
-            """CREATE TABLE IF NOT EXISTS words (
-                word TEXT NOT NULL, reading TEXT NOT NULL, card INTEGER NOT NULL, PRIMARY KEY (word, reading, card))""",
         )
 
         val SCHEMA = listOf(
