@@ -129,27 +129,33 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
         if (ratingBusy) return
         val id = session.prev?.current ?: return
         val before = session
+        ratingBusy = true // no second undo or answer until this one is written
         session = session.undo()
         glassReviewDue.intValue = session.queue.size
         screenModelScope.launch {
-            val ok = io.withLock {
-                withContext(Dispatchers.IO) {
-                    try {
-                        Cards.store(app).undo(id)
-                        true
-                    } catch (e: Exception) {
-                        Log.w("kumahon", "review undo failed: $e")
-                        false
+            try {
+                val ok = io.withLock {
+                    val written = withContext(Dispatchers.IO) {
+                        try {
+                            Cards.store(app).undo(id)
+                            true
+                        } catch (e: Exception) {
+                            Log.w("kumahon", "review undo failed: $e")
+                            false
+                        }
                     }
+                    // the rating is still in the store: put the sitting back inside the lock, or a waiting answer() sees a half-undone session
+                    if (!written) session = before
+                    written
                 }
+                if (!ok) {
+                    glassReviewDue.intValue = session.queue.size
+                    showCurrent()
+                }
+                syncLater()
+            } finally {
+                ratingBusy = false
             }
-            if (!ok) {
-                // the rating is still in the store: put the sitting back, or the card would be answered twice
-                session = before
-                glassReviewDue.intValue = session.queue.size
-                showCurrent()
-            }
-            syncLater()
         }
         showCurrent()
     }
