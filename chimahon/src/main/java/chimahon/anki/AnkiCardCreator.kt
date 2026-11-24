@@ -11,6 +11,7 @@ import chimahon.MediaInfo
 import chimahon.PitchEntry
 import chimahon.audio.WordAudioResult
 import chimahon.audio.WordAudioService
+import chimahon.srs.Cards
 import eu.kanade.tachiyomi.network.NetworkHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -203,7 +204,7 @@ object Marker {
 // =============================================================================
 
 sealed class AnkiResult {
-    data class Success(val noteId: Long, val warnings: List<AnkiMediaWarning> = emptyList()) : AnkiResult()
+    data class Success(val noteId: Long, val warnings: List<AnkiMediaWarning> = emptyList(), val own: Boolean = false) : AnkiResult() // own: only kumahon's store has the card (noteId is not an Anki note)
     data class CardExists(val noteId: Long) : AnkiResult()
     data class OpenCard(val noteId: Long) : AnkiResult()
     data class Error(val message: String) : AnkiResult()
@@ -257,6 +258,14 @@ object AnkiCardCreator {
         }
     }
 
+    /**
+     * The Anki path as it always was ([addToAnkiOnly], kumapie first), then kumahon's own card store:
+     * - kumapie present (it made the card, or had it): in the background, pull its card into the own store
+     *   ([Cards.sync] adopts it with its history) and save this sentence as a new context of it.
+     * - kumapie absent: make the card in the own store too (unless it has it) with its context; when Anki could not
+     *   run (not configured, no permission) that makes the word mined: the answer is [AnkiResult.Success].
+     * Opening a card (OpenCard) is not mining: nothing more.
+     */
     suspend fun addToAnki(
         context: Context,
         result: LookupResult,
@@ -284,6 +293,75 @@ object AnkiCardCreator {
         profileId: String = "",
         titleId: String? = null,
         mediaRequest: AnkiMediaRequest? = null,
+    ): AnkiResult {
+        val answer = addToAnkiOnly(
+            context, result, deck, model, fieldMapJson, tags, dupCheck, dupScope, dupAction, sentence, offset, media,
+            screenshotBytes, sentenceAudioBytes, sentenceAudioExtension, glossaryIndex, selection, selectedDict,
+            popupSelection, styles, forceOpen, type, syncOnCreate, profileId, titleId, mediaRequest,
+        )
+        if (forceOpen || answer is AnkiResult.OpenCard) return answer
+        val word = result.term.expression
+        val reading = result.term.reading
+        if (chimahon.ocr.KumapieColours.present(context)) {
+            if (answer is AnkiResult.Success || answer is AnkiResult.CardExists) {
+                Cards.later {
+                    Cards.sync(context, listOf(word to reading))
+                    Cards.find(context, word, reading)?.let {
+                        Cards.addContext(context, it.id, media?.mangaTitle, media?.chapterName, null, sentence, screenshotBytes)
+                    }
+                }
+            }
+            return answer
+        }
+        return try {
+            val card = withContext(Dispatchers.IO) {
+                Cards.addMined(
+                    context, word, reading, sentence, plainMeaning(result), media?.mangaTitle, media?.chapterName,
+                    page = null, image = screenshotBytes,
+                )
+            }
+            if (answer is AnkiResult.NotConfigured || answer is AnkiResult.PermissionDenied) AnkiResult.Success(card.id, own = true) else answer
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.w("kumahon", "own card for $word failed: $e")
+            answer
+        }
+    }
+
+    /** The glossary as plain text (dictionary names left out), one entry per line. */
+    private fun plainMeaning(result: LookupResult): String =
+        buildGlossaryPlain(result.term.glossaries, noDictTag = true).split("<br>")
+            .joinToString("\n") { android.text.Html.fromHtml(it, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim() }
+            .trim()
+
+    private suspend fun addToAnkiOnly(
+        context: Context,
+        result: LookupResult,
+        deck: String,
+        model: String,
+        fieldMapJson: String,
+        tags: String,
+        dupCheck: Boolean,
+        dupScope: String,
+        dupAction: String,
+        sentence: String,
+        offset: Int,
+        media: MediaInfo?,
+        screenshotBytes: ByteArray?,
+        sentenceAudioBytes: ByteArray?,
+        sentenceAudioExtension: String,
+        glossaryIndex: Int?,
+        selection: String?,
+        selectedDict: String?,
+        popupSelection: String?,
+        styles: List<DictionaryStyle>,
+        forceOpen: Boolean,
+        type: String?,
+        syncOnCreate: Boolean,
+        profileId: String,
+        titleId: String?,
+        mediaRequest: AnkiMediaRequest?,
     ): AnkiResult {
         android.util.Log.d(TAG, "addToAnki: deck=$deck, model=$model, forceOpen=$forceOpen, glossaryIndex=$glossaryIndex")
 

@@ -186,6 +186,11 @@ fun OcrLookupPopup(
     val existingExpressions = currentFrame?.existingExpressions ?: emptySet()
     val entryJsons = currentFrame?.entryJsons
     chimahon.ocr.KumapieColours.sentence = currentFrame?.sentence ?: fullText
+    // where a rating in this popup's rating row happened (a context of the card); none once the popup is closed
+    androidx.compose.runtime.DisposableEffect(visible, mediaInfo) {
+        chimahon.ocr.KumapieColours.place = mediaInfo?.takeIf { visible }?.let { it.mangaTitle to it.chapterName }
+        onDispose { chimahon.ocr.KumapieColours.place = null }
+    }
     var childPopupRequest by remember { mutableStateOf<RecursivePopupRequest?>(null) }
     val childPopupWebView = remember(context) { WebView(context) }
     var contentReady by remember(visible) { mutableStateOf(false) }
@@ -612,7 +617,7 @@ fun OcrLookupPopup(
                                 onAnkiMediaWarnings(ankiResult.warnings)
                                 updateStatus(result.term.expression)
                                 dismissPopup()
-                                onCropTriggered.invoke(ankiResult.noteId, glossaryIndex)
+                                if (!ankiResult.own) onCropTriggered.invoke(ankiResult.noteId, glossaryIndex)
                             }
                             is AnkiResult.CardExists -> {
                                 updateStatus(result.term.expression)

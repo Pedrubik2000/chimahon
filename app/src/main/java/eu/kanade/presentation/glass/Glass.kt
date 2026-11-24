@@ -31,6 +31,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +60,11 @@ object Glass {
     val glass = Color(0xFF07090D).copy(alpha = 0.55f)
     val scrim = Color(0xFF07090D).copy(alpha = 0.85f)
     val bear = Color(0xFFC98A4B)
+
+    /** Review: new / again / due counts and the due badge (canvas Review option C). */
+    val blue = Color(0xFF6FA8FF)
+    val red = Color(0xFFFF6B6B)
+    val green = Color(0xFF7CC47F)
 
     /** Coverage box states. */
     val have = Color.White.copy(alpha = 0.85f)
@@ -93,9 +99,16 @@ val GlassRailItems = listOf(
     Triple("home", "Home", "home"),
     Triple("library", "Library", "library"),
     Triple("discover", "Discover", "compass"),
+    Triple("review", "Review", "cards"),
     Triple("downloads", "Downloads", "download"),
     Triple("settings", "Settings", "gear"),
 )
+
+/** Cards due for review, shown as the green badge on the Review rail/bar item; the Review model keeps it current. Main thread only. */
+val glassReviewDue = mutableIntStateOf(0)
+
+/** The text of the Review badge: null at 0. */
+fun dueBadge(n: Int): String? = if (n <= 0) null else if (n > 99) "99+" else "$n"
 
 /** The bear + five round buttons; [active] is one of the [GlassRailItems] ids (or "none"). */
 /** Root of every glass screen: the page colour behind the system bars, white sans-serif text whatever the app theme's font is. */
@@ -143,12 +156,15 @@ fun GlassRail(
         }
         GlassRailItems.forEach { (id, label, icon) ->
             val dot = id in dots
+            val due = if (id == "review") glassReviewDue.intValue else 0
             GlassRailButton(
                 icon = icon,
-                label = if (dot) "$label, needs attention" else label,
+                label = listOfNotNull(label, "needs attention".takeIf { dot }, "$due due".takeIf { due > 0 }).joinToString(", "),
                 on = id == active,
                 onClick = { onSelect(id) },
                 dot = dot,
+                badge = dueBadge(due),
+                badgeColor = Glass.green,
             )
         }
     }
@@ -164,6 +180,7 @@ fun GlassRailButton(
     modifier: Modifier = Modifier,
     dot: Boolean = false,
     badge: String? = null,
+    badgeColor: Color = Glass.ice,
 ) {
     // the dot and badge sit outside the button's circle clip
     Box(modifier.size(Glass.rail)) {
@@ -201,7 +218,7 @@ fun GlassRailButton(
                     .background(Glass.page)
                     .padding(2.dp)
                     .clip(CircleShape)
-                    .background(Glass.ice)
+                    .background(badgeColor)
                     .padding(horizontal = 4.dp),
                 contentAlignment = Alignment.Center,
             ) {
