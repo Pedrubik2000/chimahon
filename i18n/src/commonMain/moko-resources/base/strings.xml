@@ -1405,7 +1405,7 @@
     <string name="about_dont_kill_my_app">Some manufacturers have additional app restrictions that kill background services. This website has more info on how to fix it.</string>
     <string name="pref_tablet_ui_mode">Tablet UI</string>
     <string name="pref_glass_ui">New look (tablet)</string>
-    <string name="pref_glass_phone">New look on phones (in progress)</string>
+    <string name="pref_glass_phone">New look on phones</string>
     <string name="pref_glass_phone_summary">Home, Discover, Library, title pages and Settings are made for phones. Downloads is the tablet one made narrow.</string>
     <string name="pref_verbose_logging">Verbose logging</string>
     <string name="pref_verbose_logging_summary">Print verbose logs to system log (reduces app performance)</string>
