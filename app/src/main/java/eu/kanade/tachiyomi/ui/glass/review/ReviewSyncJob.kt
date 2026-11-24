@@ -8,7 +8,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import chimahon.srs.Cards
-import chimahon.srs.PeerSync
 import java.util.concurrent.TimeUnit
 
 /**
@@ -20,7 +19,7 @@ class ReviewSyncJob(context: Context, params: WorkerParameters) : CoroutineWorke
     // Never throws. A failed sync while paired (kumapie not listening yet) is tried again with backoff (1, 2, 4... min, capped by
     // WorkManager at 5 h) until it goes through; the reason is in the settings status meanwhile.
     override suspend fun doWork(): Result =
-        if (Cards.sync(applicationContext) || !PeerSync.paired(applicationContext)) Result.success() else Result.retry()
+        if (Cards.sync(applicationContext) || !Cards.peer(applicationContext).paired()) Result.success() else Result.retry()
 
     companion object {
         private const val NAME = "kumahon-review-sync"

@@ -12,6 +12,8 @@ kotlin {
 
 dependencies {
     implementation(projects.kumahonCore)
+    implementation(libs.org.json)
+    implementation(libs.sqlite.jdbc)
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     testImplementation(libs.junit.jupiter)

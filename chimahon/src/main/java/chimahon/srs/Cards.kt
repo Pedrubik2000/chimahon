@@ -1,6 +1,7 @@
 package chimahon.srs
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,14 +16,19 @@ object Cards {
     private var store: Srs? = null
 
     @Synchronized
-    fun store(context: Context): Srs = store ?: Srs(context.applicationContext).also { store = it }
+    fun store(context: Context): Srs = store ?: Srs(AndroidSqlDb.open(context.applicationContext), Build.MODEL).also { store = it }
+
+    private var peer: PeerSync? = null
+
+    /** The sync with kumapie (pairing, hub, status, [PeerSync.sync]) over this app's store and its kumahon_peer prefs. */
+    @Synchronized
+    fun peer(context: Context): PeerSync = peer ?: context.applicationContext.let { app -> PeerSync(AndroidPeerPrefs(app), { store(app) }, Build.MODEL.orEmpty()) { Log.i("kumahon", it) } }.also { peer = it }
 
     /** One exchange of review events with kumapie ([PeerSync.sync]): false = not paired or it failed (never throws). Blocking: call it off the main thread. */
-    fun sync(context: Context): Boolean = PeerSync.sync(context)
+    fun sync(context: Context): Boolean = peer(context).sync()
 
     /** The key kumapie matches this card by (`ja|spelling<TAB>reading`, from its `word` field and the `Reading` field), or null. */
-    fun keyOf(card: Srs.Card): String? =
-        WordKey.cardKey(card.word, runCatching { JSONObject(card.fields).optString("Reading") }.getOrDefault(""))
+    fun keyOf(card: Srs.Card): String? = PeerSync.keyOf(card)
 
     /**
      * The card of this store (not deleted) for a Japanese word and its reading: the lowest id whose key is the word's, as kumapie's

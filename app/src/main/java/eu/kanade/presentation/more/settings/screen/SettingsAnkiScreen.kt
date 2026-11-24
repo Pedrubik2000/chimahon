@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import chimahon.srs.Cards
 import chimahon.srs.PeerSync
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
@@ -38,13 +39,13 @@ object SettingsAnkiScreen : SearchableSettings {
     private fun getKumapieSyncGroup(): Preference.PreferenceGroup {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
-        var status by remember { mutableStateOf(PeerSync.status(context)) }
-        var hub by remember { mutableStateOf(PeerSync.hub(context)) }
+        var status by remember { mutableStateOf(Cards.peer(context).status()) }
+        var hub by remember { mutableStateOf(Cards.peer(context).hub()) }
         // Background syncs (Review, retries) change the line while this page is open: read it again every few seconds.
         LaunchedEffect(Unit) {
             while (true) {
                 delay(5_000)
-                if (status != "Working...") status = PeerSync.status(context)
+                if (status != "Working...") status = Cards.peer(context).status()
             }
         }
         return Preference.PreferenceGroup(
@@ -57,10 +58,10 @@ object SettingsAnkiScreen : SearchableSettings {
                         status = "Working..."
                         scope.launch {
                             withContext(Dispatchers.IO) {
-                                if (!PeerSync.paired(context)) PeerSync.pair(context)
-                                PeerSync.sync(context)
+                                if (!Cards.peer(context).paired()) Cards.peer(context).pair()
+                                Cards.peer(context).sync()
                             }
-                            status = PeerSync.status(context)
+                            status = Cards.peer(context).status()
                         }
                     },
                 ),
@@ -75,8 +76,8 @@ object SettingsAnkiScreen : SearchableSettings {
                             value = hub,
                             formatSubtitle = false,
                             onConfirm = {
-                                PeerSync.setHub(context, it)
-                                hub = PeerSync.hub(context)
+                                Cards.peer(context).setHub(it)
+                                hub = Cards.peer(context).hub()
                                 true
                             },
                         )
