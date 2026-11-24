@@ -609,6 +609,7 @@ fun OcrLookupPopup(
                     profileId = activeProfile.id,
                     titleId = titleId,
                     mediaRequest = mediaRequest,
+                    ankiEnabled = ankiEnabled,
                 )
                 if (ankiResult is AnkiResult.Success || ankiResult is AnkiResult.CardExists || ankiResult is AnkiResult.OpenCard) {
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -685,6 +686,7 @@ fun OcrLookupPopup(
                     profileId = activeProfile.id,
                     titleId = titleId,
                     mediaRequest = mediaRequest,
+                    ankiEnabled = ankiEnabled,
                 )
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
                     when (ankiResult) {
@@ -712,12 +714,8 @@ fun OcrLookupPopup(
         }
     }
 
-    val onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? = if (ankiEnabled) {
-        { index, glossaryIndex, selectedDict, popupSelection, forceOpen ->
-            performAnkiLookup(index, glossaryIndex, selectedDict, popupSelection, forceOpen)
-        }
-    } else {
-        null
+    val onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? = { index, glossaryIndex, selectedDict, popupSelection, forceOpen ->
+        performAnkiLookup(index, glossaryIndex, selectedDict, popupSelection, forceOpen)
     }
 
     // === Popup Positioning: priority-based 4-direction ===

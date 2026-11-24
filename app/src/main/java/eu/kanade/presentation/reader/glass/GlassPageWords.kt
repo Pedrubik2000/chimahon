@@ -492,10 +492,6 @@ private suspend fun mine(
     screenshot: Bitmap?,
 ): Boolean {
     val profile = lookupPaths().first
-    if (!profile.ankiEnabled) {
-        context.toast(MR.strings.anki_not_configured)
-        return false
-    }
     val entry = withContext(Dispatchers.Default) { lookUp(context, repository, word.text, lookupPaths) }
     if (entry == null) {
         context.toast(context.stringResource(MR.strings.glass_reader_no_entry, word.text))
@@ -522,6 +518,7 @@ private suspend fun mine(
             syncOnCreate = profile.ankiSyncOnCreate,
             profileId = profile.id,
             titleId = titleId,
+            ankiEnabled = profile.ankiEnabled,
         )
     }
     when (result) {

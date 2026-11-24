@@ -2837,7 +2837,8 @@
       iconGroup.appendChild(createAudioButton(expression, reading));
     }
 
-    if (ankiEnabled) {
+    {
+      // The + button shows for everyone (kumahon has its own cards); only the Anki book button needs Anki.
       const ankiBtn = document.createElement('button');
       const isAlreadyAdded = existingSet.includes(expression);
       const shouldShowAdd = !isAlreadyAdded || ankiDupAction !== 'prevent';
@@ -2863,6 +2864,7 @@
 
       iconGroup.appendChild(ankiBtn);
 
+      if (ankiEnabled) {
       // Book always in DOM from the start — shown/hidden via display toggle in
       // updateAnkiStatus, never appended later (keeps order stable).
       const bookBtn = document.createElement('button');
@@ -2881,6 +2883,7 @@
         }
       };
       iconGroup.appendChild(bookBtn);
+      }
     }
 
     appendKumapieMark(iconGroup, expression, reading, result.matched);

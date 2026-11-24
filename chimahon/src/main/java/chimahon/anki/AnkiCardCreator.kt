@@ -293,16 +293,25 @@ object AnkiCardCreator {
         profileId: String = "",
         titleId: String? = null,
         mediaRequest: AnkiMediaRequest? = null,
+        ankiEnabled: Boolean = true,
     ): AnkiResult {
-        val answer = addToAnkiOnly(
-            context, result, deck, model, fieldMapJson, tags, dupCheck, dupScope, dupAction, sentence, offset, media,
-            screenshotBytes, sentenceAudioBytes, sentenceAudioExtension, glossaryIndex, selection, selectedDict,
-            popupSelection, styles, forceOpen, type, syncOnCreate, profileId, titleId, mediaRequest,
-        )
+        // Anki switched off: opening a card is Anki's; AnkiDroid is never touched (no permission, no addNote).
+        if (!ankiEnabled && forceOpen) return AnkiResult.NotConfigured
+        val kumapie = chimahon.ocr.KumapieColours.present(context)
+        val answer = if (!ankiEnabled && !kumapie) {
+            AnkiResult.NotConfigured
+        } else {
+            addToAnkiOnly(
+                context, result, deck, model, fieldMapJson, tags, dupCheck, dupScope, dupAction, sentence, offset, media,
+                screenshotBytes, sentenceAudioBytes, sentenceAudioExtension, glossaryIndex, selection, selectedDict,
+                popupSelection, styles, forceOpen, type, syncOnCreate, profileId, titleId, mediaRequest, ankiEnabled,
+            )
+        }
         if (forceOpen || answer is AnkiResult.OpenCard) return answer
         val word = result.term.expression
         val reading = result.term.reading
-        if (chimahon.ocr.KumapieColours.present(context)) {
+        // Anki off and kumapie did not take it (not its deck): falls through to the own store, like kumapie absent.
+        if (kumapie && (ankiEnabled || answer is AnkiResult.Success || answer is AnkiResult.CardExists)) {
             if (answer is AnkiResult.Success || answer is AnkiResult.CardExists) {
                 Cards.later {
                     Cards.addMined(
@@ -312,7 +321,8 @@ object AnkiCardCreator {
                     Cards.sync(context)
                 }
             }
-            return answer
+            // Anki off: there is no Anki note to add a screenshot to (the crop flow calls Anki unless own).
+            return if (!ankiEnabled && answer is AnkiResult.Success) answer.copy(own = true) else answer
         }
         return try {
             val card = withContext(Dispatchers.IO) {
@@ -363,24 +373,27 @@ object AnkiCardCreator {
         profileId: String,
         titleId: String?,
         mediaRequest: AnkiMediaRequest?,
+        // false (Anki switched off, kumapie present): only kumapie's mine call; AnkiDroid is never touched (no
+        // permission, no lookup, no media, no addNote); text only.
+        ankiEnabled: Boolean,
     ): AnkiResult {
         android.util.Log.d(TAG, "addToAnki: deck=$deck, model=$model, forceOpen=$forceOpen, glossaryIndex=$glossaryIndex")
 
         val bridge = AnkiDroidBridge(context)
-        if (!bridge.hasPermission()) {
+        if (ankiEnabled && !bridge.hasPermission()) {
             return AnkiResult.PermissionDenied
         }
 
         val ownedPreparedFiles = mutableListOf<AnkiMediaSource.FileSource>()
         return try {
-            val effectiveDeck = deck.ifBlank { bridge.ensureDefaultDeckName() }
-            val effectiveModel = if (model.isBlank()) {
+            val effectiveDeck = if (ankiEnabled) deck.ifBlank { bridge.ensureDefaultDeckName() } else deck
+            val effectiveModel = if (model.isBlank() && ankiEnabled) {
                 bridge.ensureLapisModelName()
             } else {
                 model
             }
             val effectiveFieldMapJson = if (
-                LapisPreset.isBundledModelName(effectiveModel) &&
+                (LapisPreset.isBundledModelName(effectiveModel) || (!ankiEnabled && model.isBlank())) &&
                 LapisPreset.isBlankFieldMap(fieldMapJson)
             ) {
                 LapisPreset.defaultFieldMapJson
@@ -388,7 +401,7 @@ object AnkiCardCreator {
                 fieldMapJson
             }
 
-            if (effectiveDeck.isBlank() || effectiveModel.isBlank()) {
+            if (effectiveDeck.isBlank() || (ankiEnabled && effectiveModel.isBlank())) {
                 android.util.Log.w(TAG, "addToAnki: NotConfigured - deck or model is blank")
                 return AnkiResult.NotConfigured
             }
@@ -405,18 +418,19 @@ object AnkiCardCreator {
                 null
             }
 
-            val hasWordAudioMarker = fieldMap.values.any {
+            // Anki off: no media (it is stored in AnkiDroid; kumapie's cards are text only).
+            val hasWordAudioMarker = ankiEnabled && fieldMap.values.any {
                 it.contains("{${Marker.WORD_AUDIO}}") || it.contains("{${Marker.AUDIO}}")
             }
-            val hasSentenceAudioMarker = fieldMap.values.any { it.contains("{${Marker.SENTENCE_AUDIO}}") }
-            val hasScreenshotMarker = fieldMap.values.any { it.contains("{${Marker.SCREENSHOT}}") }
+            val hasSentenceAudioMarker = ankiEnabled && fieldMap.values.any { it.contains("{${Marker.SENTENCE_AUDIO}}") }
+            val hasScreenshotMarker = ankiEnabled && fieldMap.values.any { it.contains("{${Marker.SCREENSHOT}}") }
 
             // Keep duplicate lookup and insertion atomic for rapid repeated taps.
             val lockKey = "${if (dupScope == "deck") effectiveDeck else ""}\u0000${result.term.expression}"
             val addLock = addLocks[lockKey.hashCode().ushr(1) % addLocks.size]
             addLock.withLock {
                 var overwriteNoteId: Long? = null
-                if (dupCheck || forceOpen) {
+                if (ankiEnabled && (dupCheck || forceOpen)) {
                     val targetDeckId = if (dupScope == "deck" && effectiveDeck.isNotBlank()) {
                         try {
                             bridge.getDeckId(effectiveDeck)
@@ -559,7 +573,7 @@ object AnkiCardCreator {
                     val fieldsWithDictionaryMedia = resolveDictionaryMediaPlaceholders(
                         fieldsWithPlaceholders,
                         exportMedia,
-                        bridge,
+                        bridge.takeIf { ankiEnabled },
                     )
                     val fields = fieldsWithDictionaryMedia.mapValues { (_, value) ->
                         resolveMediaPlaceholders(
@@ -588,12 +602,14 @@ object AnkiCardCreator {
                         }
                         overwriteNoteId
                     } else {
-                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList) ?: bridge.addNote(
-                            deckName = effectiveDeck,
-                            modelName = effectiveModel,
-                            fields = fields,
-                            tags = tagList,
-                        )
+                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList)
+                            // Anki off: kumapie did not take it, and AnkiDroid is not touched (the caller uses the own store).
+                            ?: if (!ankiEnabled) return@withContext AnkiResult.NotConfigured else bridge.addNote(
+                                deckName = effectiveDeck,
+                                modelName = effectiveModel,
+                                fields = fields,
+                                tags = tagList,
+                            )
                     }
                     com.canopus.chimareader.data.AnkiStatsStorage.addCard(
                         context,
@@ -601,7 +617,7 @@ object AnkiCardCreator {
                         profileId = profileId,
                         titleId = titleId,
                     )
-                    if (syncOnCreate) bridge.triggerSync()
+                    if (syncOnCreate && ankiEnabled) bridge.triggerSync()
                     AnkiResult.Success(noteId, screenshotResult.warnings)
                 }
             }
@@ -858,7 +874,7 @@ object AnkiCardCreator {
     private suspend fun resolveDictionaryMediaPlaceholders(
         fields: Map<String, String>,
         exportMedia: ExportMediaContext,
-        bridge: AnkiDroidBridge,
+        bridge: AnkiDroidBridge?,
     ): Map<String, String> = withContext(Dispatchers.IO) {
         val references = exportMedia.references
         if (references.isEmpty()) return@withContext fields
@@ -866,7 +882,7 @@ object AnkiCardCreator {
         val session = Injekt.get<DictionaryRepository>().lookupSession
         val replacements = linkedMapOf<String, String>()
         for (reference in references) {
-            val replacement = if (session != null) {
+            val replacement = if (session != null && bridge != null) {
                 storeDictionaryMedia(reference, session, bridge)
             } else {
                 null

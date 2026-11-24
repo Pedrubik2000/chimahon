@@ -411,7 +411,7 @@ data object DictionaryTab : Tab {
         }
 
         // Simple callback for Anki lookup - index maps to results array, glossaryIndex is optional
-        val onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? = if (ankiEnabled) {
+        val onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? =
             { resultIndex, glossaryIndex, selectedDict, popupSelection, forceOpen ->
                 val result = results.getOrNull(resultIndex)
                 if (result != null) {
@@ -436,6 +436,7 @@ data object DictionaryTab : Tab {
                             type = "novel",
                             syncOnCreate = ankiSyncOnCreate,
                             profileId = activeProfile.id,
+                            ankiEnabled = ankiEnabled,
                         )
                         if (ankiResult is AnkiResult.Success || ankiResult is AnkiResult.CardExists || ankiResult is AnkiResult.OpenCard) {
                             val frame = lookupStack.getOrNull(frameIndex)
@@ -457,9 +458,6 @@ data object DictionaryTab : Tab {
                     }
                 }
             }
-        } else {
-            null
-        }
 
         LaunchedEffect(Unit) {
             (context as? MainActivity)?.ready = true
