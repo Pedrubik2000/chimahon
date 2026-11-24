@@ -1,0 +1,10 @@
+{"data":{"Media":{"id":20954,"title":{"romaji":"Shokugeki no Soma","english":"Food Wars!","native":"食戟のソーマ"},
+"characters":{"pageInfo":{"hasNextPage":true,"currentPage":1},"edges":[
+{"role":"MAIN","voiceActors":[{"name":{"full":"Yoshitsugu Matsuoka","native":"松岡禎丞"},"image":{"large":"https://img.test/va1.png"}}],
+ "node":{"id":1,"name":{"full":"Souma Yukihira","native":"幸平創真","alternative":["Soma","Aoki Umi (碧井海)",""],"alternativeSpoiler":["秘密の名前"],"first":"Souma","last":"Yukihira"},
+ "image":{"large":"https://img.test/c1.png"},"description":"A cook.\n~!He wins!~ [b]Bold[/b] and [i]slanted[/i].","gender":"Male","age":"16","dateOfBirth":{"month":9,"day":1},"bloodType":"A"}},
+{"role":"SUPPORTING","voiceActors":[],
+ "node":{"id":2,"name":{"full":"Erina Nakiri","native":"薙切えりな","alternative":[],"alternativeSpoiler":[],"first":"Erina","last":"Nakiri"},
+ "image":{"large":"https://img.test/c2.png"},"description":null,"gender":"Female","age":17,"dateOfBirth":{"month":null,"day":null},"bloodType":null}},
+{"role":"SUPPORTING","voiceActors":[],"node":null}
+]}}}}

@@ -1,0 +1,9 @@
+{"data":{"Media":{"id":20954,"title":{"romaji":"Shokugeki no Soma","english":"Food Wars!","native":"食戟のソーマ"},
+"characters":{"pageInfo":{"hasNextPage":false,"currentPage":2},"edges":[
+{"role":"BACKGROUND","voiceActors":[],
+ "node":{"id":3,"name":{"full":"Nameless Cook","native":null,"alternative":[],"alternativeSpoiler":[],"first":null,"last":null},
+ "image":{"large":null},"description":"","gender":"Non-binary","age":null,"dateOfBirth":null,"bloodType":null}},
+{"role":"WEIRD","voiceActors":[{"name":{"full":"Only Romaji","native":""},"image":{"large":null}}],
+ "node":{"id":4,"name":{"full":"Hinata Tachibana","native":"橘 ひなた","alternative":["Hina (ひな)"],"alternativeSpoiler":[],"first":"Hinata","last":"Tachibana"},
+ "image":{"large":"https://img.test/c4.png"},"description":"x","gender":"F","age":null,"dateOfBirth":{"month":3,"day":5},"bloodType":"O"}}
+]}}}}
