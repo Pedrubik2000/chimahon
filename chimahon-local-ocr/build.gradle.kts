@@ -27,6 +27,6 @@ dependencies {
     implementation(project(":presentation-core"))
     implementation(project(":domain"))
 
-    implementation(compose.foundation)
-    implementation(compose.material3.core)
+    implementation(androidxCompose.foundation)
+    implementation(androidxCompose.material3.core)
 }

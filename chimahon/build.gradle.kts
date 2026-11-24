@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+    api(project(":kumahon-core"))
     implementation(libs.okhttp.core)
     implementation(libs.image.decoder)
     implementation(androidx.corektx)
@@ -42,12 +43,12 @@ dependencies {
     implementation(kotlinx.serialization.json)
 
     // Compose
-    implementation(compose.activity)
-    implementation(compose.foundation)
-    implementation(compose.material3.core)
-    implementation(compose.material.icons)
-    implementation(compose.animation)
-    implementation(compose.ui.util)
+    implementation(androidxCompose.activity)
+    implementation(androidxCompose.foundation)
+    implementation(androidxCompose.material3.core)
+    implementation(androidxCompose.material.icons)
+    implementation(androidxCompose.animation)
+    implementation(androidxCompose.ui.util)
 
     // ChimaReader
     implementation(platform(libs.coil.bom))

@@ -23,7 +23,7 @@ dependencyResolutionManagement {
         create("androidx") {
             from(files("gradle/androidx.versions.toml"))
         }
-        create("compose") {
+        create("androidxCompose") {
             from(files("gradle/compose.versions.toml"))
         }
         create("sylibs") {
@@ -44,6 +44,8 @@ rootProject.name = "Komikku"
 include(":chimahon")
 project(":chimahon").projectDir = file("chimahon")
 include(":app")
+include(":kumahon-core")
+include(":desktop")
 include(":core-metadata")
 include(":core:archive")
 include(":core:common")

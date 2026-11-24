@@ -19,7 +19,7 @@ dependencies {
     implementation(projects.presentationCore)
     api(projects.i18n)
 
-    implementation(compose.glance)
+    implementation(androidxCompose.glance)
     implementation(libs.material)
 
     implementation(kotlinx.immutables)

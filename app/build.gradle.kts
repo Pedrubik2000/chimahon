@@ -237,17 +237,17 @@ dependencies {
     implementation(projects.presentationCore)
     implementation(projects.presentationWidget)
     // Compose
-    implementation(compose.activity)
-    implementation(compose.foundation)
-    implementation(compose.material3.core)
-    implementation(compose.material.icons)
-    implementation(compose.animation)
-    implementation(compose.animation.graphics)
-    implementation(compose.glance)
-    debugImplementation(compose.ui.tooling)
-    implementation(compose.ui.tooling.preview)
-    implementation(compose.ui.util)
-    implementation(compose.constraintlayout)
+    implementation(androidxCompose.activity)
+    implementation(androidxCompose.foundation)
+    implementation(androidxCompose.material3.core)
+    implementation(androidxCompose.material.icons)
+    implementation(androidxCompose.animation)
+    implementation(androidxCompose.animation.graphics)
+    implementation(androidxCompose.glance)
+    debugImplementation(androidxCompose.ui.tooling)
+    implementation(androidxCompose.ui.tooling.preview)
+    implementation(androidxCompose.ui.util)
+    implementation(androidxCompose.constraintlayout)
 
     implementation(androidx.interpolator)
 
@@ -334,7 +334,7 @@ dependencies {
     // KMK -->
     implementation(libs.palette.ktx)
     implementation(libs.haze)
-    implementation(compose.colorpicker)
+    implementation(androidxCompose.colorpicker)
     implementation(projects.flagkit)
     // KMK <--
 

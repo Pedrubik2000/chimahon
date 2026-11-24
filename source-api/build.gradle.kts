@@ -23,8 +23,8 @@ kotlin {
                 api(kotlinx.reflect)
                 // SY <--
 
-                implementation(project.dependencies.platform(compose.bom))
-                implementation(compose.runtime)
+                implementation(project.dependencies.platform(androidxCompose.bom))
+                implementation(androidxCompose.runtime)
             }
         }
         val androidMain by getting {

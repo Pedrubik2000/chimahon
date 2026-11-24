@@ -35,15 +35,15 @@ dependencies {
     // SY <--
 
     // Compose
-    implementation(compose.activity)
-    implementation(compose.foundation)
-    implementation(compose.material3.core)
-    implementation(compose.material.icons)
-    implementation(compose.animation)
-    implementation(compose.animation.graphics)
-    debugImplementation(compose.ui.tooling)
-    implementation(compose.ui.tooling.preview)
-    implementation(compose.ui.util)
+    implementation(androidxCompose.activity)
+    implementation(androidxCompose.foundation)
+    implementation(androidxCompose.material3.core)
+    implementation(androidxCompose.material.icons)
+    implementation(androidxCompose.animation)
+    implementation(androidxCompose.animation.graphics)
+    debugImplementation(androidxCompose.ui.tooling)
+    implementation(androidxCompose.ui.tooling.preview)
+    implementation(androidxCompose.ui.util)
 
     implementation(androidx.paging.runtime)
     implementation(androidx.paging.compose)
