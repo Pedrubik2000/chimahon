@@ -65,6 +65,17 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
         fun keyOf(card: Srs.Card): String? =
             WordKey.cardKey(card.word, runCatching { JSONObject(card.fields).optString("Reading") }.getOrDefault(""))
 
+        /**
+         * This device's part of kumapie's `progress` (Progress.kt: a part per device, the hub keeps the newest): only the marks, as
+         * `marked[word] = [known, seconds]`; null without marks.
+         */
+        fun progress(marks: Map<String, Pair<Boolean, Long>>, device: String): JSONObject? {
+            if (marks.isEmpty()) return null
+            val marked = JSONObject()
+            for ((w, m) in marks) marked.put(w, JSONArray().put(m.first).put(m.second))
+            return JSONObject().put(device, JSONObject().put("pos", JSONObject()).put("watch", JSONObject()).put("lookups", JSONObject()).put("marked", marked))
+        }
+
         /** The hub address is this device ("127.0.0.1:47823", "localhost"): kumapie runs here and its provider answers. */
         fun isLocalHub(hub: String): Boolean = hub.trim().substringBefore(':').lowercase().let { it == "127.0.0.1" || it == "localhost" }
 
@@ -177,7 +188,8 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             }
             val device = deviceName()
             val body = JSONObject().put("format", FORMAT).put("device", device).put("person", "me").put("made", System.currentTimeMillis())
-                .put("events", events).put("cards", JSONObject().put(Srs.LANG, dump)).toString().toByteArray(Charsets.UTF_8)
+                .put("events", events).put("cards", JSONObject().put(Srs.LANG, dump)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
+                .toString().toByteArray(Charsets.UTF_8)
             val a = post("http://${hub()}/sync", body, mapOf("X-Device" to device, "X-Sig" to sign(secret, body)))
             if (a.status == 403) {
                 prefs.put(PAIRED, "false"); prefs.put(SECRET, null)
@@ -199,6 +211,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             if (answer.has("events") || answer.has("known")) {
                 val known = KnownWords.of(answer, store.fsrs)
                 store.replaceKnown(known)
+                store.replaceMarked(KnownWords.marks(answer.optJSONObject("progress"), store.myMarks()))
                 log("known words from kumapie: ${known.size}")
             }
             say("ok: sent ${events.length()}, took ${take.size}")

@@ -54,6 +54,17 @@ class OcrSubsamplingImageView(
     // Reference to parent ReaderPageImageView for state access
     var ocrHost: ReaderPageImageView? = null
 
+    // Word colours changed (a sync, a mark, a rating, the dictionary arrived): draw again. Registered only while attached, so the view
+    // is never kept alive by KumapieColours.
+    private var stopRedraws: (() -> Unit)? = null
+
+    init {
+        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) { stopRedraws = KumapieColours.onRedraw { postInvalidate() } }
+            override fun onViewDetachedFromWindow(v: View) { stopRedraws?.invoke(); stopRedraws = null }
+        })
+    }
+
     // Gesture detector for tap handling
     private val gestureDetector = GestureDetector(context, OcrGestureListener())
 

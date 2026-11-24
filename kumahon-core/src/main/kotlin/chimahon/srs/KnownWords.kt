@@ -35,8 +35,8 @@ object KnownWords {
     }
 
     /** `progress` is {device: {marked: {word: [known, at]}}}: the words whose newest mark says known, Japanese ones only (kumapie `markWord`). */
-    fun marks(progress: JSONObject?): Set<String> {
-        val latest = HashMap<String, Pair<Boolean, Long>>()
+    fun marks(progress: JSONObject?, mine: Map<String, Pair<Boolean, Long>> = emptyMap()): Set<String> {
+        val latest = HashMap<String, Pair<Boolean, Long>>(mine) // marks made here that the hub may not have yet; a newer mark elsewhere wins
         if (progress != null) for (d in progress.keys()) progress.optJSONObject(d)?.optJSONObject("marked")?.let { m ->
             for (k in m.keys()) {
                 val a: JSONArray = m.optJSONArray(k) ?: continue

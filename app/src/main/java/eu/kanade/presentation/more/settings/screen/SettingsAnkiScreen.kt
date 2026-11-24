@@ -12,7 +12,9 @@ import androidx.compose.ui.platform.LocalContext
 import chimahon.srs.Cards
 import chimahon.srs.PeerSync
 import eu.kanade.presentation.more.settings.Preference
+import chimahon.ocr.KumapieColours
 import eu.kanade.presentation.more.settings.widget.EditTextPreferenceWidget
+import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -41,6 +43,8 @@ object SettingsAnkiScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         var status by remember { mutableStateOf(Cards.peer(context).status()) }
         var hub by remember { mutableStateOf(Cards.peer(context).hub()) }
+        var colouring by remember { mutableStateOf(KumapieColours.enabled(context)) }
+        var colouringServer by remember { mutableStateOf(KumapieColours.server(context)) }
         // Background syncs (Review, retries) change the line while this page is open: read it again every few seconds.
         LaunchedEffect(Unit) {
             while (true) {
@@ -51,6 +55,35 @@ object SettingsAnkiScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = "kumapie",
             preferenceItems = persistentListOf(
+                Preference.PreferenceItem.CustomPreference(
+                    title = "Colour words",
+                    content = {
+                        SwitchPreferenceWidget(
+                            title = "Colour words",
+                            subtitle = "Red new, green due, blue mined, known plain: kumahon's own colours (downloads the Japanese dictionary, 80 MB, once)",
+                            checked = colouring,
+                            onCheckedChanged = { colouring = it; KumapieColours.setEnabled(context, it) },
+                        )
+                    },
+                ),
+                Preference.PreferenceItem.CustomPreference(
+                    title = "Jiten data server",
+                    content = {
+                        EditTextPreferenceWidget(
+                            title = "Jiten data server (optional)",
+                            subtitle = colouringServer.ifBlank { "none: Sudachi alone splits the words" },
+                            dialogSubtitle = "The dojo server's address (https://...:8445): the splitter Jiten's two files (45 MB) come from it, as in kumapie",
+                            icon = null,
+                            value = colouringServer,
+                            formatSubtitle = false,
+                            onConfirm = {
+                                KumapieColours.setServer(context, it)
+                                colouringServer = KumapieColours.server(context)
+                                true
+                            },
+                        )
+                    },
+                ),
                 Preference.PreferenceItem.TextPreference(
                     title = "Sync reviews with kumapie",
                     subtitle = status,
@@ -59,7 +92,7 @@ object SettingsAnkiScreen : SearchableSettings {
                         scope.launch {
                             withContext(Dispatchers.IO) {
                                 if (!Cards.peer(context).paired()) Cards.peer(context).pair()
-                                Cards.peer(context).sync()
+                                Cards.sync(context)
                             }
                             status = Cards.peer(context).status()
                         }

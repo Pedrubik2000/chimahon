@@ -120,6 +120,8 @@ The original's novel reader, mokuro support and anime player are still in the co
 - [Yomitan](https://github.com/yomidevs/yomitan): inspiration for language-processing workflows.
 - [owocr](https://github.com/AuroraWright/owocr): base for OCR merge and reconstruction logic.
 - [hoshidicts](https://github.com/Manhhao/hoshidicts/): native dictionary engine.
+- Word colouring: [Sudachi](https://github.com/WorksApplications/Sudachi) and SudachiDict (Apache-2.0) split Japanese into words, with a port of
+  [Jiten](https://github.com/Sirush/Jiten)'s parser (Apache-2.0) and [JL](https://github.com/rampaa/JL)'s deconjugation rules (Apache-2.0), the same as kumapie.
 - [Jitendex](https://jitendex.org) and the [EDRDG](https://www.edrdg.org/) (JMnedict, KANJIDIC): the dictionaries offered for download.
 - [Machita Chima (町田ちま)](https://www.youtube.com/channel/UCo7TRj3cS-f_1D9ZDmuTsjw): app name inspiration.
 

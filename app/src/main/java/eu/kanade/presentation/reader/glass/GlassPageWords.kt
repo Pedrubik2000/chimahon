@@ -23,7 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -248,16 +250,24 @@ fun GlassPageWords(
     // false: no dictionary entry whose matched form is the word (an OCR fragment): hidden once known
     val hasEntry = remember { mutableStateMapOf<String, Boolean>() }
     val loadedBlocks = remember { arrayOfNulls<List<List<OcrTextBlock>>>(1) }
+    // The Japanese dictionary arrived (its first download): the list loads again with real colours.
+    var dictionary by remember { mutableIntStateOf(0) }
+    DisposableEffect(Unit) {
+        val stop = KumapieColours.onDictionary { dictionary++ }
+        onDispose { stop() }
+    }
+    val loadedDictionary = remember { IntArray(1) }
 
     // Loaded each time the controls open (this leaves composition with them), when the page changes, and when OCR
     // gave the pages on screen new text; another page's OCR (ocrTick) keeps the list, its peek and its marks.
-    val data by produceState<Result<GlassPageWordsData?>?>(null, viewer, pageKey, ocrTick) {
+    val data by produceState<Result<GlassPageWordsData?>?>(null, viewer, pageKey, ocrTick, dictionary) {
         val views = visiblePageViews(viewer)
         val blocks = views.map { it.ocrBlocks }
-        if (value != null && blocks == loadedBlocks[0]) return@produceState
+        if (value != null && blocks == loadedBlocks[0] && dictionary == loadedDictionary[0]) return@produceState
         val before = value?.getOrNull()
         val fresh = withContext(Dispatchers.IO) { loadWords(context, views, blocks) }
         loadedBlocks[0] = blocks
+        loadedDictionary[0] = dictionary
         // words marked known here stay listed (white dot, ✓ to undo) though kumapie no longer calls them new
         val kept = before?.words.orEmpty().filter { w -> known[w.text] == true && fresh?.words?.none { it.text == w.text } != false }
         value = Result.success(if (fresh == null || kept.isEmpty()) fresh else GlassPageWordsData(fresh.words + kept, fresh.mined))

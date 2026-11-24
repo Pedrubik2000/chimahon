@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.util.LruCache
+import chimahon.lang.JapaneseModel
+import chimahon.lang.WordColourer
 import chimahon.srs.Cards
 import chimahon.srs.PeerSync
 import chimahon.srs.Srs
@@ -14,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 /**
- * Word colours from kumapie (its `WordColours` provider), the same as its subtitles: red unknown, green due today in
- * kuma3, blue mined and never reviewed, known words keep the normal text colour. One colour per character of the text.
+ * Word colours, the same as kumapie's subtitles: red unknown, green due today, blue mined and never reviewed, known words keep the
+ * normal text colour. One colour per character of the text. kumahon colours ON ITS OWN ([WordColourer]: its own split, its own cards,
+ * the known list and marks kumapie's sync brought), on every device; kumapie's provider answers only faces, sense, marks and mining.
  */
 object KumapieColours {
     /** kumapie's phone app, release then debug build. */
@@ -23,8 +26,66 @@ object KumapieColours {
 
     // Darker than kumapie's subtitle colours: these draw on the OCR boxes' white background.
     private val COLOURS = mapOf("u" to 0xFFD32F2F.toInt(), "d" to 0xFF2E7D32.toInt(), "b" to 0xFF1565C0.toInt())
-    /** kumapie reads kuma3's due queue once a minute; ask again after that. */
+    /** The colours are read again after a minute (cards fall due), as kumapie's provider did. */
     private const val MAX_AGE_MS = 60_000L
+
+    // Word colouring: the switch (default on: existing users keep their colours), the optional dojo server Jiten's two files come from
+    // (<server>/api/models/<file>; empty = Sudachi alone), the dictionary and the colourer over kumahon's own store.
+    private fun prefs(context: Context) = context.applicationContext.getSharedPreferences("kumahon_colours", Context.MODE_PRIVATE)
+    fun enabled(context: Context): Boolean = prefs(context).getBoolean("wordColouring", true)
+    fun setEnabled(context: Context, on: Boolean) { prefs(context).edit().putBoolean("wordColouring", on).apply(); clear() }
+    fun server(context: Context): String = prefs(context).getString("colouringServer", "").orEmpty()
+    fun setServer(context: Context, url: String) { prefs(context).edit().putString("colouringServer", url.trim()).apply() }
+
+    private var japanese: JapaneseModel? = null
+    private var colourer: WordColourer? = null
+
+    @Synchronized
+    private fun colourer(context: Context): WordColourer {
+        val app = context.applicationContext
+        val model = japanese ?: JapaneseModel(java.io.File(app.filesDir, "sudachi")) { server(app) }.also { japanese = it }
+        return colourer ?: WordColourer({ Cards.store(app) }, model::words, model::autoKnown, model::spellings).also { colourer = it }
+    }
+
+    private val downloading = java.util.concurrent.atomic.AtomicBoolean()
+    /** Own thread: a download of minutes must never hold the worker that colours pages, asks faces and AniList. */
+    private val downloader = Executors.newSingleThreadExecutor { r -> Thread(r, "kumahon-dictionary").apply { isDaemon = true } }
+    /** No new attempt before this time (ms): after a failure, and after Jiten's files were thrown away. */
+    @Volatile private var retryAt = 0L
+    private const val RETRY_MS = 10 * 60_000L
+
+    /** Pages (views) and lists to redraw / reload when the dictionary arrives or the colours change; each removes itself when it goes. */
+    private val redraws = java.util.concurrent.CopyOnWriteArraySet<() -> Unit>()
+    private val dictionaryReady = java.util.concurrent.CopyOnWriteArraySet<() -> Unit>()
+    /** [listener] runs when colours may have changed (a sync, a rating, a mark, the dictionary): a page view invalidates itself. Returns the remover. */
+    fun onRedraw(listener: () -> Unit): () -> Unit { redraws += listener; return { redraws -= listener } }
+    /** [listener] runs once the dictionary has been downloaded (the page words list loads again). Returns the remover. */
+    fun onDictionary(listener: () -> Unit): () -> Unit { dictionaryReady += listener; return { dictionaryReady -= listener } }
+
+    private fun metered(context: Context): Boolean =
+        (context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager)?.isActiveNetworkMetered != false
+
+    /**
+     * The dictionary (Sudachi, then Jiten's files when a server is set) is fetched on its own thread, one download at a time,
+     * never twice within [RETRY_MS] of a failure. The 80 MB Sudachi dictionary waits for an unmetered network (Wi-Fi).
+     */
+    private fun download(context: Context) {
+        val model = japanese ?: return
+        if (System.currentTimeMillis() < retryAt || System.currentTimeMillis() - model.droppedAt < RETRY_MS) return
+        if (!model.isReady && metered(context)) return
+        if (!downloading.compareAndSet(false, true)) return
+        downloader.execute {
+            try {
+                val had = model.isReady
+                model.download()
+                model.failure?.let { Log.w("KumapieColours", "Japanese dictionary: $it"); retryAt = System.currentTimeMillis() + RETRY_MS }
+                if (model.isReady && !had) {
+                    clear()
+                    dictionaryReady.forEach { it() }
+                }
+            } finally { downloading.set(false) }
+        }
+    }
 
     /** kumapie's answer for one text: its rows (start, length, status) and the colours drawn from them. */
     private class Entry(val rows: List<Triple<Int, Int, String>>?, val colours: IntArray?, val time: Long)
@@ -34,6 +95,7 @@ object KumapieColours {
 
     /** The text's colours (0 = normal) when known, else null; asks kumapie in the background and calls [ready] once it answered. */
     fun of(context: Context, text: String, ready: () -> Unit): IntArray? {
+        if (!enabled(context)) return null
         val hit = cache.get(text)
         if (hit == null || System.currentTimeMillis() - hit.time > MAX_AGE_MS) {
             if (asking.add(text)) {
@@ -140,8 +202,8 @@ object KumapieColours {
         return out
     }
 
-    /** Forgets every text's colours: after a rating, Undo or a new card the next draw asks kumapie again. */
-    fun clear() = cache.evictAll()
+    /** Forgets every text's colours (and the colourer's view of the store): after a sync, a rating, Undo or a new card the next draw colours again. */
+    fun clear() { cache.evictAll(); colourer?.reload(); redraws.forEach { it() } }
 
     /**
      * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?, known?, text?}` goes to
@@ -171,7 +233,7 @@ object KumapieColours {
         return Where(title, volume, body.optInt("page", -1).takeIf { it >= 0 }, said)
     }
 
-    private val OWN_ACTIONS = setOf("state", "rate", "undo")
+    private val OWN_ACTIONS = setOf("state", "rate", "undo", "mark")
 
     /** kumapie's provider can be reached (its app is installed); false = kumahon's own store answers ratings. */
     fun present(context: Context): Boolean = authority(context) != null
@@ -179,8 +241,17 @@ object KumapieColours {
     /** [call] without kumapie: the word's card in kumahon's own store answers "state", "rate" and "undo" in kumapie's JSON shape. */
     private fun own(context: Context, body: JSONObject): String {
         val action = body.getString("action")
-        if (action != "state" && action != "rate" && action != "undo") return "null" // mark, reload, sense: kumapie only, as before
+        if (action != "state" && action != "rate" && action != "undo" && action != "mark") return "null" // reload, sense: kumapie only, as before
         val srs = Cards.store(context)
+        if (action == "mark") {
+            // No kumapie here: the mark lives in kumahon's store and goes to the hub in the next sync (progress.<device>.marked)
+            val word = body.optString("word").takeIf { it.isNotBlank() } ?: return "null"
+            val known = body.optBoolean("known")
+            srs.mark(word, known)
+            clear()
+            Cards.later { Cards.sync(context) }
+            return JSONObject().put("marked", known).toString()
+        }
         val card = Cards.find(context, body.optString("word"), body.optString("reading"))
             // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
             ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) """{"state":"k"}""" else "null"
@@ -198,6 +269,7 @@ object KumapieColours {
                 if (id == card.id && card.lastReview != null) { srs.undo(card.id); out.put("undone", true) }
             }
         }
+        if (action != "state") clear()
         return out.toString()
     }
 
@@ -242,6 +314,12 @@ object KumapieColours {
         val out = context.contentResolver.call(Uri.parse("content://$authority"), action, null, extras)
             ?: return@runCatching "null"
         if (action != "state") clear()
+        // kumapie wrote the mark; the own colours read kumahon's store: the same mark there at once (the next sync brings it anyway)
+        if (action == "mark" && out.containsKey("marked") && body.optString("word").isNotBlank()) {
+            Cards.store(context).setMarked(body.optString("word"), out.getBoolean("marked"))
+            clear()
+            Cards.later { Cards.sync(context) }
+        }
         val answer = JSONObject().apply {
             out.getString("state")?.let { put("state", it) }
             if (out.containsKey("marked")) put("marked", out.getBoolean("marked"))
@@ -296,25 +374,32 @@ object KumapieColours {
         PACKAGES.firstOrNull { context.packageManager.resolveContentProvider("$it.words", 0) != null }?.let { "$it.words" }
 
     /**
-     * kumapie's words in [text] as its colours rows (start, length, status u/d/b), for the reader's page-words list;
-     * null when kumapie can't answer. The same answer (and cache) the page draws with [of], so the list never calls a
-     * word new that the page shows known. Blocking: call it off the UI thread.
+     * [text]'s words as colours rows (start, length, status u/d/b/k), for the reader's page-words list; null when colouring is off or
+     * the dictionary isn't downloaded yet (its download starts). The same answer (and cache) the page draws with [of], so the list
+     * never calls a word new that the page shows known. Blocking: call it off the UI thread.
      */
     fun words(context: Context, text: String): List<Triple<Int, Int, String>>? {
+        if (!enabled(context)) return null
         cache.get(text)?.takeIf { System.currentTimeMillis() - it.time <= MAX_AGE_MS && it.rows != null }?.let { return it.rows }
         return ask(context.applicationContext, text)?.rows
     }
 
-    /** Asks kumapie for [text] and caches the answer (a failed one too, for [MAX_AGE_MS]). Blocking. */
+    /**
+     * Colours [text] with [WordColourer] and caches the answer. Until the dictionary is here (its download starts) kumapie's own
+     * answer when its provider is present ([askKumapie]), else null. Null (nothing cached) when colouring is off. Blocking.
+     */
     private fun ask(context: Context, text: String): Entry? {
-        val rows = runCatching<List<Triple<Int, Int, String>>?> {
-            val authority = authority(context) ?: return@runCatching null
-            buildList<Triple<Int, Int, String>> {
-                context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
-                    while (c.moveToNext()) add(Triple(c.getInt(0), c.getInt(1), c.getString(2)))
-                }
-            }
-        }.onFailure { Log.w("KumapieColours", "kumapie didn't answer: $it") }.getOrNull()
+        if (!enabled(context)) return null
+        val colouring = colourer(context)
+        val model = japanese ?: return null
+        if (!model.isReady) { download(context); return askKumapie(context, text) }
+        if (!model.splitterReady && server(context).isNotBlank()) download(context) // Jiten's files still to come: fetched meanwhile
+        val rows = runCatching { colouring.rows(text).map { Triple(it.start, it.length, it.state) } }
+            .onFailure { Log.w("KumapieColours", "own colours failed: $it") }.getOrNull() ?: return null
+        return entry(text, rows)
+    }
+
+    private fun entry(text: String, rows: List<Triple<Int, Int, String>>?): Entry {
         val colours = rows?.let {
             IntArray(text.length).also { out ->
                 for ((start, length, status) in it) {
@@ -324,6 +409,19 @@ object KumapieColours {
             }
         }
         return Entry(rows, colours, System.currentTimeMillis()).also { cache.put(text, it) }
+    }
+
+    /** kumapie's provider colours for [text] (rows start, length, status), while the own dictionary is missing; null when it can't answer. Blocking. */
+    private fun askKumapie(context: Context, text: String): Entry? {
+        val rows = runCatching<List<Triple<Int, Int, String>>?> {
+            val authority = authority(context) ?: return@runCatching null
+            buildList<Triple<Int, Int, String>> {
+                context.contentResolver.query(Uri.parse("content://$authority/colours"), null, null, arrayOf(text), null)?.use { c ->
+                    while (c.moveToNext()) add(Triple(c.getInt(0), c.getInt(1), c.getString(2)))
+                }
+            }
+        }.onFailure { Log.w("KumapieColours", "kumapie didn't answer: $it") }.getOrNull() ?: return null
+        return entry(text, rows)
     }
 
     /**

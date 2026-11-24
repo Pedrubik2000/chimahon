@@ -25,7 +25,7 @@ object Cards {
     fun peer(context: Context): PeerSync = peer ?: context.applicationContext.let { app -> PeerSync(AndroidPeerPrefs(app), { store(app) }, Build.MODEL.orEmpty()) { Log.i("kumahon", it) } }.also { peer = it }
 
     /** One exchange of review events with kumapie ([PeerSync.sync]): false = not paired or it failed (never throws). Blocking: call it off the main thread. */
-    fun sync(context: Context): Boolean = peer(context).sync()
+    fun sync(context: Context): Boolean = peer(context).sync().also { chimahon.ocr.KumapieColours.clear() } // new known words, marks and reviews: page colours change
 
     /** The key kumapie matches this card by (`ja|spelling<TAB>reading`, from its `word` field and the `Reading` field), or null. */
     fun keyOf(card: Srs.Card): String? = PeerSync.keyOf(card)

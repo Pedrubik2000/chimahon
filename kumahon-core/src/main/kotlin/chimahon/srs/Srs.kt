@@ -183,6 +183,32 @@ class Srs(val db: SqlDb, private val device: String) {
         for (e in entries) db.exec("INSERT OR IGNORE INTO known_words (entry) VALUES (?)", arrayOf(e))
     }
 
+    /** Replaces the marked-known words ([KnownWords.marks]). */
+    fun replaceMarked(words: Set<String>) = db.tx {
+        db.exec("DELETE FROM marked_words")
+        for (w in words) db.exec("INSERT OR IGNORE INTO marked_words (word) VALUES (?)", arrayOf(w))
+    }
+
+    /** Marks a word known (or not) at once for the colours; the next sync's answer (the marks of every device) replaces the set. */
+    fun setMarked(word: String, known: Boolean) {
+        if (known) db.exec("INSERT OR IGNORE INTO marked_words (word) VALUES (?)", arrayOf(word)) else db.exec("DELETE FROM marked_words WHERE word = ?", arrayOf(word))
+    }
+
+    /** A mark made in kumahon (no kumapie provider here): shown now, and sent to the hub by the next sync ([myMarks]). Newest wins, as kumapie's. */
+    fun mark(word: String, known: Boolean, nowSecs: Long = System.currentTimeMillis() / 1000) = db.tx {
+        db.exec("INSERT OR REPLACE INTO my_marks (word, known, time) VALUES (?, ?, ?)", arrayOf(word, if (known) 1 else 0, nowSecs))
+        setMarked(word, known)
+    }
+
+    /** word -> (known, time in seconds): the marks made here, all of them (the hub keeps the newest per word). */
+    fun myMarks(): Map<String, Pair<Boolean, Long>> =
+        db.query("SELECT word, known, time FROM my_marks") { Triple(it.string(0), it.int(1) == 1, it.long(2)) }.associate { it.first to (it.second to it.third) }
+
+    fun markedWords(): Set<String> = db.query("SELECT word FROM marked_words") { it.string(0) }.toSet()
+
+    /** Is this spelling alone in the known list (imported by Jiten, marked, or a reviewed card's key)? kumapie's `imported` check. */
+    fun isKnownSpelling(word: String): Boolean = db.query("SELECT 1 FROM known_words WHERE entry = ?", arrayOf(word)) { it.int(0) }.isNotEmpty()
+
     fun knownKeys(): Set<String> = db.query("SELECT entry FROM known_words") { it.string(0) }.toSet()
 
     /** Is this word (and reading) in kumapie's known list ([KnownWords.isKnown])? */
@@ -280,6 +306,10 @@ class Srs(val db: SqlDb, private val device: String) {
             "CREATE INDEX IF NOT EXISTS contexts_card ON contexts(card)",
             // What kumapie's last sync answer says is known ([KnownWords]): replaced whole on each sync.
             "CREATE TABLE IF NOT EXISTS known_words (entry TEXT PRIMARY KEY)",
+            // The words whose newest mark (any device) says known ([KnownWords.marks]): a mark beats the word's card when colouring ([WordColourer]).
+            "CREATE TABLE IF NOT EXISTS marked_words (word TEXT PRIMARY KEY)",
+            // Marks made in kumahon itself (known 1/0, time in seconds as kumapie's Progress.mark), sent in the sync as progress.<device>.marked.
+            "CREATE TABLE IF NOT EXISTS my_marks (word TEXT PRIMARY KEY, known INTEGER NOT NULL, time INTEGER NOT NULL)",
         )
 
         val SCHEMA = listOf(
