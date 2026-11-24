@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,7 +122,10 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
             stringResource(MR.strings.glass_setup_storage),
             stringResource(MR.strings.glass_setup_notifications),
             stringResource(MR.strings.glass_setup_dictionary),
+            stringResource(MR.strings.glass_setup_colouring),
         )
+        // the optional Word colouring step counts as looked at once it is on screen
+        LaunchedEffect(step) { if (step == 5) model.colouringVisited = true }
 
         GlassPage {
             BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -152,22 +156,23 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 val stepsLabel = stringResource(MR.strings.glass_setup_steps)
                 Row(
                     Modifier
-                        .offset(x = if (phone) 76.dp else 168.dp, y = if (phone) 22.dp else 36.dp)
+                        // six bars: 96dp and 10dp apart on a tablet so they end before 800dp
+                        .offset(x = if (phone) 76.dp else 152.dp, y = if (phone) 22.dp else 36.dp)
                         .then(if (phone) Modifier.width(barsWidth) else Modifier)
                         .semantics { contentDescription = stepsLabel },
-                    horizontalArrangement = Arrangement.spacedBy(if (phone) 6.dp else 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (phone) 6.dp else 10.dp),
                 ) {
                     names.forEachIndexed { i, n ->
                         val on = i == step
                         val skipped = model.skipped(i)
                         val ok = model.done(i) && !skipped
                         Column(
-                            (if (phone) Modifier.weight(1f) else Modifier.width(112.dp))
+                            (if (phone) Modifier.weight(1f) else Modifier.width(96.dp))
                                 .height(48.dp).clickable { model.step = i }.padding(top = if (phone) 22.dp else 8.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Box(
-                                (if (phone) Modifier.fillMaxWidth() else Modifier.width(112.dp)).height(4.dp).clip(CircleShape)
+                                (if (phone) Modifier.fillMaxWidth() else Modifier.width(96.dp)).height(4.dp).clip(CircleShape)
                                     .background(
                                         when {
                                             on -> Glass.ice
@@ -206,7 +211,9 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         .then(
                             when {
                                 phone -> Modifier.fillMaxWidth()
-                                coversShown -> Modifier.width(leftWidth.coerceAtMost(520.dp))
+                                // Word colouring has a sample line, two role cards and a list: wider than the other steps
+                                coversShown -> Modifier.width(leftWidth.coerceAtMost(if (step == 5) 640.dp else 520.dp))
+                                step == 5 -> Modifier.width((maxWidth - edge * 2).coerceAtMost(720.dp))
                                 else -> Modifier.width(520.dp)
                             },
                         )
@@ -257,6 +264,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                                 2 -> MR.strings.glass_setup_storage_why
                                 3 -> MR.strings.glass_setup_notifications_why
                                 4 -> MR.strings.glass_setup_dictionary_why
+                                5 -> MR.strings.glass_setup_colouring_why
                                 else -> if (missing.isEmpty()) MR.strings.glass_setup_ready_why else MR.strings.glass_setup_almost_why
                             },
                         ),
@@ -266,13 +274,14 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         lineHeight = 24.sp,
                     )
                     // the Dictionary step is the tallest: 24dp there so it needs no scroll on a landscape tablet
-                    Column(Modifier.padding(top = if (step == 4) 12.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.padding(top = if (step == 4) 12.dp else if (step == 5) 20.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         when (step) {
                             0 -> AniListStep(model, signedIn, entries)
                             1 -> RealDebridStep(model)
                             2 -> StorageStep(model)
                             3 -> NotificationsStep(model)
                             4 -> DictionaryStep(model)
+                            5 -> ColouringStep(model, phone)
                             else -> SummaryStep(model, names, entries)
                         }
                     }
@@ -290,9 +299,17 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         SetupButton(stringResource(MR.strings.glass_back), { model.step = step - 1 }, primary = false, leading = "chevLeft")
                     }
                     if (!isEnd) {
-                        val canNext = model.done(step)
-                        SetupButton(stringResource(MR.strings.glass_setup_continue), { model.step = step + 1 }, enabled = canNext, trailing = "chevRight")
-                        if (!canNext) {
+                        // Word colouring is optional and never blocks: Continue is always on there
+                        val canNext = step == 5 || model.done(step)
+                        SetupButton(
+                            stringResource(MR.strings.glass_setup_continue),
+                            { if (step == 5) model.colouringContinue() else model.step = step + 1 },
+                            enabled = canNext,
+                            trailing = "chevRight",
+                        )
+                        if (step == 5) {
+                            QuietButton(stringResource(MR.strings.glass_setup_not_now), model::skipColouring)
+                        } else if (!canNext) {
                             Text(
                                 stringResource(if (GlassSetupLogic.needed(step)) MR.strings.glass_setup_needed else MR.strings.glass_setup_or_not_now),
                                 Modifier.padding(start = 8.dp),
@@ -337,7 +354,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
     }
 }
 
-private val StepIcons = listOf("person", "key", "folder", "bell", "book")
+private val StepIcons = listOf("person", "key", "folder", "bell", "book", "pencil")
 
 /** A step left with "Not now": between done (white) and not started ([Glass.line]). */
 private val SkippedBar = Color.White.copy(alpha = 0.38f)

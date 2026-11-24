@@ -9,14 +9,14 @@ object GlassSetupLogic {
      */
     data class Facts(val aniList: Boolean, val realDebrid: Boolean, val storage: Boolean)
 
-    /** Steps 0-4 (AniList, Real-Debrid, Storage, Notifications, Dictionary), then the summary. */
-    const val STEPS = 5
-    const val SUMMARY = 5
+    /** Steps 0-5 (AniList, Real-Debrid, Storage, Notifications, Dictionary, Word colouring), then the summary. */
+    const val STEPS = 6
+    const val SUMMARY = 6
 
     /** The step names as the bars, the summary rows and [missingLine] say them. */
-    val NAMES = listOf("AniList", "Real-Debrid", "Storage", "Notifications", "Dictionary")
+    val NAMES = listOf("AniList", "Real-Debrid", "Storage", "Notifications", "Dictionary", "Word colouring")
 
-    /** AniList (0) and Storage (2) are needed; Real-Debrid (1), Notifications (3) and Dictionary (4) can be skipped. */
+    /** AniList (0) and Storage (2) are needed; Real-Debrid (1), Notifications (3), Dictionary (4) and Word colouring (5) can be skipped. */
     fun needed(step: Int): Boolean = step == 0 || step == 2
 
     /** Indices of the needed facts that are missing, in step order. */
@@ -38,7 +38,21 @@ object GlassSetupLogic {
         return "Finish $list first"
     }
 
-    /** The coloured tag after "STEP n OF 5 · " or "SUMMARY · ". */
+    /** The sample line of the Word colouring step (a manga line with a new, a mined and a due word in the mockup). */
+    const val SAMPLE = "「この魔法学校に入学するには、試験に合格する必要がある」"
+
+    /**
+     * The sample's characters coloured as the mockup shows them, when kumahon's dictionary is not ready: 入学 blue, 試験 red,
+     * 合格 green (one colour per character, 0 = normal), the same shape as `KumapieColours.of`.
+     */
+    fun staticSample(): IntArray = IntArray(SAMPLE.length).also { out ->
+        for ((word, colour) in listOf("入学" to 0xFF1565C0.toInt(), "試験" to 0xFFD32F2F.toInt(), "合格" to 0xFF2E7D32.toInt())) {
+            val at = SAMPLE.indexOf(word)
+            for (i in at until at + word.length) out[i] = colour
+        }
+    }
+
+    /** The coloured tag after "STEP n OF 6 · " or "SUMMARY · ". */
     fun tag(step: Int, missingCount: Int): String = when {
         step < SUMMARY -> if (needed(step)) "NEEDED" else "CAN SKIP"
         missingCount == 0 -> "READY"

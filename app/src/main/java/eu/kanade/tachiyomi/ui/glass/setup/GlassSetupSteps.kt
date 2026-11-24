@@ -343,6 +343,13 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         listOfNotNull(model.storagePath, model.freeBytes?.let { Formatter.formatShortFileSize(context, it) + " free" }).joinToString(" · "),
         stringResource(MR.strings.glass_setup_allowed),
         if (model.dictionaryDownloading) stringResource(MR.strings.glass_setup_dict_downloading_row) else model.dictionaryLine,
+        stringResource(
+            when {
+                !model.colouringOn -> MR.strings.glass_setup_colouring_off_row
+                model.paired -> MR.strings.glass_setup_colouring_on_paired_row
+                else -> MR.strings.glass_setup_colouring_on_row
+            },
+        ),
     )
     val skipped = listOf(
         false,
@@ -350,6 +357,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         false,
         model.notificationsSkipped,
         model.dictionarySkipped,
+        model.colouringSkipped,
     )
     val skippedText = listOf(
         "",
@@ -357,11 +365,12 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         "",
         stringResource(MR.strings.glass_setup_notifications_skip_row),
         stringResource(MR.strings.glass_setup_dictionary_skip_row),
+        stringResource(MR.strings.glass_setup_colouring_skip_row),
     )
     val notDone = stringResource(MR.strings.glass_setup_not_done)
     val notSet = stringResource(MR.strings.glass_setup_not_set)
-    // "done" for 1, 3 and 4 includes skipped; a row is "ok" only when really set
-    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null)
+    // "done" for 1, 3, 4 and 5 includes skipped; a row is "ok" only when really set
+    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null, !model.colouringSkipped)
     Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
         names.forEachIndexed { i, n ->
             val fix = !ok[i] && GlassSetupLogic.needed(i)
@@ -378,7 +387,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
                     size = 20.dp,
                     tint = if (ok[i] || fix) Color.White else Glass.secondary,
                 )
-                Text(n, Modifier.width(120.dp), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(n, Modifier.width(132.dp), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 Text(
                     when {
                         ok[i] -> values[i]
@@ -466,7 +475,7 @@ private fun DoneCard(title: String, sub: String?) {
 
 /** Canvas Dict-1's quiet text button ("Import a .zip instead", "Not now"): no fill, no outline, 14sp. */
 @Composable
-private fun QuietButton(text: String, onClick: () -> Unit, enabled: Boolean = true, leading: String? = null) {
+internal fun QuietButton(text: String, onClick: () -> Unit, enabled: Boolean = true, leading: String? = null) {
     Row(
         Modifier
             .height(Glass.button)

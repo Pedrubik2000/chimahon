@@ -10,6 +10,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
+import chimahon.ocr.KumapieColours
+import chimahon.srs.Cards
+import chimahon.srs.HubScan
+import chimahon.srs.PeerSync
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.hippo.unifile.UniFile
@@ -127,7 +131,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
             RecommendedDictionaries.all.filter { downloads[it.id] == DictionaryDownloads.State.Installed }.map { it.name },
         ).ifEmpty { dictionary.orEmpty() }
 
-    /** Step 0-4, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
+    /** Step 0-5, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
     var step by mutableIntStateOf(
         if (fromSettings) {
             0
@@ -176,6 +180,98 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         }
     }
 
+    // Word colouring. The switch is the real preference (KumapieColours, the one Settings > Anki > kumapie shows); the rest is
+    // kept in memory like the other steps' skips.
+    var colouringOn by mutableStateOf(KumapieColours.enabled(app))
+        private set
+    var colouringSkipped by mutableStateOf(false)
+        private set
+    var colouringVisited by mutableStateOf(false)
+
+    fun setColouring(on: Boolean) {
+        colouringOn = on
+        KumapieColours.setEnabled(app, on)
+    }
+
+    fun skipColouring() {
+        colouringSkipped = true
+        step = GlassSetupLogic.SUMMARY
+    }
+
+    /** Continue on the step: it was looked at, so it is not "skipped" any more. */
+    fun colouringContinue() {
+        colouringSkipped = false
+        step = GlassSetupLogic.SUMMARY
+    }
+
+    // kumapie pairing (the same PeerSync as Settings > Anki > kumapie). Every network call runs on IO, never on the main thread.
+    private val peer: PeerSync get() = Cards.peer(app)
+
+    var paired by mutableStateOf(peer.paired())
+        private set
+    var pairedName by mutableStateOf<String?>(null)
+        private set
+    var hub by mutableStateOf(peer.hub())
+        private set
+
+    /** The 4-digit code kumapie shows while it waits for Allow; null before the first tap. */
+    var pairCode by mutableStateOf<String?>(null)
+        private set
+    var pairNote by mutableStateOf<String?>(null)
+        private set
+    var pairBusy by mutableStateOf(false)
+        private set
+    var scanning by mutableStateOf(false)
+        private set
+
+    /** What the last scan found, "ip:port" each; null before a scan. */
+    var found by mutableStateOf<List<String>?>(null)
+        private set
+
+    fun useHub(address: String) {
+        if (address.trim() == hub) return
+        peer.setHub(address)
+        hub = peer.hub()
+        pairCode = null
+        pairNote = null
+    }
+
+    /** Scans this network's /24s for kumapie ([HubScan]); one hit becomes the address. */
+    fun scan() {
+        if (scanning) return
+        scanning = true
+        found = null
+        screenModelScope.launch {
+            val hits = withContext(Dispatchers.IO) { HubScan.find() }
+            found = hits
+            if (hits.size == 1) useHub(hits[0])
+            scanning = false
+        }
+    }
+
+    /**
+     * Tap = pair; tapped again after Allow on kumapie it answers Paired, and the first sync brings the known words
+     * (page colours update). PeerSync.pair asks kumapie, so it runs on IO.
+     */
+    fun pair() {
+        if (pairBusy) return
+        pairBusy = true
+        pairNote = null
+        screenModelScope.launch {
+            val state = withContext(Dispatchers.IO) {
+                val s = peer.pair()
+                if (s is PeerSync.PairState.Paired) Cards.sync(app)
+                s
+            }
+            when (state) {
+                is PeerSync.PairState.Paired -> { paired = true; pairedName = state.name; pairCode = null }
+                is PeerSync.PairState.Waiting -> pairCode = state.code
+                is PeerSync.PairState.Failed -> pairNote = state.why
+            }
+            pairBusy = false
+        }
+    }
+
     fun downloadPicked() {
         DictionaryDownloads.start(RecommendedDictionaries.all.filter { it.id in picked })
         dictionarySkipped = false
@@ -193,6 +289,8 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         3 -> notificationsAllowed || notificationsSkipped
         // canvas Dict-1: Continue once one is installed, downloading or skipped
         4 -> dictionary != null || dictionarySkipped || dictionaryDownloading
+        // optional and always allowed: it has been looked at, or skipped
+        5 -> colouringVisited || colouringSkipped
         else -> false
     }
 
@@ -201,6 +299,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         1 -> realDebridSkipped && !realDebridDone
         3 -> notificationsSkipped && !notificationsAllowed
         4 -> dictionarySkipped && dictionary == null
+        5 -> colouringSkipped
         else -> false
     }
 
@@ -252,7 +351,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
 
     fun skipDictionary() {
         dictionarySkipped = true
-        step = GlassSetupLogic.SUMMARY
+        step = 5 // Word colouring comes after the Dictionary
     }
 
     fun importDictionary(uri: Uri) {

@@ -33,7 +33,28 @@ class GlassSetupLogicTest {
         }
         GlassSetupLogic.missing(Facts(aniList = true, realDebrid = false, storage = false)) shouldBe listOf(2)
         GlassSetupLogic.missing(Facts(aniList = true, realDebrid = false, storage = true)) shouldBe emptyList()
-        listOf(0, 1, 2, 3, 4).filter { GlassSetupLogic.needed(it) } shouldBe listOf(0, 2)
+        (0 until GlassSetupLogic.STEPS).filter { GlassSetupLogic.needed(it) } shouldBe listOf(0, 2) // Word colouring (5) can be skipped
+    }
+
+    @Test
+    fun `six steps, the summary after them, one name each`() {
+        GlassSetupLogic.STEPS shouldBe 6
+        GlassSetupLogic.SUMMARY shouldBe 6
+        GlassSetupLogic.NAMES.size shouldBe GlassSetupLogic.STEPS
+        GlassSetupLogic.NAMES.last() shouldBe "Word colouring"
+        GlassSetupLogic.tag(5, 2) shouldBe "CAN SKIP"
+    }
+
+    @Test
+    fun `the static sample colours 入学 blue, 試験 red and 合格 green`() {
+        val s = GlassSetupLogic.SAMPLE
+        val c = GlassSetupLogic.staticSample()
+        c.size shouldBe s.length
+        fun at(w: String) = c.slice(s.indexOf(w) until s.indexOf(w) + w.length).toSet()
+        at("入学") shouldBe setOf(0xFF1565C0.toInt())
+        at("試験") shouldBe setOf(0xFFD32F2F.toInt())
+        at("合格") shouldBe setOf(0xFF2E7D32.toInt())
+        c.count { it != 0 } shouldBe 6
     }
 
     @Test

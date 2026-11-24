@@ -1,4 +1,4 @@
-package kumahon.desktop
+package chimahon.srs
 
 import java.net.Inet4Address
 import java.net.InetSocketAddress
@@ -7,7 +7,7 @@ import java.net.Socket
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
-/** Finds kumapie on the LAN: it answers other devices on TCP 47823 but refuses non-LAN addresses (Tailscale 100.x), so only site-local /24s are scanned. */
+/** Finds kumapie on the LAN (desktop Sync tab, Android setup): it answers other devices on TCP 47823 but refuses non-LAN addresses (Tailscale 100.x), so only site-local /24s are scanned. */
 object HubScan {
     const val PORT = 47823
 
