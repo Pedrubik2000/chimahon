@@ -843,8 +843,10 @@ object ImageUtil {
         isLTR: Boolean,
         centerMargin: Int,
         @ColorInt background: Int = Color.WHITE,
+        jpegQuality: Int = 100,
         progressCallback: ((Int) -> Unit)? = null,
     ): BufferedSource {
+        val t0 = android.os.SystemClock.elapsedRealtime()
         val height = imageBitmap.height
         val width = imageBitmap.width
         val height2 = imageBitmap2.height
@@ -874,8 +876,11 @@ object ImageUtil {
         canvas.drawBitmap(imageBitmap2, imageBitmap2.rect, bottomPart, null)
         progressCallback?.invoke(99)
 
+        val t1 = android.os.SystemClock.elapsedRealtime()
         val output = Buffer()
-        result.compress(Bitmap.CompressFormat.JPEG, 100, output.outputStream())
+        result.compress(Bitmap.CompressFormat.JPEG, jpegQuality, output.outputStream())
+        android.util.Log.d("KumahonLag", "mergeBitmaps draw=${t1 - t0}ms encode(q$jpegQuality)=${android.os.SystemClock.elapsedRealtime() - t1}ms bytes=${output.size}")
+        result.recycle()
         progressCallback?.invoke(100)
         return output
     }

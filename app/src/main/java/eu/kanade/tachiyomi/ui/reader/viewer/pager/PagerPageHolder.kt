@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.SystemClock
+import android.util.Log
+import android.util.LruCache
 import android.view.LayoutInflater
 import android.webkit.WebView
 import androidx.annotation.ColorInt
@@ -174,7 +177,21 @@ class PagerPageHolder(
                             progressIndicator?.setProgress(value)
                         }
                     }
-                    Page.State.Ready -> setImage()
+                    // Only the first page's job builds the image (after the extra page is ready): both jobs calling
+                    // setImage() merged every pair twice in parallel, so the neighbour was late at the turn.
+                    // Keeps watching the extra page: Error draws page 1 alone (ponytail: the shared error layout is then
+                    // removed, so page 2's error/retry isn't shown; reopening the chapter retries it),
+                    // a later Ready (retry, stale Error reset by the loader) merges the pair.
+                    Page.State.Ready -> if (pageIndex == 1) {
+                        val extra = extraPage
+                        if (extra == null) {
+                            setImage()
+                        } else {
+                            extra.statusFlow.collectLatest {
+                                if (it is Page.State.Ready || it is Page.State.Error) setImage()
+                            }
+                        }
+                    }
                     is Page.State.Error -> setError(state.error)
                 }
             }
@@ -219,9 +236,11 @@ class PagerPageHolder(
         }
 
         val streamFn = page.stream ?: return
-        val streamFn2 = extraPage?.stream
+        // only a Ready extra page: an Error one may hold a stale stream whose file is gone, which would fail page 1 too
+        val streamFn2 = extraPage?.takeIf { it.status is Page.State.Ready }?.stream
 
         try {
+            val tSet = SystemClock.elapsedRealtime()
             val (source, isAnimated, background) = withIOContext {
                 streamFn().buffered(16).use { source ->
                     // SY -->
@@ -254,6 +273,7 @@ class PagerPageHolder(
                     }
                 }
             }
+            Log.i("KumahonLag", "setImage page=${page.index} extra=${extraPage?.index} ready after ${SystemClock.elapsedRealtime() - tSet}ms x=$left")
             withUIContext {
                 setImage(
                     source,
@@ -336,6 +356,39 @@ class PagerPageHolder(
             return imageSource
         }
 
+        val isLTR = (viewer !is R2LPagerViewer) xor viewer.config.invertDoublePages
+        // Sizes of both source images catch a page whose file changed (re-download, data saver off).
+        val cacheKey = page.chapter.chapter.id?.let { chapterId ->
+            MergeKey(
+                chapterId, page.index, extraPage?.index ?: -1, imageSource.buffer.size, imageSource2.buffer.size,
+                isLTR, this.height, viewer.config.centerMarginType, viewer.config.imageCropBorders,
+                viewer.config.pageCanvasColor,
+            )
+        }
+        cacheKey?.let { mergeCache[it] }?.let { hit ->
+            Log.i("KumahonLag", "merge cache HIT $cacheKey")
+            imageSource.close()
+            imageSource2.close()
+            mergedPage1W = hit.w1
+            mergedPage1H = hit.h1
+            mergedPage2W = hit.w2
+            mergedPage2H = hit.h2
+            mergedCenterMargin = hit.centerMargin
+            mergedIsLTR = isLTR
+            return Buffer().write(hit.bytes)
+        }
+        val tStart = SystemClock.elapsedRealtime()
+
+        // Bounds-only wide check so a wide first page is not fully decoded just to read its size
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeStream(imageSource.peek().inputStream(), null, bounds)
+        if (bounds.outWidth > 0 && bounds.outHeight < bounds.outWidth) {
+            imageSource2.close()
+            page.fullPage = true
+            splitDoublePages()
+            return imageSource
+        }
+
         val imageBitmap = decodeImage(imageSource)
         if (imageBitmap == null) {
             imageSource2.close()
@@ -372,7 +425,7 @@ class PagerPageHolder(
             return imageSource
         }
 
-        val isLTR = (viewer !is R2LPagerViewer) xor viewer.config.invertDoublePages
+        val tDecoded = SystemClock.elapsedRealtime()
         val centerMargin = calculateCenterMargin(imageBitmap.height, imageBitmap2.height)
 
         // Store dimensions for the OCR mapper
@@ -386,8 +439,46 @@ class PagerPageHolder(
         imageSource.close()
         imageSource2.close()
 
-        return ImageUtil.mergeBitmaps(imageBitmap, imageBitmap2, isLTR, centerMargin, viewer.config.pageCanvasColor) {
+        val merged = ImageUtil.mergeBitmaps(
+            imageBitmap, imageBitmap2, isLTR, centerMargin, viewer.config.pageCanvasColor, MERGE_JPEG_QUALITY,
+        ) {
             updateProgress(it)
+        }
+        if (cacheKey != null) {
+            val bytes = merged.peek().readByteArray()
+            mergeCache.put(
+                cacheKey,
+                MergeResult(bytes, imageBitmap.width, imageBitmap.height, imageBitmap2.width, imageBitmap2.height, centerMargin),
+            )
+        }
+        Log.i(
+            "KumahonLag",
+            "merge cache MISS $cacheKey decode=${tDecoded - tStart}ms merge+encode=${SystemClock.elapsedRealtime() - tDecoded}ms",
+        )
+        return merged
+    }
+
+    private data class MergeKey(
+        val chapterId: Long,
+        val page: Int,
+        val extraPage: Int,
+        val size1: Long,
+        val size2: Long,
+        val isLTR: Boolean,
+        val viewHeight: Int,
+        val centerMarginType: Int,
+        val cropBorders: Boolean,
+        val canvasColor: Int,
+    )
+
+    private class MergeResult(val bytes: ByteArray, val w1: Int, val h1: Int, val w2: Int, val h2: Int, val centerMargin: Int)
+
+    private companion object {
+        const val MERGE_JPEG_QUALITY = 90
+
+        // ponytail: 24 MB of merged JPEGs (~4-8 typical pairs) covers turning back and forth; raise if turns re-merge
+        val mergeCache = object : LruCache<MergeKey, MergeResult>(24 * 1024 * 1024) {
+            override fun sizeOf(key: MergeKey, value: MergeResult) = value.bytes.size
         }
     }
 
