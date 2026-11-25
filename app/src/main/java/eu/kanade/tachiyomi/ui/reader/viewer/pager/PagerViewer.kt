@@ -144,7 +144,9 @@ abstract class PagerViewer(
         pager.isVisible = false // Don't layout the pager yet
         pager.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         pager.isFocusable = false
-        pager.offscreenPageLimit = 1
+        // 2 neighbours each side stay decoded, so fast turns (double pages) don't slide in a black page.
+        // ponytail: ~20 MB per full-size spread kept; back to 1 if low-RAM phones run out of memory
+        pager.offscreenPageLimit = 2
         pager.id = R.id.reader_pager
         pager.adapter = adapter
         pager.addOnPageChangeListener(pagerListener)
