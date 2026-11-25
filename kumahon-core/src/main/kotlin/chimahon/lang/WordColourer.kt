@@ -39,12 +39,13 @@ class WordColourer(
         }
         // Words carded on another device (the hub's `carded`): mined, blue until a card here says more. One already in kumapie's list
         // as its `spelling<TAB>reading` was reviewed there: known, so it colours nothing itself (the list decides) and its forms are known
-        // too. An unreviewed reading gives the bare spelling no blue while another reading of it was reviewed (the list holds the bare one).
+        // too. An unreviewed reading gives the bare spelling no blue while another reading of it was reviewed (an imported or marked spelling is not that: it stays blue).
         val listed = srs.listedWords()
+        val reviewedBare = listed.filter { '	' in it }.mapTo(HashSet()) { it.substringBefore('	') } // tab entries come only from replayed reviews
         for ((k, forms) in srs.carded()) {
             val bare = k.substringBefore('\t')
             if (k in listed) for (w in forms) cards.getOrPut(w.lowercase()) { ArrayList() } += "k"
-            else for (w in listOf(k) + (if (bare in listed) emptyList() else listOf(bare)) + forms) cards.getOrPut(w.lowercase()) { ArrayList() } += "b"
+            else for (w in listOf(k) + (if (bare in reviewedBare) emptyList() else listOf(bare)) + forms) cards.getOrPut(w.lowercase()) { ArrayList() } += "b"
         }
         if (keys.size > 20_000) keys.clear()
         Index(cards, srs.markedWords(), now).also { index = it }

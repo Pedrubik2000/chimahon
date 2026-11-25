@@ -152,6 +152,8 @@ class JitenLayersTest {
         s.replaceKnown(setOf("猫\tねこ", "猫", "犬")) // a reviewed card holds both keys; 犬 was imported
         s.replaceJiten(KnownImport(1, setOf("猫", "鳥")), 2, emptyList())
         assertEquals(KnownLayers(2, 1, 0, 3), s.knownLayers())
+        s.mark("猫", false) // a reviewed word marked unknown here is no word of any layer
+        assertEquals(KnownLayers(1, 1, 0, 2), s.knownLayers())
     }
 
     @Test fun aStaleAnswerWhileOurListIsPendingKeepsTheDelta() {

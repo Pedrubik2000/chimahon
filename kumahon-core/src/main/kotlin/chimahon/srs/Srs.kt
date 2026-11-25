@@ -340,17 +340,17 @@ class Srs(val db: SqlDb, private val device: String) {
         if (result == hub) { db.exec("DELETE FROM delta_add"); db.exec("DELETE FROM delta_remove"); return@tx }
         replaceTable("jiten_pending", add - hub)
         replaceTable("shared_words", result)
-        insert("meta", mapOf("key" to "jiten_shared_time", "value" to "${maxOf(System.currentTimeMillis(), (meta(SHARED_TIME)?.toLongOrNull() ?: 0) + 1)}"), "OR REPLACE")
+        insert("meta", mapOf("key" to SHARED_TIME, "value" to "${maxOf(System.currentTimeMillis(), (meta(SHARED_TIME)?.toLongOrNull() ?: 0) + 1)}"), "OR REPLACE")
         insert("meta", mapOf("key" to SHARED_PENDING, "value" to "1"), "OR REPLACE")
     }
 
-    /** What each layer holds on this device, each word once: kumapie's, then Jiten's not in it, then marks in neither; [KnownLayers.total] = their sum = [knownKeys]. */
+    /** What each layer holds on this device, each word once: kumapie's, then Jiten's not in it, then marks in neither; [KnownLayers.total] = their sum (words, not keys: a reviewed card's two keys count once, so it is below [knownKeys] when there is one). */
     fun knownLayers(): KnownLayers {
         fun bare(e: String) = e.substringBefore('\t') // a reviewed card is in the list twice (spelling<TAB>reading and spelling): one word
         val unknown = db.query("SELECT word FROM my_marks WHERE known = 0") { it.string(0) }.toSet()
-        val k = (column("known_words", "entry") - unknown).mapTo(HashSet()) { bare(it) }
-        val j = (column("jiten_words", "entry") - unknown).mapTo(HashSet()) { bare(it) } - k
-        val m = (column("marked_words", "word") - unknown).mapTo(HashSet()) { bare(it) } - k - j
+        val k = column("known_words", "entry").mapTo(HashSet()) { bare(it) } - unknown
+        val j = column("jiten_words", "entry").mapTo(HashSet()) { bare(it) } - unknown - k
+        val m = column("marked_words", "word").mapTo(HashSet()) { bare(it) } - unknown - k - j
         return KnownLayers(k.size, j.size, m.size, k.size + j.size + m.size)
     }
 

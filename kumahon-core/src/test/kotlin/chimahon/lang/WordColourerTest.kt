@@ -121,6 +121,12 @@ class WordColourerTest {
         assertEquals("k", state(word("ガキども")))
     }
 
+    @Test fun anImportedSpellingDoesNotMakeAnUnreviewedCardedReadingKnown() {
+        cardedElsewhere("ja|猫	ねこ")
+        store.replaceKnown(setOf("猫")) // imported / marked: a bare entry only, no reviewed reading
+        assertEquals("b", state(word("猫")))
+    }
+
     @Test fun aReviewedReadingWinsTheBareSpellingOverAnUnreviewedOne() {
         cardedElsewhere("ja|日\tひ", "ja|日\tにち")
         assertEquals("b", state(word("日")))
