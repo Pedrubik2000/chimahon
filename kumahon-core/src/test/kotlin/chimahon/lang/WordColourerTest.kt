@@ -111,6 +111,23 @@ class WordColourerTest {
         assertEquals("d", state(word("鳥"))) // carded here too: its own due state wins
     }
 
+    private fun cardedWithForms(key: String, vararg forms: String) = store.takeCarded(JSONObject().put("tablet", JSONObject().put("made", 1)
+        .put("keys", org.json.JSONArray(listOf(key))).put("forms", JSONObject().put(key, org.json.JSONArray(forms.toList())))), "pc")
+
+    @Test fun formsOfAWordReviewedElsewhereAreKnownAndOfOneNotReviewedAreBlue() {
+        cardedWithForms("ja|ガキ\tがき", "ガキども")
+        assertEquals("b", state(word("ガキども")))
+        store.replaceKnown(setOf("ガキ\tがき", "ガキ")) // reviewed on the tablet
+        assertEquals("k", state(word("ガキども")))
+    }
+
+    @Test fun aReviewedReadingWinsTheBareSpellingOverAnUnreviewedOne() {
+        cardedElsewhere("ja|日\tひ", "ja|日\tにち")
+        assertEquals("b", state(word("日")))
+        store.replaceKnown(setOf("日\tひ", "日")) // only ひ was reviewed there
+        assertEquals("k", state(word("日")))
+    }
+
     @Test fun rowsAreWordsOnlyWithPositions() {
         val tokens = listOf(word("猫", begin = 0), word("、", begin = 1, pos = "補助記号"), word("犬", begin = 2))
         store.replaceKnown(setOf("犬"))
