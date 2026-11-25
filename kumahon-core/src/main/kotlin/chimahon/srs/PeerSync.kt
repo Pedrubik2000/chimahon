@@ -202,6 +202,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             val answer = JSONObject(String(a.body))
             // kumapie's FSRS parameters, as its own devices take them (DeviceFiles.takeFsrs): same revlog, same schedule.
             answer.optJSONObject("fsrs")?.optJSONObject(Srs.LANG)?.let { store.useFsrs(it.optString("params").ifEmpty { null }, it.optString("retention").ifEmpty { null }) }
+            answer.optJSONObject("carded")?.let { store.takeCarded(it, device) }
             val theirs = answer.optJSONArray("events") ?: JSONArray()
             val incoming = List(theirs.length()) { theirs.getJSONObject(it) }
             // Our cards and revlog may have changed while the request ran: read them again before inserting.

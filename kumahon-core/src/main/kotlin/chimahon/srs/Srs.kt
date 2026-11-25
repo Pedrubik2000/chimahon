@@ -256,7 +256,33 @@ class Srs(val db: SqlDb, private val device: String) {
     /** Spellings with a card here or a reviewed key (`spelling<TAB>reading`, kumapie's events replayed) in the known list: never taken out by a Jiten slide down. */
     private fun mined(): Set<String> =
         cards().mapNotNull { PeerSync.keyOf(it)?.removePrefix("ja|")?.substringBefore('\t') }.toSet() +
-            column("known_words", "entry").filter { '\t' in it }.map { it.substringBefore('\t') }
+            column("known_words", "entry").filter { '\t' in it }.map { it.substringBefore('\t') } +
+            cardedWords().map { it.substringBefore('\t') }
+
+    /**
+     * The hub's `carded` (words with a card on another device, `{device: {made, keys, forms?}}`), as kumapie's WordSync.carded merges it:
+     * per device the newer `made` wins, our own device is skipped. Only called when the answer has `carded`.
+     */
+    fun takeCarded(carded: JSONObject, own: String) = db.tx {
+        for (d in carded.keys()) {
+            val t = carded.optJSONObject(d) ?: continue
+            val made = t.optLong("made")
+            val have = db.query("SELECT made FROM carded_devices WHERE device = ?", arrayOf(d)) { it.long(0) }.firstOrNull()
+            if (d != own && (have == null || made > have))
+                db.exec("INSERT OR REPLACE INTO carded_devices (device, made, body) VALUES (?, ?, ?)", arrayOf(d, made, t.toString()))
+        }
+    }
+
+    /**
+     * Words carded on other devices, as the keys the colourer and [mined] use: `spelling` or `spelling<TAB>reading` (the `ja|` of the hub's
+     * key cut off; other languages dropped), plus each key's `forms`. Same shape as [PeerSync.keyOf] without the language.
+     */
+    fun cardedWords(): Set<String> = db.query("SELECT body FROM carded_devices") { it.string(0) }.flatMapTo(HashSet()) { b ->
+        val o = JSONObject(b)
+        val keys = o.optJSONArray("keys")?.let { a -> List(a.length()) { a.getString(it) } }.orEmpty()
+        val forms = o.optJSONObject("forms")?.let { f -> f.keys().asSequence().filter { it.startsWith("ja|") }.flatMap { k -> f.getJSONArray(k).let { a -> List(a.length()) { a.getString(it) } } }.toList() }.orEmpty()
+        keys.filter { it.startsWith("ja|") }.map { it.removePrefix("ja|") } + forms
+    }
 
     private fun column(table: String, col: String): Set<String> = db.query("SELECT $col FROM $table") { it.string(0) }.toSet()
 
@@ -277,6 +303,7 @@ class Srs(val db: SqlDb, private val device: String) {
     fun forgetShared() = db.tx {
         db.exec("DELETE FROM meta WHERE key IN (?, ?, ?)", arrayOf(SHARED_TIME, SHARED_PENDING, SHARED_TAKEN))
         db.exec("DELETE FROM shared_words")
+        db.exec("DELETE FROM carded_devices")
     }
 
     /**
@@ -424,6 +451,8 @@ class Srs(val db: SqlDb, private val device: String) {
             "CREATE TABLE IF NOT EXISTS delta_add (entry TEXT PRIMARY KEY)",
             "CREATE TABLE IF NOT EXISTS delta_remove (entry TEXT PRIMARY KEY)",
             "CREATE TABLE IF NOT EXISTS jiten_added (entry TEXT PRIMARY KEY)",
+            // The hub's `carded` per other device ([takeCarded]): its newest {made, keys, forms} as JSON; never in [dump].
+            "CREATE TABLE IF NOT EXISTS carded_devices (device TEXT PRIMARY KEY, made INTEGER NOT NULL, body TEXT NOT NULL)",
             // Marks made in kumahon itself (known 1/0, time in seconds as kumapie's Progress.mark), sent in the sync as progress.<device>.marked.
             "CREATE TABLE IF NOT EXISTS my_marks (word TEXT PRIMARY KEY, known INTEGER NOT NULL, time INTEGER NOT NULL)",
         )
