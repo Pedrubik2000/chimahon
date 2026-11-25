@@ -76,6 +76,13 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             return JSONObject().put(device, JSONObject().put("pos", JSONObject()).put("watch", JSONObject()).put("lookups", JSONObject()).put("marked", marked))
         }
 
+        /**
+         * Our part of kumapie's `carded` (WordSync.own): {device: {made, keys}}, the whole sorted key list of our own cards each time (empty
+         * when we have none, so a deleted last card clears on the hub: its merge takes the newer `made`). Never other devices' entries.
+         */
+        fun own(device: String, keys: Collection<String>, made: Long = System.currentTimeMillis()): JSONObject =
+            JSONObject().put(device, JSONObject().put("made", made).put("keys", JSONArray(keys.distinct().sorted())))
+
         /** The hub address is this device ("127.0.0.1:47823", "localhost"): kumapie runs here and its provider answers. */
         fun isLocalHub(hub: String): Boolean = hub.trim().substringBefore(':').lowercase().let { it == "127.0.0.1" || it == "localhost" }
 
@@ -188,7 +195,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             }
             val device = deviceName()
             val body = JSONObject().put("format", FORMAT).put("device", device).put("person", "me").put("made", System.currentTimeMillis())
-                .put("events", events).put("cards", JSONObject().put(Srs.LANG, dump)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
+                .put("events", events).put("carded", own(device, keys.values)).put("cards", JSONObject().put(Srs.LANG, dump)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
                 .apply { store.pendingShared()?.let { (t, w) -> put("known", JSONObject().put(Srs.LANG, JSONObject().put("time", t).put("words", JSONArray(w)))) } }
                 .toString().toByteArray(Charsets.UTF_8)
             val a = post("http://${hub()}/sync", body, mapOf("X-Device" to device, "X-Sig" to sign(secret, body)))

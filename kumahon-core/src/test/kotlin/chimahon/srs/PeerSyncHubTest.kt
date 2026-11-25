@@ -26,10 +26,12 @@ class PeerSyncHubTest {
     private inner class Hub(var time: Long, var words: Set<String>) {
         var carded: JSONObject? = null
         var stale = false
+        var sentCarded: JSONObject? = null
         var during: (() -> Unit)? = null
         val server: HttpServer = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0).also { srv ->
             srv.createContext("/sync") { ex ->
                 val req = JSONObject(String(ex.requestBody.readBytes()))
+                sentCarded = req.optJSONObject("carded")
                 during?.also { during = null }?.invoke()
                 val (t, w) = if (stale) { stale = false; 5L to setOf("x") } else {
                     req.optJSONObject("known")?.optJSONObject("ja")?.let { k ->
@@ -66,6 +68,28 @@ class PeerSyncHubTest {
             .put("kumahon tab", JSONObject().put("made", 9).put("keys", JSONArray(listOf("ja|mine"))))
         syncs(peer(hub))
         assertEquals(listOf("猫\tねこ"), store.carded().map { it.first })
+    }
+
+    private fun card(w: String, r: String) = store.addCard("$w[$r]", "s", "m", null, null, null, JSONObject().put("Reading", r).toString())
+
+    @Test fun ourOwnCardedGoesOutAsKumapiesKeysAndNeverEchoesOthers() {
+        val hub = Hub(10, setOf("k"))
+        hub.carded = JSONObject().put("tablet", JSONObject().put("made", 5).put("keys", JSONArray(listOf("ja|他"))))
+        card("魔法", "まほう"); card("猫", "ねこ")
+        val p = peer(hub)
+        val before = System.currentTimeMillis()
+        syncs(p, 2) // the second sends what the first took from the hub
+        val sent = hub.sentCarded!!
+        assertEquals(listOf("kumahon tab"), sent.keys().asSequence().toList())
+        val mine = sent.getJSONObject("kumahon tab")
+        assertTrue(mine.getLong("made") >= before)
+        assertEquals(listOf("ja|猫	ねこ", "ja|魔法	まほう"), List(mine.getJSONArray("keys").length()) { mine.getJSONArray("keys").getString(it) })
+    }
+
+    @Test fun withoutCardsOurEntryIsStillSentEmpty() {
+        val hub = Hub(10, setOf("k"))
+        syncs(peer(hub))
+        assertEquals(0, hub.sentCarded!!.getJSONObject("kumahon tab").getJSONArray("keys").length())
     }
 
     @Test fun aStaleAnswerWhileOurListIsPendingKeepsTheDelta() {
