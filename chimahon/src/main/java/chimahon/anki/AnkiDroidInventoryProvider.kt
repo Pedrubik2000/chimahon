@@ -30,14 +30,20 @@ class AnkiDroidInventoryProvider(
     private val context: Context,
 ) : AnkiInventoryProvider {
 
+    /** The installed AnkiDroid build [AnkiDroidBridge] picks (kuma3, then the debug build, then stock); asked each time, builds come and go. */
+    private fun pkg() = AnkiDroidBridge(context).pkg
+
+    /** Every build's provider is `<its app id>.flashcards`, its permission `<its app id>.permission.READ_WRITE_DATABASE` (kuma3's manifest). */
+    private fun uri(path: String): Uri = Uri.parse("content://${pkg()}.flashcards/$path")
+
     override suspend fun probe(enabled: Boolean): AnkiProviderCapability = withContext(Dispatchers.IO) {
         if (!enabled) return@withContext unavailable(AnkiInventoryFailure.DISABLED)
         val packageInfo = try {
-            context.packageManager.getPackageInfo(PACKAGE_NAME, 0)
+            context.packageManager.getPackageInfo(pkg(), 0)
         } catch (_: PackageManager.NameNotFoundException) {
             return@withContext unavailable(AnkiInventoryFailure.NOT_INSTALLED)
         }
-        if (context.checkSelfPermission(PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+        if (context.checkSelfPermission("${pkg()}.permission.READ_WRITE_DATABASE") != PackageManager.PERMISSION_GRANTED) {
             return@withContext unavailable(
                 AnkiInventoryFailure.PERMISSION_DENIED,
                 packageInfo.versionName,
@@ -45,7 +51,7 @@ class AnkiDroidInventoryProvider(
         }
         try {
             context.contentResolver.query(
-                MODELS_URI,
+                uri("models"),
                 arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES),
                 null,
                 null,
@@ -147,7 +153,7 @@ class AnkiDroidInventoryProvider(
 
     private fun findModel(name: String): Model? {
         val cursor = context.contentResolver.query(
-            MODELS_URI,
+            uri("models"),
             arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES),
             null,
             null,
@@ -171,7 +177,7 @@ class AnkiDroidInventoryProvider(
 
     private fun findDeckId(name: String): Long? {
         val cursor = context.contentResolver.query(
-            DECKS_URI,
+            uri("decks"),
             arrayOf(DECK_ID, DECK_NAME),
             null,
             null,
@@ -189,8 +195,8 @@ class AnkiDroidInventoryProvider(
 
     private fun readNotes(model: Model): List<AnkiProviderNote> {
         val cursor = context.contentResolver.query(
-            NOTES_V2_URI,
-            arrayOf(NOTE_ID, NOTE_MID, NOTE_MOD, NOTE_FLDS),
+            uri("notes_v2"),
+            arrayOf(NOTE_ID, NOTE_MID, NOTE_MOD, NOTE_FLDS, NOTE_TAGS),
             "$NOTE_MID = ?",
             arrayOf(model.id.toString()),
             "$NOTE_ID ASC",
@@ -205,12 +211,14 @@ class AnkiDroidInventoryProvider(
             val midIndex = it.getColumnIndexOrThrow(NOTE_MID)
             val modIndex = it.getColumnIndexOrThrow(NOTE_MOD)
             val fieldsIndex = it.getColumnIndexOrThrow(NOTE_FLDS)
+            val tagsIndex = it.getColumnIndexOrThrow(NOTE_TAGS)
             while (it.moveToNext()) {
                 val values = it.getString(fieldsIndex).orEmpty().split(FIELD_SEPARATOR)
                 result += AnkiProviderNote(
                     id = it.getLong(idIndex),
                     noteTypeId = it.getLong(midIndex),
                     modifiedAtEpochSeconds = it.getLongOrNull(modIndex),
+                    tags = it.getString(tagsIndex).orEmpty().trim(),
                     fields = model.fieldNames.mapIndexed { index, field ->
                         field to values.getOrElse(index) { "" }
                     }.toMap(),
@@ -231,13 +239,14 @@ class AnkiDroidInventoryProvider(
             append(configuration.noteTypeName.escapeBrowserQuery())
             append('"')
         }
-        val cursor = context.contentResolver.query(
-            CARDS_URI,
-            CARD_PROJECTION,
-            browserQuery,
-            null,
-            null,
-        ) ?: throw AnkiInventoryProviderException(
+        // kuma3's provider has the FSRS stability column; stock AnkiDroid throws on an unknown column: then the same query without it.
+        val cursor = try {
+            context.contentResolver.query(uri("cards"), CARD_PROJECTION + CARD_STABILITY, browserQuery, null, null)
+        } catch (e: SecurityException) {
+            throw e
+        } catch (_: RuntimeException) { // an unknown column comes back as UnsupportedOperationException, IllegalArgumentException or SQLiteException (across binder)
+            context.contentResolver.query(uri("cards"), CARD_PROJECTION, browserQuery, null, null)
+        } ?: throw AnkiInventoryProviderException(
             AnkiInventoryFailure.PARTIAL_RESULT,
             "AnkiDroid card query returned no cursor",
         )
@@ -258,6 +267,7 @@ class AnkiDroidInventoryProvider(
                     repetitions = it.getIntOrNull(it.getColumnIndexOrThrow(CARD_REPS)),
                     lapses = it.getIntOrNull(it.getColumnIndexOrThrow(CARD_LAPSES)),
                     ease = it.getIntOrNull(it.getColumnIndexOrThrow(CARD_EASE)),
+                    stabilityDays = it.getColumnIndex(CARD_STABILITY).takeIf { i -> i >= 0 && !it.isNull(i) }?.let { i -> it.getDouble(i) },
                 )
             }
             result
@@ -280,21 +290,15 @@ class AnkiDroidInventoryProvider(
     )
 
     companion object {
-        private const val PACKAGE_NAME = "com.ichi2.anki"
-        private const val PERMISSION = "com.ichi2.anki.permission.READ_WRITE_DATABASE"
         private const val FIELD_SEPARATOR = "\u001f"
         private const val MAX_PROVIDER_ROWS = 250_000
 
-        private val BASE_URI = Uri.parse("content://com.ichi2.anki.flashcards")
-        private val NOTES_V2_URI = Uri.withAppendedPath(BASE_URI, "notes_v2")
-        private val MODELS_URI = Uri.withAppendedPath(BASE_URI, "models")
-        private val DECKS_URI = Uri.withAppendedPath(BASE_URI, "decks")
-        private val CARDS_URI = Uri.withAppendedPath(BASE_URI, "cards")
 
         private const val NOTE_ID = "_id"
         private const val NOTE_MID = "mid"
         private const val NOTE_MOD = "mod"
         private const val NOTE_FLDS = "flds"
+        private const val NOTE_TAGS = "tags"
         private const val MODEL_ID = "_id"
         private const val MODEL_NAME = "name"
         private const val MODEL_FIELD_NAMES = "field_names"
@@ -310,6 +314,7 @@ class AnkiDroidInventoryProvider(
         private const val CARD_REPS = "reps"
         private const val CARD_LAPSES = "lapses"
         private const val CARD_EASE = "sm2_factor"
+        private const val CARD_STABILITY = "fsrs_stability"
 
         private val CARD_PROJECTION = arrayOf(
             CARD_ID,

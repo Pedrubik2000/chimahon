@@ -50,6 +50,7 @@ private val STOPS = listOf(1_000, 2_000, 5_000, 10_000, 20_000, 50_000)
 private val Blue = Color(0xFF6EA8FF)
 private val Orange = Color(0xFFC98B4E)
 private val Green = Color(0xFF5BBD7B)
+private val Teal = Color(0xFF5FB3C9)
 
 private fun n(v: Int) = NumberFormat.getIntegerInstance().format(v)
 
@@ -141,13 +142,14 @@ internal fun JitenImportPanel(withTally: Boolean, modifier: Modifier = Modifier)
     }
 }
 
-/** Number, stacked bar and one line per layer; KnownLayers counts each word once (kumapie, then Jiten, then marks), so the lines add up to the total. */
+/** Number, stacked bar and one line per layer; KnownLayers counts each word once (kumapie, then Jiten, then marks, then kuma3 / AnkiDroid), so the lines add up to the total. */
 @Composable
 private fun Tally(l: KnownLayers, dim: Color) {
     val rows = listOf(
         Triple(Blue, stringResource(MR.strings.jiten_layer_jiten), l.jiten),
         Triple(Orange, stringResource(MR.strings.jiten_layer_kumapie), l.kumapie),
         Triple(Green, stringResource(MR.strings.jiten_layer_marks), l.marks),
+        Triple(Teal, stringResource(MR.strings.jiten_layer_anki), l.anki),
     )
     Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

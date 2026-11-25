@@ -137,9 +137,7 @@ internal fun ColouringStep(model: GlassSetupModel, phone: Boolean) {
             Divider()
             KumapieSource(model, phone)
             Divider()
-            SoonSource("k3", Color(0xFF3B6E8F), "kuma3", stringResource(MR.strings.glass_setup_src_kuma3_sub), phone)
-            Divider()
-            SoonSource("A", Color(0xFF2F4A3A), stringResource(MR.strings.glass_setup_src_ankidroid), stringResource(MR.strings.glass_setup_src_ankidroid_sub), phone)
+            AnkiSource(phone)
         }
     }
 }
@@ -274,21 +272,25 @@ private fun Logo(text: String, background: Color, ink: Color = Color.White) {
     }
 }
 
-/** A source that is not built yet: dimmed, its box can't be ticked, "Coming soon" on the right. */
+/**
+ * kuma3 / AnkiDroid on this device as a known-words source: ticked while its layer is on; dimmed while no build is installed or its
+ * permission is missing (the row's tap then asks it); a tap reads the Mined deck again, the box turns the layer on or off.
+ */
 @Composable
-private fun SoonSource(logo: String, colour: Color, title: String, sub: String, phone: Boolean) {
+private fun AnkiSource(phone: Boolean) {
+    val ui = rememberAnkiKnown()
     Row(
-        Modifier.fillMaxWidth().alpha(0.5f).padding(horizontal = if (phone) 14.dp else 18.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().then(if (ui.available) Modifier else Modifier.alpha(0.7f)).clickable { ui.tap() }
+            .padding(horizontal = if (phone) 14.dp else 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Tick(false)
-        Logo(logo, colour)
+        Box(Modifier.clickable(enabled = ui.available) { ui.toggle(!ui.on) }) { Tick(ui.on) }
+        Logo("k3", Color(0xFF3B6E8F))
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(sub, color = Glass.secondary, fontSize = 13.sp, maxLines = if (phone) 1 else 2, overflow = TextOverflow.Ellipsis)
+            Text(stringResource(MR.strings.glass_setup_src_anki), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(ui.subtitle, color = Glass.secondary, fontSize = 13.sp, maxLines = if (phone) 2 else 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(stringResource(MR.strings.glass_setup_coming_soon), color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
     }
 }
 

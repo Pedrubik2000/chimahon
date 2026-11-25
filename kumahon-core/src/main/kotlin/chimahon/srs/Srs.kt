@@ -218,10 +218,22 @@ class Srs(val db: SqlDb, private val device: String) {
 
     private fun known(a: String, b: String): Boolean = known(a) || (b != a && known(b))
 
-    /** One key by three EXISTS (the hot path, once per word): on a layer and not marked unknown here. */
+    /** One key by four EXISTS (the hot path, once per word): on a layer and not marked unknown here. */
     private fun known(e: String): Boolean = db.query(
-        "SELECT (EXISTS(SELECT 1 FROM known_words WHERE entry = ?) OR EXISTS(SELECT 1 FROM marked_words WHERE word = ?) OR EXISTS(SELECT 1 FROM jiten_words WHERE entry = ?)) " +
-            "AND NOT EXISTS(SELECT 1 FROM my_marks WHERE word = ? AND known = 0)", arrayOf(e, e, e, e)) { it.int(0) }.first() == 1
+        "SELECT (EXISTS(SELECT 1 FROM known_words WHERE entry = ?) OR EXISTS(SELECT 1 FROM marked_words WHERE word = ?) OR EXISTS(SELECT 1 FROM jiten_words WHERE entry = ?) OR EXISTS(SELECT 1 FROM anki_words WHERE entry = ?)) " +
+            "AND NOT EXISTS(SELECT 1 FROM my_marks WHERE word = ? AND known = 0)", arrayOf(e, e, e, e, e)) { it.int(0) }.first() == 1
+
+    /** The kuma3 / AnkiDroid layer ([AnkiKnown]): the words read on this device, never sent in the sync. Replaces it whole; [time] = ms of the read. */
+    fun replaceAnki(words: Set<String>, time: Long) = db.tx {
+        replaceTable("anki_words", words)
+        insert("meta", mapOf("key" to ANKI_TIME, "value" to "$time"), "OR REPLACE")
+    }
+
+    /** Words in the kuma3 / AnkiDroid layer: one COUNT (the cheap line for a status row; [knownLayers] reads every table). */
+    fun ankiCount(): Int = count("anki_words")
+
+    /** When the kuma3 / AnkiDroid layer was last read (ms), 0 = never. */
+    fun ankiTime(): Long = meta(ANKI_TIME)?.toLongOrNull() ?: 0
 
     /** The Jiten layer ([JitenKnown]): local, never sent in the sync, never touched by [replaceKnown]. Time 0 = never imported. */
     fun jitenImport(): JitenState {
@@ -351,7 +363,8 @@ class Srs(val db: SqlDb, private val device: String) {
         val k = column("known_words", "entry").mapTo(HashSet()) { bare(it) } - unknown
         val j = column("jiten_words", "entry").mapTo(HashSet()) { bare(it) } - unknown - k
         val m = column("marked_words", "word").mapTo(HashSet()) { bare(it) } - unknown - k - j
-        return KnownLayers(k.size, j.size, m.size, k.size + j.size + m.size)
+        val a = column("anki_words", "entry").mapTo(HashSet()) { bare(it) } - unknown - k - j - m
+        return KnownLayers(k.size, j.size, m.size, k.size + j.size + m.size + a.size, a.size)
     }
 
     private fun count(table: String) = db.query("SELECT COUNT(*) FROM $table") { it.int(0) }.first()
@@ -369,7 +382,7 @@ class Srs(val db: SqlDb, private val device: String) {
 
     fun dump(): JSONObject = JSONObject().apply {
         for (t in listOf("meta", "cards", "revlog", "exposures"))
-            put(t, JSONArray(db.query("SELECT * FROM $t" + if (t == "meta") " WHERE key NOT LIKE 'jiten!_%' ESCAPE '!'" else "") { json(it) })) // the Jiten layer stays on this device
+            put(t, JSONArray(db.query("SELECT * FROM $t" + if (t == "meta") " WHERE key NOT LIKE 'jiten!_%' ESCAPE '!' AND key <> '$ANKI_TIME'" else "") { json(it) })) // the Jiten and kuma3 / AnkiDroid layers stay on this device
     }
 
     private fun json(c: SqlRow) = JSONObject().apply {
@@ -392,8 +405,9 @@ class Srs(val db: SqlDb, private val device: String) {
         private const val SHARED_TIME = "jiten_shared_time"
         private const val SHARED_TAKEN = "jiten_shared_taken"
         private const val SHARED_PENDING = "jiten_shared_pending"
+        private const val ANKI_TIME = "anki_time"
         private const val UNKNOWN = "SELECT word FROM my_marks WHERE known = 0"
-        private const val UNION = "SELECT entry FROM known_words UNION SELECT word FROM marked_words UNION SELECT entry FROM jiten_words"
+        private const val UNION = "SELECT entry FROM known_words UNION SELECT word FROM marked_words UNION SELECT entry FROM jiten_words UNION SELECT entry FROM anki_words"
         private const val KNOWN = "SELECT entry FROM ($UNION) WHERE entry NOT IN ($UNKNOWN)" // minus words marked unknown here
 
         /** kumahon is Japanese only; the `lang` column and the sync JSON keep the code so rows stay compatible with kumapie. */
@@ -459,6 +473,8 @@ class Srs(val db: SqlDb, private val device: String) {
             "CREATE TABLE IF NOT EXISTS marked_words (word TEXT PRIMARY KEY)",
             // The Jiten layer ([JitenKnown]): top N + sets, local; its time and choice are meta jiten_time / jiten_choice (left out of [dump]).
             "CREATE TABLE IF NOT EXISTS jiten_words (entry TEXT PRIMARY KEY)",
+            // The kuma3 / AnkiDroid layer ([AnkiKnown]): read on this device, local; its time is meta anki_time (left out of [dump]).
+            "CREATE TABLE IF NOT EXISTS anki_words (entry TEXT PRIMARY KEY)",
             // The words of kumapie's `known.ja` as this device last took or sent them: the base a Jiten import edits (meta jiten_shared_*; never in [dump]).
             "CREATE TABLE IF NOT EXISTS shared_words (entry TEXT PRIMARY KEY)",
             // The Jiten import as a delta for the hub's list ([replaceJiten], [takeShared]), and the words this device's imports added to that list.
@@ -515,4 +531,4 @@ class Srs(val db: SqlDb, private val device: String) {
 data class JitenState(val time: Long, val top: Int, val sets: List<String>, val count: Int)
 
 /** Words per layer on this device; [total] = distinct union (marks: only those marked known). */
-data class KnownLayers(val kumapie: Int, val jiten: Int, val marks: Int, val total: Int)
+data class KnownLayers(val kumapie: Int, val jiten: Int, val marks: Int, val total: Int, val anki: Int = 0)

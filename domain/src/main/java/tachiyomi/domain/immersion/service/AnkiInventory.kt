@@ -65,6 +65,8 @@ data class AnkiProviderNote(
     val noteTypeId: Long,
     val modifiedAtEpochSeconds: Long?,
     val fields: Map<String, String>,
+    /** The note's tags, space separated. */
+    val tags: String = "",
 )
 
 data class AnkiProviderCard(
@@ -78,6 +80,8 @@ data class AnkiProviderCard(
     val repetitions: Int?,
     val lapses: Int?,
     val ease: Int?,
+    /** FSRS stability in days (kuma3 / AnkiDroid with the column); null = none. Not part of the maturity snapshot. */
+    val stabilityDays: Double? = null,
 )
 
 data class AnkiProviderQueryMetrics(

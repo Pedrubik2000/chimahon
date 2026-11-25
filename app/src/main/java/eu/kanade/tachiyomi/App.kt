@@ -242,6 +242,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         if (Injekt.get<ImmersionStatsPreferences>().uiEnabled().get()) {
             LegacyStatsImportJob.start(this)
         }
+        mihon.feature.stats.anki.AnkiKnownWords.refreshOnStart(this)
         // Chimahon <--
     }
 

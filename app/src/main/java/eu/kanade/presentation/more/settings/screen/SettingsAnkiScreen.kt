@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import eu.kanade.tachiyomi.ui.glass.setup.AnkiKnownRow
 import eu.kanade.tachiyomi.ui.glass.setup.JitenImportPanel
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
@@ -104,9 +105,12 @@ object SettingsAnkiScreen : SearchableSettings {
                 Preference.PreferenceItem.CustomPreference(
                     title = "Known words",
                     content = {
+                        Column {
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             Text(stringResource(MR.strings.jiten_known_words), style = MaterialTheme.typography.titleMedium)
                             JitenImportPanel(withTally = true)
+                        }
+                        AnkiKnownRow()
                         }
                     },
                 ),
