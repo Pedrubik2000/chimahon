@@ -99,6 +99,7 @@ val GlassRailItems = listOf(
     Triple("home", "Home", "home"),
     Triple("library", "Library", "library"),
     Triple("discover", "Discover", "compass"),
+    Triple("releases", "Releases", "calendar"),
     Triple("review", "Review", "cards"),
     Triple("downloads", "Downloads", "download"),
     Triple("settings", "Settings", "gear"),
@@ -106,6 +107,9 @@ val GlassRailItems = listOf(
 
 /** Cards due for review, shown as the green badge on the Review rail/bar item; the Review model keeps it current. Main thread only. */
 val glassReviewDue = mutableIntStateOf(0)
+
+/** Volumes out since Releases was last opened: the ice badge on the Releases rail/bar item (the shell and the page keep it current). Main thread only. */
+val glassReleasesNew = mutableIntStateOf(0)
 
 /** The text of the Review badge: null at 0. */
 fun dueBadge(n: Int): String? = if (n <= 0) null else if (n > 99) "99+" else "$n"
@@ -157,14 +161,15 @@ fun GlassRail(
         GlassRailItems.forEach { (id, label, icon) ->
             val dot = id in dots
             val due = if (id == "review") glassReviewDue.intValue else 0
+            val fresh = if (id == "releases") glassReleasesNew.intValue else 0
             GlassRailButton(
                 icon = icon,
-                label = listOfNotNull(label, "needs attention".takeIf { dot }, "$due due".takeIf { due > 0 }).joinToString(", "),
+                label = listOfNotNull(label, "needs attention".takeIf { dot }, "$due due".takeIf { due > 0 }, "$fresh new".takeIf { fresh > 0 }).joinToString(", "),
                 on = id == active,
                 onClick = { onSelect(id) },
                 dot = dot,
-                badge = dueBadge(due),
-                badgeColor = Glass.green,
+                badge = dueBadge(due + fresh),
+                badgeColor = if (fresh > 0) Glass.ice else Glass.green,
             )
         }
     }

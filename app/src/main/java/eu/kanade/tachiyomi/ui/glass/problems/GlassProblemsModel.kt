@@ -3,7 +3,10 @@ package eu.kanade.tachiyomi.ui.glass.problems
 import androidx.compose.runtime.mutableStateOf
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import android.app.Application
+import chimahon.releases.AutoFetchPlan
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
+import eu.kanade.tachiyomi.data.releases.ReleasesWorker
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.download.RealDebridQueue.State
@@ -65,7 +68,9 @@ class GlassProblemsModel(
         ) { e, s, err -> Triple(e, s, err) },
         here,
     ) { (acc, rs, hid), (entries, signedIn, error), h ->
-        GlassProblems.build(acc, rs, h, entries.associate { it.mediaId to GlassTitle(it).name }, signedIn, error, hid)
+        // the Releases store is a plain file read, no flow: it is looked at whenever a queue row changes (a job's end writes it first)
+        val gaveUp = runCatching { ReleasesWorker.store(Injekt.get<Application>()).get().let { AutoFetchPlan.gaveUp(it.attempts, it.series) } }.getOrDefault(emptyList())
+        GlassProblems.build(acc, rs, h, entries.associate { it.mediaId to GlassTitle(it).name }, signedIn, error, hid, gaveUp)
     }
         .flowOn(Dispatchers.IO)
         .stateIn(screenModelScope, SharingStarted.Eagerly, emptyList())

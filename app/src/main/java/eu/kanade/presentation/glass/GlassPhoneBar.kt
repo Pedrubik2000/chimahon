@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 val GlassPhoneBarRoom = 112.dp
 
 /**
- * The phone shell's floating pill (canvas `PhoneHero-2`): the five [GlassRailItems]; white circle = [active], ice
+ * The phone shell's floating pill (canvas `PhoneHero-2`): the [GlassRailItems]; white circle = [active], ice
  * dot = an area that needs attention. Solid like every glass panel (no blur).
  */
 @Composable
@@ -44,23 +44,23 @@ fun GlassPhoneBar(
             .border(1.dp, Glass.line, CircleShape)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        // six 56dp items + 16dp padding = 352dp: fits a 360dp phone, no gap between the touch targets
+        // seven 48dp items + 16dp padding = 352dp: fits a 360dp phone, no gap between the touch targets
         horizontalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         GlassRailItems.forEach { (id, label, icon) ->
             val on = id == active
             val dot = id in dots
-            val due = if (id == "review") glassReviewDue.intValue else 0
-            Box(Modifier.size(56.dp).clip(CircleShape).clickable { onSelect(id) }, contentAlignment = Alignment.Center) {
+            val due = (if (id == "review") glassReviewDue.intValue else 0) + (if (id == "releases") glassReleasesNew.intValue else 0)
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable { onSelect(id) }, contentAlignment = Alignment.Center) {
                 Box(
-                    Modifier.size(48.dp).then(if (on) Modifier.clip(CircleShape).background(Color.White) else Modifier),
+                    Modifier.size(42.dp).then(if (on) Modifier.clip(CircleShape).background(Color.White) else Modifier),
                     contentAlignment = Alignment.Center,
                 ) {
                     GlassIcon(
                         icon,
                         size = 24.dp,
                         tint = if (on) Color.Black else Color.White,
-                        contentDescription = listOfNotNull(label, "needs attention".takeIf { dot }, "$due due".takeIf { due > 0 }).joinToString(", "),
+                        contentDescription = listOfNotNull(label, "needs attention".takeIf { dot }, "$due ${if (id == "releases") "new" else "due"}".takeIf { due > 0 }).joinToString(", "),
                     )
                 }
                 dueBadge(due)?.let {
@@ -71,7 +71,7 @@ fun GlassPhoneBar(
                             .heightIn(min = 18.dp)
                             .widthIn(min = 18.dp)
                             .clip(CircleShape)
-                            .background(Glass.green)
+                            .background(if (id == "releases") Glass.ice else Glass.green)
                             .padding(horizontal = 4.dp),
                         contentAlignment = Alignment.Center,
                     ) {

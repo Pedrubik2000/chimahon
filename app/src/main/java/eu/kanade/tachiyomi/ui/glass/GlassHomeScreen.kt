@@ -47,6 +47,8 @@ import eu.kanade.tachiyomi.ui.glass.problems.GlassProblems
 import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsModel
 import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsPanel
 import eu.kanade.tachiyomi.ui.glass.problems.ProblemAction
+import eu.kanade.tachiyomi.ui.glass.releases.GlassReleasesPage
+import eu.kanade.tachiyomi.ui.glass.releases.ReleasesBadgeEffect
 import eu.kanade.tachiyomi.ui.glass.review.GlassPhoneReviewPage
 import eu.kanade.tachiyomi.ui.glass.review.GlassReviewModel
 import eu.kanade.tachiyomi.ui.glass.review.GlassReviewPage
@@ -74,7 +76,7 @@ private val glassPage = mutableStateOf("home")
 object GlassHomeScreen : Screen() {
     private fun readResolve(): Any = GlassHomeScreen
 
-    /** Switches the shell to [page] ("home", "library", "discover", "review", "downloads", "settings"), e.g. from a title page's rail. */
+    /** Switches the shell to [page] ("home", "library", "discover", "releases", "review", "downloads", "settings"), e.g. from a title page's rail. */
     fun show(page: String) {
         glassPage.value = page
     }
@@ -95,6 +97,8 @@ object GlassHomeScreen : Screen() {
         val scope = rememberCoroutineScope()
         // the green badge on the Review item: the due count, read once when the shell starts (the Review page keeps it current)
         LaunchedEffect(Unit) { refreshReviewDue(context) }
+        // the ice badge on the Releases item: volumes out since the page was last opened (the page clears it); read again when leaving the page
+        ReleasesBadgeEffect(page)
 
         // canvas `PhoneHero-2`: on a phone (pref glassPhone) the pages are the phone ones and the rail is a bar
         val phone = !isTabletUi()
@@ -109,6 +113,7 @@ object GlassHomeScreen : Screen() {
                     onSeeAll = { page = "library" },
                 )
                 page == "discover" -> GlassPhoneDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
+                page == "releases" -> GlassReleasesPage(navigator)
                 page == "review" -> GlassPhoneReviewPage(rememberScreenModel { GlassReviewModel() })
                 // the tablet pages' own narrow layouts, with phone margins
                 page == "library" -> GlassLibraryPage(model, navigator)
@@ -120,6 +125,7 @@ object GlassHomeScreen : Screen() {
                 "library" -> GlassLibraryPage(model, navigator)
                 // created on the first Discover visit, then kept with the shell (no AniList call before that)
                 "discover" -> GlassDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
+                "releases" -> GlassReleasesPage(navigator)
                 "review" -> GlassReviewPage(rememberScreenModel { GlassReviewModel() })
                 "downloads" -> GlassDownloadsPage(model, navigator)
                 "settings" -> GlassSettingsPage(navigator)

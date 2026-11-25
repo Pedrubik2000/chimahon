@@ -243,6 +243,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             LegacyStatsImportJob.start(this)
         }
         mihon.feature.stats.anki.AnkiKnownWords.refreshOnStart(this)
+        eu.kanade.tachiyomi.data.releases.ReleasesWorker.schedule(this)
         // Chimahon <--
     }
 

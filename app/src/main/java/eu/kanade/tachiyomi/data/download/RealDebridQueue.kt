@@ -86,7 +86,7 @@ class RealDebridQueue(private val app: Application) {
      * Queues one volume: the first source in [coverageInOrder] that has it, the other sources' links as fallbacks.
      * Returns the volumes the queued link holds (a batch archive holds several), empty when no source has it.
      */
-    fun enqueue(entry: AniListLibrary.Entry, volume: Int, coverageInOrder: List<Coverage>): Set<Int> {
+    fun enqueue(entry: AniListLibrary.Entry, volume: Int, coverageInOrder: List<Coverage>, unmetered: Boolean = false): Set<Int> {
         val links = CoverageMatch.links(volume, coverageInOrder)
         val (sourceId, link) = links.firstOrNull() ?: return emptySet()
         fun heldBy(source: Long, url: String) =
@@ -102,6 +102,7 @@ class RealDebridQueue(private val app: Application) {
             sourceId = sourceId,
             fallbacks = fallbacks,
             fallbackVolumes = fallbacks.map { (s, url) -> heldBy(s, url) },
+            unmetered = unmetered,
         )
         return holds
     }

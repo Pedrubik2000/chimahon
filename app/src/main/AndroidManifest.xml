@@ -406,6 +406,10 @@
         </receiver>
 
         <receiver
+            android:name=".data.releases.ReleaseFetchReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".data.notification.NotificationReceiver"
             android:exported="false" />
 

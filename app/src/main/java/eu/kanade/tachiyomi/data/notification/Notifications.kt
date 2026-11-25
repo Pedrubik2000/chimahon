@@ -26,6 +26,10 @@ object Notifications {
     const val CHANNEL_GOAL_REMINDERS = "immersion_goal_reminders"
     const val ID_GOAL_REMINDER = -1801
 
+    /** kumahon Releases (phase 4): volume news, and the quiet date changes. */
+    const val CHANNEL_RELEASES = "releases_channel"
+    const val CHANNEL_RELEASE_DATES = "release_dates_channel"
+
     const val CHANNEL_TORRENT_SERVER = "torrent_server_channel"
     const val ID_TORRENT_SERVER = -601
 
@@ -185,6 +189,13 @@ object Notifications {
                 },
                 buildNotificationChannel(CHANNEL_GOAL_REMINDERS, IMPORTANCE_DEFAULT) {
                     setName(context.stringResource(KMR.strings.stats_goal_reminder_channel))
+                    setShowBadge(false)
+                },
+                buildNotificationChannel(CHANNEL_RELEASES, IMPORTANCE_DEFAULT) {
+                    setName(context.getString(R.string.releases_notif_channel))
+                },
+                buildNotificationChannel(CHANNEL_RELEASE_DATES, IMPORTANCE_LOW) {
+                    setName(context.getString(R.string.releases_notif_channel_dates))
                     setShowBadge(false)
                 },
                 buildNotificationChannel(CHANNEL_TORRENT_SERVER, IMPORTANCE_LOW) {

@@ -28,6 +28,12 @@ class ReleaseEngine(private val zone: ZoneId = ZoneId.of("Asia/Tokyo")) {
     companion object {
         /** An OUT_TODAY older than this is not news (the app was off, or a first scan). */
         const val OUT_TODAY_DAYS = 7L
+
+        /** A released volume older than this is not news (no ON_SOURCES event; the screen hides it). */
+        const val NEWS_DAYS = 90L
+
+        /** Volumes more than this above [WatchedSeries.lastKnownVol] are not believed (when his place is known). */
+        const val MAX_AHEAD = 20
     }
 
     /**
@@ -51,12 +57,16 @@ class ReleaseEngine(private val zone: ZoneId = ZoneId.of("Asia/Tokyo")) {
 
         for (s in state.series) {
             val id = s.anilistId
-            val cands = VolumeMatcher.match(s.jpTitle, s.lastKnownVol, listings[id].orEmpty(), s.publisher).groupBy { it.vol }
-            val cov = coverage[id].orEmpty()
-            // spec: the lowest volume still only on sources = next; the back volumes are not news. Announced once (the `notified` key), whenever it becomes the next.
-            val nextOnSources = cov.keys.filter { it > s.lastKnownVol && it !in local[id].orEmpty() && it !in read[id].orEmpty() }.minOrNull()
+            // a volume far above where he is (a mis-parsed 146 for a series at 11) is no volume: dropped from listings, coverage and stored rows
+            val maxVol = if (s.lastKnownVol > 0) s.lastKnownVol + MAX_AHEAD else Int.MAX_VALUE
+            rows.keys.removeAll { it.first == id && it.second > maxVol }
+            val cands = VolumeMatcher.match(s.jpTitle, s.lastKnownVol, listings[id].orEmpty(), s.publisher).groupBy { it.vol }.filterKeys { it <= maxVol }
+            val cov = coverage[id].orEmpty().filterKeys { it <= maxVol }
+            // one row per title: its newest volume (announced, out or on sources). Back volumes are never rows; rows of an older store below it go.
             val vols = (cands.keys + cov.keys.filter { it > s.lastKnownVol } + rows.keys.filter { it.first == id }.map { it.second }).toSortedSet()
-            for (vol in vols) {
+            val newest = vols.lastOrNull()
+            rows.keys.removeAll { it.first == id && it.second != newest }
+            for (vol in listOfNotNull(newest)) {
                 val old = rows[id to vol]
                 var date = old?.date
                 var source = old?.source
@@ -99,11 +109,13 @@ class ReleaseEngine(private val zone: ZoneId = ZoneId.of("Asia/Tokyo")) {
                 if (before == VolState.ANNOUNCED && now2 in VolState.RELEASED..VolState.ON_SOURCES && date != null && today >= date &&
                     ChronoUnit.DAYS.between(date, today) <= OUT_TODAY_DAYS
                 ) emit("$id:$vol:${EventKind.OUT_TODAY}", ReleaseEvent(EventKind.OUT_TODAY, id, vol))
-                if (now2 == VolState.ON_SOURCES && vol == nextOnSources && s.status != WatchStatus.PLAN) { // Plan to read: dimmed, never auto-fetched, no news
+                // news only while the volume is fresh (a title behind on old volumes is not a notification); Plan to read is no longer watched
+                if (now2 == VolState.ON_SOURCES && s.status != WatchStatus.PLAN && (if (date == null) old != null || vol == s.lastKnownVol + 1 else ChronoUnit.DAYS.between(date, today) <= NEWS_DAYS)) { // undated: only a volume seen before or the very next one
                     emit("$id:$vol:${EventKind.ON_SOURCES}", ReleaseEvent(EventKind.ON_SOURCES, id, vol, source = cov[vol]))
                 }
 
-                rows[id to vol] = VolumeRow(id, vol, date, now2, source, old?.firstSeen ?: today, today, previous, dates)
+                val fetchSource = if (now2 == VolState.ON_SOURCES) cov[vol] ?: old?.fetchSource else old?.fetchSource // the download source (not the date source)
+                rows[id to vol] = VolumeRow(id, vol, date, now2, source, old?.firstSeen ?: today, today, previous, dates, fetchSource)
             }
         }
         val out = rows.values.sortedWith(compareBy({ it.anilistId }, { it.vol }))

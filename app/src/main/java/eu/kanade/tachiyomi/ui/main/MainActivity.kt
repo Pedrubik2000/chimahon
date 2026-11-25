@@ -707,6 +707,15 @@ class MainActivity : BaseActivity() {
                 navigator.popUntilRoot()
                 HomeScreen.Tab.Novels
             }
+            // the Releases notification: the glass shell's Releases page
+            eu.kanade.tachiyomi.data.releases.ReleasesNotifier.ACTION_OPEN -> {
+                navigator.popUntilRoot()
+                GlassHomeScreen.show("releases")
+                // an auto-fetched volume arrived ("Vol. N is on your tablet · Read"): the title page over it
+                intent.getLongExtra(eu.kanade.tachiyomi.data.releases.ReleasesNotifier.EXTRA_MEDIA, 0L).takeIf { it > 0 }
+                    ?.let { navigator.push(eu.kanade.tachiyomi.ui.glass.title.GlassTitleScreen(it)) }
+                null
+            }
             // KMK -->
             Constants.SHORTCUT_LIBRARY_UPDATE_ERRORS -> {
                 navigator.popUntilRoot()

@@ -20,6 +20,10 @@ class ReleaseStoreTest {
             VolumeRow(2, 15, null, VolState.ANNOUNCED, null, LocalDate.parse("2026-11-01"), LocalDate.parse("2026-11-05")),
         ),
         notified = setOf("1:26:OUT_TODAY", "1:26:DATE_CHANGED:2026-11-04"),
+        pendingEvents = listOf(
+            ReleaseEvent(EventKind.ON_SOURCES, 1, 26, source = "X3DL"),
+            ReleaseEvent(EventKind.DATE_CHANGED, 1, 27, oldDate = LocalDate.parse("2026-12-04"), newDate = LocalDate.parse("2026-12-11")),
+        ),
     )
 
     @Test fun roundTripThroughTheFile() {
@@ -28,6 +32,22 @@ class ReleaseStoreTest {
         assertEquals(sample, ReleaseStore(f).get())
         assertTrue(f.isFile)
         assertTrue(dir.walk().none { it.name.endsWith(".tmp") })
+    }
+
+    @Test fun lastRunRoundTripsAndOldFilesLoadWithoutIt() {
+        val f = File(dir, "run.json")
+        val withRun = sample.copy(lastRunAt = 1_764_000_000_000L, lastRunKind = "weekly", lastError = "timeout")
+        ReleaseStore(f).update { withRun }
+        assertEquals(withRun, ReleaseStore(f).get())
+        val old = File(dir, "norun.json")
+        old.writeText(ReleaseStore.toJson(withRun).also { it.remove("lastRunAt"); it.remove("lastRunKind"); it.remove("lastError") }.toString())
+        assertEquals(sample, ReleaseStore(old).get())
+    }
+
+    @Test fun fileWithoutPendingEventsStillLoads() {
+        val f = File(dir, "p1.json")
+        f.writeText(ReleaseStore.toJson(sample).also { it.remove("pendingEvents") }.toString())
+        assertEquals(sample.copy(pendingEvents = emptyList()), ReleaseStore(f).get())
     }
 
     @Test fun fileWithoutPerSourceDatesStillLoads() {

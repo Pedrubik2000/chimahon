@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="releases_notif_channel">Releases</string>
+    <string name="releases_notif_channel_dates">Release date changes</string>
+    <string name="releases_notif_out_today">%1$s Vol. %2$d is out today</string>
+    <string name="releases_notif_on_source">Vol. %1$d is on %2$s</string>
+    <string name="releases_notif_on_source_unknown">Vol. %1$d is on a source</string>
+    <string name="releases_notif_moved">Vol. %1$d moved to %2$s</string>
+    <string name="releases_notif_fetch">Fetch</string>
+    <string name="releases_notif_summary">%1$d release updates</string>
+    <string name="releases_notif_line_out_today">%1$s Vol. %2$d is out today</string>
+    <string name="releases_notif_line_on_source">%1$s Vol. %2$d on %3$s</string>
+    <string name="releases_notif_line_moved">%1$s Vol. %2$d moved to %3$s</string>
+    <string name="releases_notif_fetch_none">Vol. %1$d: no source has it right now</string>
+    <string name="releases_notif_on_tablet">Vol. %1$d is on your tablet · Read</string>
+    <string name="releases_notif_fetching">Fetching volume</string>
+</resources>

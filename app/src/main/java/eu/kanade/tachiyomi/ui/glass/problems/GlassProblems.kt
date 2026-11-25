@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.glass.problems
 
+import chimahon.releases.FetchAttempt
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
@@ -43,6 +44,7 @@ object GlassProblems {
         signedIn: Boolean,
         aniListError: String?,
         hidden: Set<String>,
+        gaveUp: List<FetchAttempt> = emptyList(),
     ): List<Problem> = buildList {
         val key = listOf(ProblemAction.CHANGE_KEY, ProblemAction.HIDE)
         when {
@@ -65,6 +67,23 @@ object GlassProblems {
                     volumes = g.failedVolumes,
                     detail = failed.map { GlassDownloads.shownReason(it.reason) }.filter { it.isNotEmpty() }.distinct()
                         .joinToString(" · ").ifEmpty { null },
+                ),
+            )
+        }
+        // Releases auto-fetch gave up on a volume (3 failed tries): the queue rows are gone after a day, the attempt stays in the Releases store.
+        // A title with a failed-download card already has its volumes there. [here] = the volumes on the tablet (a Try again that worked clears it).
+        gaveUp.filter { it.vol !in here[it.anilistId].orEmpty() }.groupBy { it.anilistId }.forEach { (id, attempts) ->
+            if (any { it.id == "dl:$id" }) return@forEach
+            add(
+                Problem(
+                    id = "af:$id",
+                    kind = ProblemKind.DOWNLOAD_FAILED,
+                    area = "downloads",
+                    actions = listOf(ProblemAction.OPEN_TITLE, ProblemAction.TRY_AGAIN, ProblemAction.HIDE),
+                    mediaId = id,
+                    caption = names[id],
+                    volumes = attempts.map { it.vol }.sorted(),
+                    detail = "Auto-fetch gave up after ${attempts.maxOf { it.fails }} tries",
                 ),
             )
         }

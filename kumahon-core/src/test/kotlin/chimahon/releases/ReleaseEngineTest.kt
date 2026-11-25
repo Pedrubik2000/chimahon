@@ -221,14 +221,33 @@ class ReleaseEngineTest {
 
     @Test fun onSourcesVolumeThatWentSilentIsAnnouncedWhenItBecomesNext() {
         val cov = mapOf(1L to mapOf(26 to "Excnn", 27 to "Excnn"))
-        val r1 = engine.run(at("2026-11-05"), start, coverage = cov)
-        assertEquals(listOf(26), r1.events.map { it.vol }) // 27 is on sources but not the next one
-        // 26 is read, the series moves on
+        val r1 = engine.run(at("2026-11-05"), start, mapOf(1L to listOf(l("ダンダダン 27", "2026-08-25"))), coverage = cov) // dated: fresh news
+        assertEquals(listOf(27), r1.events.map { it.vol }) // one row per title: the newest volume; 26 is a back volume, never a row
+        assertEquals(listOf(27), r1.state.rows.map { it.vol })
+        // 26 is read, the series moves on: 27 was announced already, once
         val s2 = r1.state.copy(series = listOf(dandadan.copy(lastKnownVol = 26)))
         val r2 = engine.run(at("2026-11-12"), s2, coverage = cov, read = mapOf(1L to setOf(26)))
-        assertEquals(listOf(ReleaseEvent(EventKind.ON_SOURCES, 1, 27, source = "Excnn")), r2.events)
-        // and only once
-        assertTrue(engine.run(at("2026-11-13"), r2.state, coverage = cov, read = mapOf(1L to setOf(26))).events.isEmpty())
+        assertTrue(r2.events.isEmpty())
+        assertEquals(listOf(27), r2.state.rows.map { it.vol })
+    }
+
+    @Test fun oneRowPerTitleAndBackVolumesOfAnOldStoreAreDropped() {
+        val old = start.copy(rows = listOf(26, 27, 28).map { VolumeRow(1, it, d("2026-11-01"), VolState.ON_SOURCES, null, d("2026-11-01"), d("2026-11-01")) })
+        val r = engine.run(at("2026-11-05"), old, coverage = mapOf(1L to mapOf(26 to "X3DL", 27 to "X3DL", 28 to "X3DL")))
+        assertEquals(listOf(28), r.state.rows.map { it.vol })
+        assertEquals("X3DL", r.state.rows.single().fetchSource) // the download source; `source` is only the date's
+        assertEquals(listOf(28), r.events.map { it.vol })
+        // a newer volume replaces the row
+        val r2 = engine.run(at("2026-11-06"), r.state, listings = mapOf(1L to listOf(l("ダンダダン 29", "2026-12-04"))), coverage = mapOf(1L to mapOf(28 to "X3DL")))
+        assertEquals(listOf(29), r2.state.rows.map { it.vol })
+    }
+
+    @Test fun anOldVolumeOnSourcesIsNoNews() {
+        val r = engine.run(at("2026-11-05"), start, mapOf(1L to listOf(l("ダンダダン 26", "2026-05-01"))), coverage = mapOf(1L to mapOf(26 to "Excnn")))
+        assertEquals(VolState.ON_SOURCES, row(r.state, 26).state)
+        assertTrue(r.events.isEmpty()) // out for more than 90 days
+        val fresh = engine.run(at("2026-11-05"), start, mapOf(1L to listOf(l("ダンダダン 26", "2026-09-01"))), coverage = mapOf(1L to mapOf(26 to "Excnn")))
+        assertEquals(listOf(EventKind.ON_SOURCES), fresh.events.filter { it.kind == EventKind.ON_SOURCES }.map { it.kind })
     }
 
     @Test fun staleNdlDateDoesNotHideABooksDelay() {
@@ -264,11 +283,11 @@ class ReleaseEngineTest {
         assertTrue(c.events.isEmpty())
     }
 
-    @Test fun firstScanAnnouncesOnlyTheNextVolumeOnSources() {
+    @Test fun firstScanAnnouncesOnlyTheNewestVolumeOnSources() {
         val cov = mapOf(1L to mapOf(26 to "Excnn", 27 to "Excnn", 28 to "Excnn"))
-        val r = engine.run(at("2026-11-05"), start, coverage = cov)
-        assertEquals(listOf(ReleaseEvent(EventKind.ON_SOURCES, 1, 26, source = "Excnn")), r.events)
-        assertEquals(VolState.ON_SOURCES, row(r.state, 28).state) // the rows are still tracked
+        val r = engine.run(at("2026-11-05"), start, mapOf(1L to listOf(l("ダンダダン 28", "2026-08-25"))), coverage = cov)
+        assertEquals(listOf(ReleaseEvent(EventKind.ON_SOURCES, 1, 28, source = "Excnn")), r.events)
+        assertEquals(listOf(28), r.state.rows.map { it.vol }) // no back volumes
     }
 
     @Test fun planToReadGetsNoOnSourcesEvent() {
@@ -281,6 +300,30 @@ class ReleaseEngineTest {
         val r = engine.run(at("2026-11-05"), start, mapOf(9L to listOf(l("ダンダダン 26", "2026-11-04"))), coverage = mapOf(9L to mapOf(3 to "X3DL")))
         assertTrue(r.rows().isEmpty())
         assertFalse(r.events.isNotEmpty())
+    }
+
+
+    @Test fun aMisparsedHighVolumeIsDroppedFromListingsCoverageAndStoredRows() {
+        val at11 = ReleaseState(series = listOf(dandadan.copy(lastKnownVol = 11)))
+        val bad = mapOf(1L to listOf(l("ダンダダン 146", "2026-11-20"), l("ダンダダン 12", "2026-11-20")))
+        val r = engine.run(at("2026-11-25"), at11, bad, coverage = mapOf(1L to mapOf(12 to "X3DL", 146 to "X3DL")))
+        assertEquals(listOf(12), r.state.rows.map { it.vol })
+        // a bad row saved by an earlier run goes on the next run
+        val saved = at11.copy(rows = listOf(VolumeRow(1, 146, d("2026-11-20"), VolState.RELEASED, null, d("2026-11-20"), d("2026-11-20"))))
+        assertEquals(emptyList<VolumeRow>(), engine.run(at("2026-11-25"), saved).state.rows)
+        // an unknown place (0) believes what it is told
+        assertEquals(listOf(146), engine.run(at("2026-11-25"), start.copy(series = listOf(dandadan.copy(lastKnownVol = 0))), bad.mapValues { it.value.take(1) }).state.rows.map { it.vol })
+    }
+
+    @Test fun anUndatedVolumeOnSourcesNotifiesOnlyWhenNewToUs() {
+        val s = ReleaseState(series = listOf(dandadan.copy(lastKnownVol = 10)))
+        // far from his place and never seen: no news
+        assertTrue(engine.run(at("2026-11-25"), s, coverage = mapOf(1L to mapOf(30 to "X3DL"))).events.isEmpty())
+        // the very next volume: news
+        assertEquals(listOf(11), engine.run(at("2026-11-25"), s, coverage = mapOf(1L to mapOf(11 to "X3DL"))).events.map { it.vol })
+        // a row seen before (announced without a date): news when it lands on sources
+        val seen = s.copy(rows = listOf(VolumeRow(1, 30, null, VolState.ANNOUNCED, null, d("2026-11-01"), d("2026-11-01"))))
+        assertEquals(listOf(30), engine.run(at("2026-11-25"), seen, coverage = mapOf(1L to mapOf(30 to "X3DL"))).events.map { it.vol })
     }
 
     private fun ReleaseEngine.Result.rows() = state.rows

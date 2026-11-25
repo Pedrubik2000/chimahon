@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- debug builds only: adb shell am broadcast -n app.kumahon.dev/eu.kanade.tachiyomi.data.releases.ReleasesDebugReceiver -->
+        <receiver
+            android:name="eu.kanade.tachiyomi.data.releases.ReleasesDebugReceiver"
+            android:exported="true" />
+    </application>
+
+</manifest>

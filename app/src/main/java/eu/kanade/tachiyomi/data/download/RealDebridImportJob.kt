@@ -207,7 +207,28 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     }
 
     // Never Result.failure(): a failed work fails every work chained behind it (RealDebridQueue reads the error).
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = importWork().also { reportToReleases(it) }
+
+    /** kumahon Releases: an auto-fetched volume's attempt learns how the job ended (a no-op for every other job). */
+    private fun reportToReleases(result: Result) {
+        val queue = Injekt.get<RealDebridQueue>()
+        if (isStopped && !queue.isCancelled(id)) return // WorkManager stopped it (Wi-Fi lost, constraints): it runs again, not an end
+        val out = (result as? Result.Success)?.outputData ?: return
+        val mediaId = inputData.getLong(KEY_MEDIA_ID, 0)
+        if (mediaId <= 0) return
+        val used = listOf(inputData.getLong(KEY_SOURCE, NO_SOURCE), out.getLong(KEY_SERVED_BY, NO_SOURCE)) +
+            out.getStringArray(KEY_FAILURES).orEmpty().map { it.substringBefore('|').toLongOrNull() ?: NO_SOURCE }
+        eu.kanade.tachiyomi.data.releases.AutoFetch.jobEnded(
+            applicationContext,
+            mediaId,
+            inputData.getIntArray(KEY_VOLUMES)?.toList().orEmpty(),
+            out.getIntArray(KEY_DELIVERED)?.toList().orEmpty(),
+            cancelled = queue.isCancelled(id),
+            sources = used.filter { it != NO_SOURCE },
+        )
+    }
+
+    private suspend fun importWork(): Result {
         val link = inputData.getString(KEY_LINK) ?: return Result.success(output("No link"))
         // files the person downloaded by hand (content URIs): no Real-Debrid at all, no fallback links
         val uris = inputData.getStringArray(KEY_URIS)?.toList()
@@ -1050,6 +1071,8 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         const val TAG_SOURCE = "src:"
         const val WORK_LINKS = "RealDebridImport"
         const val WORK_TORRENTS = "RealDebridTorrent"
+        /** Auto-fetch jobs (UNMETERED): their own chain, so one waiting for Wi-Fi never holds up a manual import. Listed and cancelled by TAG like the others. */
+        const val WORK_AUTO = "RealDebridAuto"
 
         // progress
         const val KEY_STEP = "step"
@@ -1213,6 +1236,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             fallbackVolumes: List<Collection<Int>> = emptyList(),
             uris: List<String>? = null,
             onDevice: Boolean = false,
+            unmetered: Boolean = false, // kumahon Releases auto-fetch: wait for Wi-Fi (the one job with a constraint; the chain behind it waits too)
         ): UUID {
             val input = Data.Builder().putString(KEY_LINK, link).putString(KEY_NAME, name)
             uris?.let { input.putStringArray(KEY_URIS, it.toTypedArray()) }
@@ -1228,6 +1252,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
                 }
             }
             val request = OneTimeWorkRequestBuilder<RealDebridImportJob>().setInputData(input.build()).addTag(TAG)
+            if (unmetered) request.setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.UNMETERED).build())
             mediaId?.let { request.addTag(TAG_MEDIA + it) }
             volumes.forEach { request.addTag(TAG_VOLUME + it) }
             sourceId?.let { request.addTag(TAG_SOURCE + it) }
@@ -1235,7 +1260,11 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // Magnets (slow torrents) queue apart so they don't hold up hoster links.
             val work = request.build()
             WorkManager.getInstance(context).enqueueUniqueWork(
-                if (link.startsWith("magnet:")) WORK_TORRENTS else WORK_LINKS,
+                when {
+                    unmetered -> WORK_AUTO
+                    link.startsWith("magnet:") -> WORK_TORRENTS
+                    else -> WORK_LINKS
+                },
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
                 work,
             )
