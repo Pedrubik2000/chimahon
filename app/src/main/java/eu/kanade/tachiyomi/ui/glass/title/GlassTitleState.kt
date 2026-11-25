@@ -117,12 +117,11 @@ object GlassTitleState {
         cells.filter { it.local == null && it.state == VolState.READ }.map { it.number }
 
     /** "1.4 GB" / "320 MB" for [bytes] (decimal units, English format whatever the locale). */
-    fun sizeText(bytes: Long): String =
-        if (bytes >= 1_000_000_000L) {
-            String.format(java.util.Locale.US, "%.1f GB", bytes / 1e9)
-        } else {
-            String.format(java.util.Locale.US, "%.0f MB", bytes / 1e6)
-        }
+    fun sizeText(bytes: Long): String = when {
+        bytes >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.1f GB", bytes / 1e9)
+        bytes >= 1_000_000L || bytes == 0L -> String.format(java.util.Locale.US, "%.0f MB", bytes / 1e6)
+        else -> String.format(java.util.Locale.US, "%.0f KB", maxOf(1.0, bytes / 1e3)) // small folders: not "0 MB"
+    }
 
     /** One per number (an unread copy wins), by number. */
     fun dedupe(volumes: List<LocalVolume>): List<LocalVolume> =

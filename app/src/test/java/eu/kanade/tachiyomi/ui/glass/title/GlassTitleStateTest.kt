@@ -240,5 +240,7 @@ class GlassTitleStateTest {
         GlassTitleState.sizeText(1_430_000_000) shouldBe "1.4 GB"
         GlassTitleState.sizeText(320_000_000) shouldBe "320 MB"
         GlassTitleState.sizeText(0) shouldBe "0 MB"
+        GlassTitleState.sizeText(310_000) shouldBe "310 KB"
+        GlassTitleState.sizeText(200) shouldBe "1 KB"
     }
 }
