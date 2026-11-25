@@ -28,17 +28,31 @@ object WatchList {
      * volume count is known and already reached (local max or AniList progress): nothing left to wait for.
      * [stored] keeps its jpTitle (it may be an override), publisher, autoFetch and watching; only lastKnownVol and status follow AniList.
      */
-    fun build(entries: List<AniListLibrary.Entry>, localMax: Map<Long, Int>, stored: List<WatchedSeries>): List<WatchedSeries> {
+    fun build(entries: List<AniListLibrary.Entry>, localMax: Map<Long, Int>, stored: List<WatchedSeries>): List<WatchedSeries> =
+        buildWithSkips(entries, localMax, stored).first
+
+    /** A READING entry that [build] left out: [reason] is NOVEL, ONE_SHOT, FINISHED_COVERED or NO_NATIVE_TITLE. */
+    data class Skipped(val mediaId: Long, val reason: String, val title: String)
+
+    /** [build] plus why each READING entry was dropped (pure: the worker logs it). */
+    fun buildWithSkips(entries: List<AniListLibrary.Entry>, localMax: Map<Long, Int>, stored: List<WatchedSeries>): Pair<List<WatchedSeries>, List<Skipped>> {
         val old = stored.associateBy { it.anilistId }
-        return entries.mapNotNull { e ->
+        val skipped = mutableListOf<Skipped>()
+        val list = entries.mapNotNull { e ->
             val status = statusOf(e.status) ?: return@mapNotNull null
-            if (e.format == AniListLibrary.NOVEL || e.format == "ONE_SHOT") return@mapNotNull null
+            fun skip(reason: String): WatchedSeries? {
+                skipped += Skipped(e.mediaId, reason, e.native ?: e.romaji ?: e.english ?: "?")
+                return null
+            }
+            if (e.format == AniListLibrary.NOVEL) return@mapNotNull skip("NOVEL")
+            if (e.format == "ONE_SHOT") return@mapNotNull skip("ONE_SHOT")
             val last = lastKnownVol(localMax[e.mediaId], e.progressVolumes)
-            if (e.mediaStatus == "FINISHED" && e.volumes != null && e.volumes > 0 && e.volumes <= last) return@mapNotNull null
+            if (e.mediaStatus == "FINISHED" && e.volumes != null && e.volumes > 0 && e.volumes <= last) return@mapNotNull skip("FINISHED_COVERED")
             val prev = old[e.mediaId]
-            val title = prev?.jpTitle?.takeIf { it.isNotBlank() } ?: e.native?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val title = prev?.jpTitle?.takeIf { it.isNotBlank() } ?: e.native?.takeIf { it.isNotBlank() } ?: return@mapNotNull skip("NO_NATIVE_TITLE")
             WatchedSeries(e.mediaId, title, prev?.publisher, last, status, prev?.autoFetch, prev?.watching)
         }.distinctBy { it.anilistId }
+        return list to skipped
     }
 
     fun lastKnownVol(localMax: Int?, progressVolumes: Int): Int = maxOf(localMax ?: 0, progressVolumes, 0)

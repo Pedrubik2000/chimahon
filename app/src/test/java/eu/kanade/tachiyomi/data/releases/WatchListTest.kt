@@ -52,6 +52,19 @@ class WatchListTest {
     }
 
     @Test
+    fun `every skipped reading entry comes back with its reason`() {
+        val (list, skipped) = WatchList.buildWithSkips(
+            listOf(
+                entry(1, format = "NOVEL"), entry(2, format = "ONE_SHOT"), entry(3, native = null),
+                entry(4, mediaStatus = "FINISHED", volumes = 3, progressVolumes = 3), entry(5), entry(6, "PLANNING"),
+            ),
+            emptyMap(), emptyList(),
+        )
+        list.map { it.anilistId } shouldBe listOf(5L)
+        skipped.map { it.mediaId to it.reason } shouldBe listOf(1L to "NOVEL", 2L to "ONE_SHOT", 3L to "NO_NATIVE_TITLE", 4L to "FINISHED_COVERED")
+    }
+
+    @Test
     fun `novels one-shots and titles without a native name are skipped`() {
         val list = WatchList.build(
             listOf(entry(1, format = "NOVEL"), entry(2, format = "ONE_SHOT"), entry(3, native = null), entry(4, native = " "), entry(5, format = null)),

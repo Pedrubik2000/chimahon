@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -139,7 +140,7 @@ fun GlassReleasesPage(navigator: Navigator) {
     val phone = !isTabletUi()
     var state by remember { mutableStateOf(ReleaseState()) }
     var loaded by remember { mutableStateOf(false) }
-    var filter by rememberSaveable { mutableStateOf(ReleasesFilter.ALL) }
+    var filter by rememberSaveable(stateSaver = Saver<ReleasesFilter, String>({ it.name }, { ReleasesFilter.of(it) })) { mutableStateOf(ReleasesFilter.ALL) }
     var popover by rememberSaveable { mutableStateOf<String?>(null) } // "anilistId:vol"
     var showUnwatched by rememberSaveable { mutableStateOf(false) }
     var today by remember { mutableStateOf(LocalDate.now(JST)) }
@@ -212,7 +213,6 @@ fun GlassReleasesPage(navigator: Navigator) {
         }
         Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             GlassChip(stringResource(MR.strings.glass_rel_all), filter == ReleasesFilter.ALL, { filter = ReleasesFilter.ALL })
-            GlassChip(stringResource(MR.strings.glass_rel_reading), filter == ReleasesFilter.READING, { filter = ReleasesFilter.READING })
             GlassChip(stringResource(MR.strings.glass_rel_up_to_date), filter == ReleasesFilter.UP_TO_DATE, { filter = ReleasesFilter.UP_TO_DATE })
             if (timeline.unwatched > 0) { // series switched off in the bell: hidden, one line brings them back (dimmed)
                 Text(

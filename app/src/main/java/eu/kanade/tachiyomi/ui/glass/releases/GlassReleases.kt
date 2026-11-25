@@ -9,7 +9,14 @@ import chimahon.releases.WatchedSeries
 import eu.kanade.tachiyomi.data.releases.WatchList
 import java.time.LocalDate
 
-enum class ReleasesFilter { ALL, READING, UP_TO_DATE }
+enum class ReleasesFilter {
+    ALL, UP_TO_DATE;
+
+    companion object {
+        /** From a saved name; an old saved READING (chip removed) or anything unknown is ALL. */
+        fun of(name: String?) = entries.firstOrNull { it.name == name } ?: ALL
+    }
+}
 
 /** One volume row of the timeline (a title's newest volume); [dimmed] = switched off with Watch; [behind] = volumes between his place and this one ("N behind"). */
 data class ReleaseItem(val series: WatchedSeries, val row: VolumeRow, val dimmed: Boolean, val behind: Int = 0, val upToDate: Boolean = false)

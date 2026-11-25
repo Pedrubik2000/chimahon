@@ -133,7 +133,8 @@ class ReleasesWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
         val (local, read) = localAndRead(entries.filter { WatchList.statusOf(it.status) != null })
         val localMax = local.mapValues { it.value.maxOrNull() ?: 0 }
-        val allSeries = WatchList.build(entries, localMax, store.get().series)
+        val (allSeries, skipped) = WatchList.buildWithSkips(entries, localMax, store.get().series)
+        Log.i(TAG, "$mode: skipped ${skipped.size}: " + skipped.joinToString("; ") { "${it.mediaId} ${it.reason} '${it.title}'" })
         val series = allSeries.filter { it.watching != false } // the person's Watch switch: an unwatched series is kept in the store, not checked
         val rowsBefore = store.get().rows
         Log.i(TAG, "$mode: ${series.size} watched (${allSeries.size - series.size} switched off)")

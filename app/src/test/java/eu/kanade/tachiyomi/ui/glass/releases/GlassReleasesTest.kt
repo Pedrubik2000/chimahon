@@ -92,4 +92,11 @@ class GlassReleasesTest {
         GlassReleases.daysTo(today, today.plusDays(9)) shouldBe 9
         GlassReleases.daysTo(today, today.minusDays(3)) shouldBe -3
     }
+
+    @Test
+    fun `an old saved READING filter falls back to ALL`() {
+        ReleasesFilter.of("READING") shouldBe ReleasesFilter.ALL
+        ReleasesFilter.of(null) shouldBe ReleasesFilter.ALL
+        ReleasesFilter.of("UP_TO_DATE") shouldBe ReleasesFilter.UP_TO_DATE
+    }
 }
