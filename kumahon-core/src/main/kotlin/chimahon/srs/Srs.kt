@@ -260,29 +260,34 @@ class Srs(val db: SqlDb, private val device: String) {
             cardedWords().map { it.substringBefore('\t') }
 
     /**
-     * The hub's `carded` (words with a card on another device, `{device: {made, keys, forms?}}`), as kumapie's WordSync.carded merges it:
-     * per device the newer `made` wins, our own device is skipped. Only called when the answer has `carded`.
+     * The hub's `carded` (words with a card on another device, `{device: {made, keys, forms?}}`) replaces what was kept: a device the hub
+     * dropped goes too. Our own device is skipped. Only called when the answer has `carded`.
      */
     fun takeCarded(carded: JSONObject, own: String) = db.tx {
+        db.exec("DELETE FROM carded_devices")
         for (d in carded.keys()) {
             val t = carded.optJSONObject(d) ?: continue
-            val made = t.optLong("made")
-            val have = db.query("SELECT made FROM carded_devices WHERE device = ?", arrayOf(d)) { it.long(0) }.firstOrNull()
-            if (d != own && (have == null || made > have))
-                db.exec("INSERT OR REPLACE INTO carded_devices (device, made, body) VALUES (?, ?, ?)", arrayOf(d, made, t.toString()))
+            if (d != own) db.exec("INSERT INTO carded_devices (device, made, body) VALUES (?, ?, ?)", arrayOf(d, t.optLong("made"), t.toString()))
         }
     }
 
     /**
-     * Words carded on other devices, as the keys the colourer and [mined] use: `spelling` or `spelling<TAB>reading` (the `ja|` of the hub's
-     * key cut off; other languages dropped), plus each key's `forms`. Same shape as [PeerSync.keyOf] without the language.
+     * Words carded on other devices: each key as the colourer and [mined] use it (`spelling` or `spelling<TAB>reading`, the `ja|` of the hub's
+     * key cut off, other languages dropped) with its `forms` (other spellings). Same shape as [PeerSync.keyOf] without the language.
      */
-    fun cardedWords(): Set<String> = db.query("SELECT body FROM carded_devices") { it.string(0) }.flatMapTo(HashSet()) { b ->
+    fun carded(): List<Pair<String, List<String>>> = db.query("SELECT body FROM carded_devices") { it.string(0) }.flatMap { b ->
         val o = JSONObject(b)
-        val keys = o.optJSONArray("keys")?.let { a -> List(a.length()) { a.getString(it) } }.orEmpty()
-        val forms = o.optJSONObject("forms")?.let { f -> f.keys().asSequence().filter { it.startsWith("ja|") }.flatMap { k -> f.getJSONArray(k).let { a -> List(a.length()) { a.getString(it) } } }.toList() }.orEmpty()
-        keys.filter { it.startsWith("ja|") }.map { it.removePrefix("ja|") } + forms
+        val f = o.optJSONObject("forms")
+        val keys = o.optJSONArray("keys") ?: return@flatMap emptyList()
+        List(keys.length()) { keys.getString(it) }.filter { it.startsWith("ja|") }.map { k ->
+            k.removePrefix("ja|") to (f?.optJSONArray(k)?.let { a -> List(a.length()) { a.getString(it) } }.orEmpty())
+        }
     }
+
+    private fun cardedWords(): Set<String> = carded().flatMapTo(HashSet()) { (k, f) -> listOf(k) + f }
+
+    /** kumapie's list as last taken (`spelling` and `spelling<TAB>reading` entries; reviewed cards of any device are in it). */
+    fun listedWords(): Set<String> = column("known_words", "entry")
 
     private fun column(table: String, col: String): Set<String> = db.query("SELECT $col FROM $table") { it.string(0) }.toSet()
 

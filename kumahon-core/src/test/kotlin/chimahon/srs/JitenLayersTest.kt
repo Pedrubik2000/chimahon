@@ -132,20 +132,19 @@ class JitenLayersTest {
         s.replaceJiten(imp("a", "b", "c"), 3, emptyList())
         hub.sync(s); hub.sync(s)
         s.takeCarded(carded("tablet", 5, "ja|b", "ja|c\t" + "とり", "de|a"), "pc")
-        assertEquals(setOf("b", "c\t" + "とり"), s.cardedWords())
+        assertEquals(listOf("b", "c\t" + "とり"), s.carded().map { it.first })
         s.replaceJiten(imp(), 0, emptyList()) // cleared: a goes, b and c are carded on the tablet
         hub.sync(s); hub.sync(s)
         assertEquals(setOf("k1", "b", "c"), hub.words)
     }
 
-    @Test fun cardedKeepsTheNewerMadePerDeviceAndSkipsOurOwn() {
+    @Test fun cardedReplacesWhatWasKeptAndSkipsOurOwn() {
         s.takeCarded(carded("tablet", 5, "ja|new").put("pc", JSONObject().put("made", 9).put("keys", org.json.JSONArray(listOf("ja|mine")))), "pc")
-        s.takeCarded(carded("tablet", 4, "ja|old"), "pc")
-        assertEquals(setOf("new"), s.cardedWords())
-        s.takeCarded(carded("tablet", 6, "ja|newer"), "pc")
-        assertEquals(setOf("newer"), s.cardedWords())
+        assertEquals(listOf("new"), s.carded().map { it.first })
+        s.takeCarded(carded("phone", 6, "ja|newer"), "pc") // the tablet is gone from the answer
+        assertEquals(listOf("newer"), s.carded().map { it.first })
         s.forgetShared() // paired with another hub
-        assertEquals(emptySet<String>(), s.cardedWords())
+        assertEquals(emptyList<Pair<String, List<String>>>(), s.carded())
     }
 
     @Test fun aDeltaWaitsForTheFirstAnswerWithWordsAndAnOlderAnswerDoesNotOverwrite() {

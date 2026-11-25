@@ -37,8 +37,10 @@ class WordColourer(
             val state = Srs.state(c.due, now)
             for (k in keysOf(c, ready)) cards.getOrPut(k.lowercase()) { ArrayList() } += state
         }
-        // Words carded on another device (the hub's `carded`): mined, blue until a card here says more.
-        for (k in srs.cardedWords()) cards.getOrPut(k.lowercase()) { ArrayList() } += "b"
+        // Words carded on another device (the hub's `carded`): mined, blue until a card here says more. One already in kumapie's list
+        // as its `spelling<TAB>reading` was reviewed there: known, so it adds nothing (the known list decides).
+        val listed = srs.listedWords()
+        for ((k, forms) in srs.carded()) if (k !in listed) for (w in listOf(k, k.substringBefore('	')) + forms) cards.getOrPut(w.lowercase()) { ArrayList() } += "b"
         if (keys.size > 20_000) keys.clear()
         Index(cards, srs.markedWords(), now).also { index = it }
     }

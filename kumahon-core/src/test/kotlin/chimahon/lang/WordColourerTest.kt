@@ -97,6 +97,20 @@ class WordColourerTest {
         assertEquals("u", colourer({ listOf(word("わかる")) }).rows("わかる").single().state)
     }
 
+    private fun cardedElsewhere(vararg keys: String) =
+        store.takeCarded(JSONObject().put("tablet", JSONObject().put("made", 1).put("keys", org.json.JSONArray(keys.toList()))), "pc")
+
+    @Test fun cardedElsewhereIsBlueUnlessReviewedThereOrDueHere() {
+        val tab = "\t"
+        cardedElsewhere("ja|猫" + tab + "ねこ", "ja|犬" + tab + "いぬ", "ja|鳥" + tab + "とり")
+        store.replaceKnown(setOf("犬" + tab + "いぬ", "犬")) // reviewed on the tablet: its events put both entries in the list
+        assertEquals("b", state(word("猫")))
+        assertEquals("k", state(word("犬")))
+        val c = card("鳥", "とり")
+        store.rate(c.id, 3, now = System.currentTimeMillis() - 30 * DAY)
+        assertEquals("d", state(word("鳥"))) // carded here too: its own due state wins
+    }
+
     @Test fun rowsAreWordsOnlyWithPositions() {
         val tokens = listOf(word("猫", begin = 0), word("、", begin = 1, pos = "補助記号"), word("犬", begin = 2))
         store.replaceKnown(setOf("犬"))
