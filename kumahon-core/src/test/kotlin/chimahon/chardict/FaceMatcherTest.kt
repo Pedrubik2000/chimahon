@@ -101,6 +101,54 @@ class FaceMatcherTest {
         assertEquals("千尋", hits[0].name)
     }
 
+    /** MASHLE's ソフィナ・ブリビア through the real zip builder: its headwords and cards are the dictionary the matcher gets. */
+    private val mashle: CharacterDict by lazy {
+        val z = YomitanCharacterZip(DictSettings(), revision = "r")
+        z.addCharacter(Character(id = "9", name = "Sofina Bribia", nameOriginal = "ソフィナ・ブリビア", role = "side", firstNameHint = "Sofina", lastNameHint = "Bribia", imageBytes = byteArrayOf(1, 2, 3), imageExt = "jpg", imageWidth = 80, imageHeight = 100), "MASHLE")
+        // a name written with a space is split: its parts (and the honorific forms) are headwords too
+        z.addCharacter(Character(id = "8", name = "Mash Burnedead", nameOriginal = "マッシュ バーンデッド", role = "primary", firstNameHint = "Mash", lastNameHint = "Burnedead", imageBytes = byteArrayOf(1, 2, 3), imageExt = "jpg", imageWidth = 80, imageHeight = 100), "MASHLE")
+        val buf = java.io.ByteArrayOutputStream().also { z.write(it) }
+        val cards = HashMap<String, MutableList<Glossary>>()
+        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(buf.toByteArray())).use { zin ->
+            var e = zin.nextEntry
+            while (e != null) {
+                if (e.name.startsWith("term_bank_")) JSONArray(String(zin.readBytes(), Charsets.UTF_8)).let { a ->
+                    for (i in 0 until a.length()) a.getJSONArray(i).let { t -> cards.getOrPut(t.getString(0)) { ArrayList() } += Glossary("c", t.getJSONArray(5).toString()) }
+                }
+                e = zin.nextEntry
+            }
+        }
+        object : CharacterDict {
+            override fun glossaries(word: String) = cards[word].orEmpty()
+            override fun media(dict: String, path: String) = png
+        }
+    }
+
+    /** Sudachi's pieces with their real offsets; the middle dot is a symbol (not a word). */
+    private fun real(s: String): List<Token> = s.split(" ").map { it.split("/") }.map { (surf, at) -> Token(surf, surf, "", if (surf == "・") "補助記号" else "名詞", at.toInt()) }
+
+    private val page = "知の神杖ソフィナ・ブリビア"
+    private val pageTokens = real("知/0 の/1 神/2 杖/3 ソフィナ/4 ・/8 ブリ/9 ビア/11")
+
+    @Test fun `a katakana name with a middle dot gets its face from Sudachi's pieces`() {
+        val hits = FaceMatcher(mashle, { false }).match(page, pageTokens, "MASHLE")
+        assertEquals(1, hits.size)
+        assertEquals(4, hits[0].start)
+        assertEquals(9, hits[0].length)
+        assertEquals("ソフィナ・ブリビア", hits[0].name)
+    }
+
+    @Test fun `the full dotted name as one token, the given name alone, the family split in two, an honorific`() {
+        val m = FaceMatcher(mashle, { false })
+        assertEquals(1, m.match("ソフィナ・ブリビア", real("ソフィナ・ブリビア/0"), "MASHLE").size)
+        assertEquals(1, m.match("マッシュが来た", real("マッシュ/0 が/4 来た/5"), "MASHLE").size) // given name alone
+        val f = m.match("バーンデッドが来た", real("バーン/0 デッド/3 が/6 来た/7"), "MASHLE") // family split by Sudachi
+        assertEquals("バーンデッド", f.single().name)
+        val h = m.match("マッシュくん", real("マッシュ/0 くん/4"), "MASHLE")
+        assertEquals("マッシュ", h.single().name)
+        assertEquals(0, h[0].start)
+    }
+
     @Test fun `a one-character or hiragana headword gets no face`() {
         assertTrue(FaceMatcher(names).match("氏", tok("氏"), null).isEmpty())
         assertTrue(FaceMatcher(names).match("あい", tok("あい"), null).isEmpty())

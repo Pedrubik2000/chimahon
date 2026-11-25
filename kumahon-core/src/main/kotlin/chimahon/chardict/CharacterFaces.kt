@@ -96,9 +96,10 @@ class FaceMatcher(
             if (first.surface.firstOrNull() !in 'ぁ'..'ゖ') for (n in minOf(5, ws.size - i) downTo 1) {
                 val last = ws[i + n - 1]
                 val t = text.substring(first.begin, last.begin + last.surface.length)
-                if (t.length != (i until i + n).sumOf { ws[it].surface.length }) continue // something between the pieces
+                // something between the pieces, except the middle dot of ソフィナ・ブリビア (a symbol, so not among [ws])
+                if (t.replace("・", "").length != (i until i + n).sumOf { ws[it].surface.replace("・", "").length }) continue
                 // a single word: the dictionary holds only characters, so its headword is enough (Sudachi's part of speech for a name is unreliable); no 1-character or kana-only words
-                val name = (if (n > 1) characterName(t)
+                val name = (if (n > 1) characterName(t) ?: characterName(t.replace("・", ""))
                     else listOf(t, first.base).firstNotNullOfOrNull { w -> w.takeIf { it.length > 1 && !it.all { c -> c in 'ぁ'..'ゖ' } }?.let(::characterName) }
                         // without the work (its title not known yet) any character's name would do: then Sudachi must also take it for a name
                         ?.takeIf { !work.isNullOrBlank() || autoKnown(it) })
