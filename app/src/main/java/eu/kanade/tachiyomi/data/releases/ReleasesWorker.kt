@@ -167,7 +167,7 @@ class ReleasesWorker(context: Context, params: WorkerParameters) : CoroutineWork
             covered += coverage.size
         }
         Log.i(TAG, "$mode done in ${(System.currentTimeMillis() - startedAt) / 1000}s: listings for $listed, coverage for $covered, $events new events" + (if (ndlBackoff.tripped) ", NDL backed off" else ""))
-        if (ReleasesNotifier.isSeeded(applicationContext)) AutoFetch.run(applicationContext, today) // phase 5: the very first run only seeds the rows; before the notifier, which keeps quiet about what is fetching
+        if (ReleasesNotifier.isSeeded(applicationContext) && !isTestApp(applicationContext)) AutoFetch.run(applicationContext, today) // phase 5: the very first run only seeds the rows; before the notifier, which keeps quiet about what is fetching
         ReleasesNotifier.notifyPending(applicationContext) // phase 4
         return null
     }
@@ -309,11 +309,22 @@ class ReleasesWorker(context: Context, params: WorkerParameters) : CoroutineWork
         }
 
         /**
+         * The debug build (package ends in ".dev"): never scheduled, never auto-fetches (Pedro, 2026-11-25).
+         */
+        fun isTestApp(context: Context) = context.packageName.endsWith(".dev")
+
+        /**
          * On app start: both periodic jobs; KEEP, so a restart does not move the 09:00 phase.
          * ponytail: the daily run drifts by up to the 1 h flex and WorkManager's own delays; the 7-day windows do not care.
          */
         fun schedule(context: Context) {
             val wm = WorkManager.getInstance(context)
+            // kumahon Test (app.kumahon.dev) sits next to the real app: no daily/weekly runs there, only Check now
+            if (isTestApp(context)) {
+                wm.cancelUniqueWork(WORK_DAILY)
+                wm.cancelUniqueWork(WORK_WEEKLY)
+                return
+            }
             val unmetered = Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).setRequiresBatteryNotLow(true).build()
             wm.enqueueUniquePeriodicWork(
                 WORK_DAILY,
