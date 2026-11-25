@@ -18,9 +18,16 @@ import eu.kanade.tachiyomi.data.track.anilist.Anilist
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.source.online.HttpSource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -376,29 +383,105 @@ class GlassTitleScreenModel(
         edit(status = null, score = raw)
     }
 
+    /** Where the "volumes read" write stands; [Failed.back] is the number that is still on AniList. */
+    sealed interface VolumeSave {
+        data object Idle : VolumeSave
+        data class Saving(val n: Int) : VolumeSave
+        data class Saved(val n: Int) : VolumeSave
+        data class Failed(val n: Int, val back: Int) : VolumeSave
+    }
+
+    val volumeSave = MutableStateFlow<VolumeSave>(VolumeSave.Idle)
+    private var volumeJob: Job? = null
+
+    /** The -/+ number still waiting out its debounce; [flushVolume] sends it now. */
+    private var queuedVolume: Int? = null
+
+    /** AniList writes one at a time: a status/star edit and a volume save must not undo each other. */
+    private val writeLock = Mutex()
+
+    /** Volume writes outlive the screen: leaving within the debounce must not drop a tap (no app scope in the repo). */
+    private val volumeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** AniList's saved volumes read (the cache, never the optimistic number). */
+    val savedVolumes: StateFlow<Int> = library.entries
+        .map { library.get(mediaId)?.progressVolumes ?: 0 }
+        .stateIn(screenModelScope, SharingStarted.Eagerly, library.get(mediaId)?.progressVolumes ?: 0)
+
+    fun resetVolumeSave() {
+        volumeSave.value = VolumeSave.Idle
+    }
+
+    /** Sends the debounced -/+ number now (popover dismissed, panel left). */
+    fun flushVolume() {
+        queuedVolume?.let { setVolume(it, debounce = false) }
+    }
+
+    /**
+     * Sets AniList's volumes read to [n], up or down. [debounce]: quick taps of -/+ make one write (the last one);
+     * the slider's release writes at once. Failure drops the optimistic number (the control reverts).
+     */
+    fun setVolume(n: Int, debounce: Boolean = false) {
+        val e = entry.value ?: return
+        volumeJob?.cancel()
+        val back = library.get(mediaId)?.progressVolumes ?: e.progressVolumes
+        val mine = e.copy(progressVolumes = n)
+        // shown at once, before the debounce: the popover's number and the next tap's base stay on n
+        pending.value = mine
+        queuedVolume = if (debounce) n else null
+        val job = volumeScope.launch(start = CoroutineStart.LAZY) {
+            try {
+                if (debounce) delay(600)
+                queuedVolume = null
+                volumeSave.value = VolumeSave.Saving(n)
+                writeLock.withLock {
+                    val track = write(null, null, volumes = n)
+                    val status = GlassTitleState.listStatus(track.status)
+                    library.get(mediaId)?.let { library.replace(it.copy(progressVolumes = n, status = status ?: it.status)) }
+                        ?: library.refresh()
+                }
+                volumeSave.value = VolumeSave.Saved(n)
+            } catch (ex: CancellationException) {
+                throw ex
+            } catch (ex: Exception) {
+                logcat(LogPriority.WARN, ex) { "AniList volumes failed: $mediaId" }
+                volumeSave.value = VolumeSave.Failed(n, back)
+            } finally {
+                // a newer tap owns pending now: only the latest job clears it
+                if (volumeJob === coroutineContext[Job]) pending.compareAndSet(mine, null)
+            }
+        }
+        volumeJob = job
+        job.start()
+    }
+
     /** "+ Home": on the list as Plan to read. */
     fun addToHome() = setStatus("PLANNING")
 
     private fun edit(status: String?, score: Int?) {
         val e = entry.value ?: return
-        pending.value = e.copy(status = status ?: e.status, score = score ?: e.score)
+        val mine = e.copy(status = status ?: e.status, score = score ?: e.score)
+        pending.value = mine
         message.value = null
-        screenModelScope.launch(Dispatchers.IO) {
+        // volumeScope: waiting on writeLock behind a volume save must not be cancelled when the page closes
+        volumeScope.launch {
             try {
-                val track = write(status, score)
-                val updated = library.get(mediaId)?.copy(
-                    status = GlassTitleState.listStatus(track.status) ?: status ?: e.status,
-                    score = track.score.toInt(),
-                    updatedAt = System.currentTimeMillis() / 1000,
-                )
-                if (updated != null) library.replace(updated) else library.refresh()
+                writeLock.withLock {
+                    val track = write(status, score)
+                    val updated = library.get(mediaId)?.copy(
+                        status = GlassTitleState.listStatus(track.status) ?: status ?: e.status,
+                        score = track.score.toInt(),
+                        updatedAt = System.currentTimeMillis() / 1000,
+                    )
+                    if (updated != null) library.replace(updated) else library.refresh()
+                }
             } catch (ex: CancellationException) {
                 throw ex
             } catch (ex: Exception) {
                 logcat(LogPriority.WARN, ex) { "AniList edit failed: $mediaId" }
                 message.value = ex.message ?: ex.javaClass.simpleName
             } finally {
-                pending.value = null
+                pending.compareAndSet(mine, null)
             }
         }
     }
@@ -408,7 +491,7 @@ class GlassTitleScreenModel(
      * stays volumes; without one, an in-memory track by media id (manga id 0 = not local, so the tracker sends the
      * chapter progress it just read back from AniList, unchanged). Not on the list yet → the tracker's bind adds it.
      */
-    private suspend fun write(status: String?, score: Int?): Track {
+    private suspend fun write(status: String?, score: Int?, volumes: Int? = null): Track {
         val anilist = trackerManager.aniList
         check(anilist.isLoggedIn) { "Not logged in to AniList" }
         val localTrack = local.value?.track
@@ -423,6 +506,11 @@ class GlassTitleScreenModel(
         status?.let { track.status = GlassTitleState.trackerStatus(it) }
         score?.let { track.score = it.toDouble() }
         if (before != (track.status to track.score)) anilist.update(track)
+        // volumes read as given (Anilist.updateVolumes only raises); the local track row keeps the same number
+        volumes?.let {
+            anilist.discoverApi.updateLibManga(track, it)
+            track.last_chapter_read = it.toDouble()
+        }
         if (localTrack != null) track.toDomainTrack(idRequired = false)?.let { insertTrack.await(it) }
         return track
     }

@@ -139,6 +139,14 @@ object GlassTitleState {
         return maxOf(sources, local.maxOfOrNull { it.number } ?: 0)
     }
 
+    /**
+     * The "volumes read on AniList" slider's top: AniList's count; ongoing (null/0) → the higher of the current progress
+     * and the highest volume here, plus 5. Never below the current progress (a count AniList left behind).
+     */
+    fun volumeSliderMax(aniListVolumes: Int?, progress: Int, local: List<LocalVolume>): Int =
+        aniListVolumes?.takeIf { it > 0 }?.let { maxOf(it, progress) }
+            ?: (maxOf(progress, local.maxOfOrNull { it.number } ?: 0) + 5)
+
     /** MangaDex covers are wanted unless every volume 1..N (AniList's count) is on the tablet; unknown N → wanted. */
     fun needsMangaDex(aniListVolumes: Int?, local: List<LocalVolume>): Boolean {
         val n = aniListVolumes?.takeIf { it > 0 } ?: return true

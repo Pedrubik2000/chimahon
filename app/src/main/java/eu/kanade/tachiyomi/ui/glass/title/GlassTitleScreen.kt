@@ -36,12 +36,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,7 +63,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -103,6 +116,7 @@ import uy.kohesive.injekt.api.get
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import java.io.File
+import kotlin.math.roundToInt
 
 /** Glass title page (canvas `Title2-B`) of one AniList media, whatever is on the tablet. */
 class GlassTitleScreen(private val mediaId: Long) : Screen() {
@@ -123,6 +137,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val covers by model.covers.collectAsStateWithLifecycle()
         val localCovers by model.localCovers.collectAsStateWithLifecycle()
         val message by model.message.collectAsStateWithLifecycle()
+        val volumeSave by model.volumeSave.collectAsStateWithLifecycle()
+        val savedVolumes by model.savedVolumes.collectAsStateWithLifecycle()
         val fillGapsPref = remember { model.downloadPreferences.realDebridFillGaps() }
         val fillGaps by fillGapsPref.collectAsState()
         val hideUnreadPref = remember { Injekt.get<UiPreferences>().glassHideUnreadCovers() }
@@ -153,7 +169,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             count,
             volumes,
             active,
-            readUpTo = entry?.progressVolumes ?: 0,
+            readUpTo = savedVolumes,
             totalKnown = (entry?.volumes ?: 0) > 0,
             // the Downloads page's rule: a failed, not cancelled row's volumes not here and not queued again
             failed = remember(rows, here) { TitleGroup(mediaId, rows, here).failedVolumes.toSet() },
@@ -165,7 +181,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val sourceName = { id: Long -> sources.firstOrNull { it.id == id }?.name ?: coverage[id]?.sourceName.orEmpty() }
 
         // Select mode: pick volumes on the tablet to delete their files (rows, read marks and AniList stay)
-        val readUpTo = entry?.progressVolumes ?: 0
+        val readUpTo = savedVolumes
         val reading = (primary as? Primary.Resume)?.volume?.number
         val selectable = GlassTitleState.selectable(cells, reading)
         val locked = GlassTitleState.locked(cells, reading)
@@ -290,6 +306,11 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     message = message,
                     onStatus = model::setStatus,
                     onStars = model::setStars,
+                    volumeMax = GlassTitleState.volumeSliderMax(entry!!.volumes, entry!!.progressVolumes, volumes),
+                    volumeSave = volumeSave,
+                    onVolume = model::setVolume,
+                    onVolumeOpen = model::resetVolumeSave,
+                    onVolumeFlush = model::flushVolume,
                     onOpen = { uriHandler.openUri(AnilistApi.mangaUrl(mediaId)) },
                 )
             } else {
@@ -757,12 +778,43 @@ private fun AniListPanel(
     message: String?,
     onStatus: (String) -> Unit,
     onStars: (Int) -> Unit,
+    volumeMax: Int,
+    volumeSave: GlassTitleScreenModel.VolumeSave,
+    onVolume: (n: Int, debounce: Boolean) -> Unit,
+    onVolumeOpen: () -> Unit,
+    onVolumeFlush: () -> Unit,
     onOpen: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    var volumeOpen by remember { mutableStateOf(false) }
     val stars = GlassTitleState.stars(entry.score)
+    // leaving the page within the debounce still sends the last -/+ tap
+    val flush by rememberUpdatedState(onVolumeFlush)
+    DisposableEffect(Unit) { onDispose { flush() } }
+    val volumeChip: @Composable () -> Unit = {
+        Box {
+            GlassChip(
+                stringResource(MR.strings.glass_title_on_anilist, entry.progressVolumes),
+                selected = false,
+                onClick = {
+                    onVolumeOpen()
+                    volumeOpen = true
+                },
+                icon = "chevDown",
+            )
+            if (volumeOpen) {
+                VolumePopover(entry, volumeMax, volumeSave, onVolume) {
+                    volumeOpen = false
+                    onVolumeFlush()
+                }
+            }
+        }
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth().glassPanel().padding(horizontal = 16.dp, vertical = 14.dp)) {
+    // badge + status + volume + 5 stars + open button need ~350 dp: narrower (phone) puts the volume chip on its own row
+    val narrow = maxWidth < 420.dp
     Column(
-        Modifier.fillMaxWidth().glassPanel().padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -792,8 +844,9 @@ private fun AniListPanel(
                     }
                 }
             }
+            if (!narrow) volumeChip()
             Text(
-                message ?: stringResource(MR.strings.glass_title_on_anilist, entry.progressVolumes),
+                message.orEmpty(),
                 color = Glass.secondary,
                 fontSize = Glass.body,
                 maxLines = 2,
@@ -815,6 +868,7 @@ private fun AniListPanel(
                 GlassIcon("external", size = 18.dp, contentDescription = stringResource(MR.strings.glass_title_open_anilist))
             }
         }
+        if (narrow) volumeChip()
         val tags = entry.tags.filter { !it.spoiler && it.rank >= 60 }.sortedByDescending { it.rank }.take(6)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -829,6 +883,108 @@ private fun AniListPanel(
             ) {
                 Text(stringResource(MR.strings.glass_title_more_anilist), color = Color.White.copy(alpha = 0.85f), fontSize = Glass.body)
                 GlassIcon("chevRight", size = 16.dp, tint = Color.White.copy(alpha = 0.85f))
+            }
+        }
+    }
+    }
+}
+
+/** The "volumes read on AniList" popover above its chip: number, -/+, slider; saves on release and on -/+ (debounced). */
+@Composable
+private fun VolumePopover(
+    entry: AniListLibrary.Entry,
+    max: Int,
+    save: GlassTitleScreenModel.VolumeSave,
+    onVolume: (n: Int, debounce: Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val blue = Color(0xFF02A9FF)
+    var n by remember { mutableIntStateOf(entry.progressVolumes) }
+    // a failed save drops the optimistic number: follow the entry back
+    LaunchedEffect(entry.progressVolumes) { n = entry.progressVolumes }
+    val above = remember {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ) = IntOffset(
+                anchorBounds.left.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0)),
+                (anchorBounds.top - popupContentSize.height - 8).coerceAtLeast(0),
+            )
+        }
+    }
+    Popup(popupPositionProvider = above, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
+        Column(
+            Modifier.width(340.dp).clip(RoundedCornerShape(Glass.r16)).background(Glass.panel)
+                .border(1.dp, Glass.line, RoundedCornerShape(Glass.r16)).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(stringResource(MR.strings.glass_title_volumes_read), color = Glass.secondary, fontSize = Glass.caption)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("$n", color = Color.White, fontSize = Glass.title, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(MR.strings.glass_title_volumes_of, entry.volumes?.takeIf { it > 0 }?.toString() ?: "?"),
+                        color = Glass.secondary,
+                        fontSize = Glass.body,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("−" to -1, "+" to 1).forEach { (sign, d) ->
+                        Box(
+                            Modifier.size(40.dp).clip(CircleShape).border(1.dp, Glass.line, CircleShape).clickable {
+                                val next = (n + d).coerceIn(0, max)
+                                if (next != n) {
+                                    n = next
+                                    onVolume(next, true)
+                                }
+                            },
+                            contentAlignment = Alignment.Center,
+                        ) { Text(sign, color = Color.White, fontSize = Glass.heading) }
+                    }
+                }
+            }
+            Slider(
+                value = n.toFloat(),
+                onValueChange = { n = it.roundToInt() },
+                onValueChangeFinished = { if (n != entry.progressVolumes) onVolume(n, false) },
+                valueRange = 0f..max.toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = blue,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.18f),
+                ),
+            )
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf(0, max / 3, max * 2 / 3, max).forEach { Text("$it", color = Glass.secondary, fontSize = Glass.caption) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                when (save) {
+                    GlassTitleScreenModel.VolumeSave.Idle ->
+                        Text(stringResource(MR.strings.glass_title_volumes_hint), color = Glass.secondary, fontSize = Glass.caption)
+                    is GlassTitleScreenModel.VolumeSave.Saving -> {
+                        CircularProgressIndicator(Modifier.size(14.dp), color = Glass.ice, strokeWidth = 2.dp)
+                        Text(stringResource(MR.strings.glass_title_volumes_saving, save.n), color = Glass.ice, fontSize = Glass.caption)
+                    }
+                    is GlassTitleScreenModel.VolumeSave.Saved ->
+                        Text(stringResource(MR.strings.glass_title_volumes_saved, save.n), color = Glass.green, fontSize = Glass.caption)
+                    is GlassTitleScreenModel.VolumeSave.Failed -> {
+                        Text(stringResource(MR.strings.glass_title_volumes_failed, save.back), color = Glass.red, fontSize = Glass.caption)
+                        Text(
+                            stringResource(MR.strings.glass_title_volumes_retry),
+                            color = Glass.red,
+                            fontSize = Glass.caption,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable {
+                                n = save.n
+                                onVolume(save.n, false)
+                            },
+                        )
+                    }
+                }
             }
         }
     }

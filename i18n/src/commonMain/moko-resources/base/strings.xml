@@ -1146,7 +1146,14 @@
     <string name="glass_title_checking">checking…</string>
     <string name="glass_title_no_sources">No Real-Debrid source is on (Settings › Downloads)</string>
     <string name="glass_title_fill_gaps">Fill gaps from the next source</string>
-    <string name="glass_title_on_anilist">On AniList: Vol. %1$d · goes up as you finish each volume</string>
+    <string name="glass_title_on_anilist">On AniList: Vol. %1$d</string>
+    <string name="glass_title_volumes_read">Volumes read on AniList</string>
+    <string name="glass_title_volumes_of">of %1$s</string>
+    <string name="glass_title_volumes_hint">Saves when you let go</string>
+    <string name="glass_title_volumes_saving">Saving Vol. %1$d…</string>
+    <string name="glass_title_volumes_saved">Saved · AniList at Vol. %1$d</string>
+    <string name="glass_title_volumes_failed">Couldn\'t save · still Vol. %1$d</string>
+    <string name="glass_title_volumes_retry">Retry</string>
     <string name="glass_title_not_on_list">Not on your list</string>
     <string name="glass_title_open_anilist">Open on AniList</string>
     <string name="glass_title_more_anilist">More from AniList</string>

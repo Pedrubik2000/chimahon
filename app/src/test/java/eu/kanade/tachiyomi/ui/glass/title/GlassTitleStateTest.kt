@@ -243,4 +243,13 @@ class GlassTitleStateTest {
         GlassTitleState.sizeText(310_000) shouldBe "310 KB"
         GlassTitleState.sizeText(200) shouldBe "1 KB"
     }
+
+    @Test
+    fun `volume slider max - AniList count, else the highest known plus five, never under progress`() {
+        GlassTitleState.volumeSliderMax(18, 12, emptyList()) shouldBe 18
+        GlassTitleState.volumeSliderMax(18, 20, emptyList()) shouldBe 20
+        GlassTitleState.volumeSliderMax(null, 3, listOf(vol(7), vol(5))) shouldBe 12
+        GlassTitleState.volumeSliderMax(0, 9, listOf(vol(7))) shouldBe 14
+        GlassTitleState.volumeSliderMax(null, 0, emptyList()) shouldBe 5
+    }
 }
