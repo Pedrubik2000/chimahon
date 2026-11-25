@@ -82,6 +82,48 @@ object GlassTitleState {
             .mapTo(mutableSetOf()) { it.url }
     }.getOrDefault(emptySet())
 
+    // Select mode (delete the files of read volumes). Locked = the Resume volume [reading] and any unread volume with
+    // a page read: labelled "Reading", never selectable.
+
+    fun locked(cells: List<VolumeCell>, reading: Int?): Set<Int> =
+        cells.filter { it.number == reading || (it.local != null && !it.local.read && it.local.lastPageRead > 0) }
+            .mapTo(linkedSetOf()) { it.number }
+
+    /** On the tablet (has a file) and not locked: the only cells selection can pick. */
+    fun selectable(cells: List<VolumeCell>, reading: Int?): Set<Int> {
+        val locked = locked(cells, reading)
+        return cells.filter { it.local != null && it.number !in locked }.mapTo(linkedSetOf()) { it.number }
+    }
+
+    /** Read (the row, or AniList's [readUpTo]) with its file still on the tablet: the cell shows "✓●". */
+    fun readHere(cell: VolumeCell, readUpTo: Int): Boolean =
+        cell.local != null && (cell.local.read || cell.number <= readUpTo)
+
+    /**
+     * "Select read": the selectable volumes up to AniList's [readUpTo] (their read mark survives the file: the cell
+     * stays ✓ from AniList). A volume read only here is not picked: its mark would go with the file.
+     */
+    fun selectRead(cells: List<VolumeCell>, readUpTo: Int, reading: Int?): Set<Int> {
+        val ok = selectable(cells, reading)
+        return cells.filter { it.number in ok && it.number <= readUpTo }.mapTo(linkedSetOf()) { it.number }
+    }
+
+    /** [picked] volumes marked read only on this tablet (above AniList's [readUpTo]): their mark goes with the file. */
+    fun readOnlyHere(cells: List<VolumeCell>, picked: Set<Int>, readUpTo: Int): List<Int> =
+        cells.filter { it.number in picked && it.number > readUpTo && it.local?.read == true }.map { it.number }
+
+    /** Volumes read (on AniList or the row) whose file is not on the tablet: the note under the grid. */
+    fun readNotHere(cells: List<VolumeCell>): List<Int> =
+        cells.filter { it.local == null && it.state == VolState.READ }.map { it.number }
+
+    /** "1.4 GB" / "320 MB" for [bytes] (decimal units, English format whatever the locale). */
+    fun sizeText(bytes: Long): String =
+        if (bytes >= 1_000_000_000L) {
+            String.format(java.util.Locale.US, "%.1f GB", bytes / 1e9)
+        } else {
+            String.format(java.util.Locale.US, "%.0f MB", bytes / 1e6)
+        }
+
     /** One per number (an unread copy wins), by number. */
     fun dedupe(volumes: List<LocalVolume>): List<LocalVolume> =
         volumes.groupBy { it.number }

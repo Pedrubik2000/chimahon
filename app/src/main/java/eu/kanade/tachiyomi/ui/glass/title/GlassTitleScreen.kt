@@ -38,8 +38,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -160,6 +163,21 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 r.volumes.any { it !in here && it !in active }
         }
         val sourceName = { id: Long -> sources.firstOrNull { it.id == id }?.name ?: coverage[id]?.sourceName.orEmpty() }
+
+        // Select mode: pick volumes on the tablet to delete their files (rows, read marks and AniList stay)
+        val readUpTo = entry?.progressVolumes ?: 0
+        val reading = (primary as? Primary.Resume)?.volume?.number
+        val selectable = GlassTitleState.selectable(cells, reading)
+        val locked = GlassTitleState.locked(cells, reading)
+        var selecting by remember { mutableStateOf(false) }
+        var picked by remember { mutableStateOf(emptySet<Int>()) }
+        // picks made by "Select read" stay tied to it (they shrink if the read set does) until a hand pick or another chip
+        var readMode by remember { mutableStateOf(false) }
+        val readNow = GlassTitleState.selectRead(cells, readUpTo, reading)
+        val pickedNow = if (readMode) picked intersect readNow else picked intersect selectable
+        var pickedBytes by remember { mutableLongStateOf(0L) }
+        LaunchedEffect(pickedNow, local) { pickedBytes = if (pickedNow.isEmpty()) 0L else model.sizeOf(pickedNow) }
+        if (selecting && selectable.isEmpty()) selecting = false
 
         var confirm by remember { mutableStateOf<List<Int>?>(null) }
         /** Any fetch, a single volume too: the confirm dialog first (what it adds, from which source). */
@@ -284,10 +302,36 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
 
         val volumeGrid: LazyGridScope.() -> Unit = {
             fullSpan {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (selecting) Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(CircleShape)
+                        .background(Glass.panel)
+                        .border(1.dp, Glass.line, CircleShape)
+                        .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(Modifier.size(32.dp).clip(CircleShape).clickable { selecting = false; picked = emptySet(); readMode = false }, contentAlignment = Alignment.Center) {
+                        GlassIcon("close", size = 18.dp)
+                    }
+                    Text(
+                        stringResource(MR.strings.glass_title_n_selected, pickedNow.size, GlassTitleState.sizeText(pickedBytes)),
+                        fontSize = Glass.body,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                    )
+                    GlassChip(stringResource(MR.strings.glass_title_select_read), selected = readMode && pickedNow == readNow && readNow.isNotEmpty(), onClick = { picked = readNow; readMode = true })
+                    GlassChip(stringResource(MR.strings.glass_title_select_all), selected = pickedNow == selectable, onClick = { picked = selectable; readMode = false })
+                    GlassChip(stringResource(MR.strings.glass_title_select_none), selected = false, onClick = { picked = emptySet(); readMode = false })
+                } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
                     // scrolls sideways on a phone, where it does not fit next to the Fetch pill
                     Legend(Modifier.weight(1f).horizontalScroll(rememberScrollState()), notFound = cells.any { it.state == VolState.FAILED })
+                    if (selectable.isNotEmpty()) {
+                        Pill(stringResource(MR.strings.glass_title_select), onClick = { selecting = true }, icon = "check", small = true)
+                    }
                     if (fetchable.isNotEmpty()) {
                         // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
                         Pill(
@@ -316,7 +360,29 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     onFetch = { request(listOf(cell.number)) },
                     onCancel = { model.cancel(cell.number) },
                     onSetRead = model::setRead,
+                    select = if (selecting) {
+                        CellSelect(cell.number in selectable, cell.number in pickedNow, cell.number in locked && cell.local != null)
+                    } else {
+                        null
+                    },
+                    readHere = GlassTitleState.readHere(cell, readUpTo),
+                    onToggle = {
+                        picked = if (cell.number in pickedNow) pickedNow - cell.number else pickedNow + cell.number
+                        readMode = false
+                    },
                 )
+            }
+            if (selecting) fullSpan {
+                val missingRead = GlassTitleState.readNotHere(cells)
+                val note = listOfNotNull(
+                    when (missingRead.size) {
+                        0 -> null
+                        1 -> stringResource(MR.strings.glass_title_note_missing_one, missingRead.first())
+                        else -> stringResource(MR.strings.glass_title_note_missing, CoverageMatch.ranges(missingRead))
+                    },
+                    reading?.let { stringResource(MR.strings.glass_title_note_reading, it) },
+                ).joinToString(" ")
+                if (note.isNotEmpty()) Text(note, color = Glass.secondary, fontSize = Glass.caption)
             }
         }
 
@@ -405,6 +471,77 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 } else {
                     // portrait: one scrolling column
                     grid(Modifier.fillMaxSize(), true)
+                }
+            }
+            if (selecting && pickedNow.isNotEmpty()) Row(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = if (phone) 16.dp else 108.dp, end = if (phone) 16.dp else 32.dp, bottom = 16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(Glass.r8))
+                    .background(Glass.panel)
+                    .border(1.dp, Glass.line, RoundedCornerShape(Glass.r8))
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                val freed = GlassTitleState.sizeText(pickedBytes)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (pickedNow.size == 1) {
+                            stringResource(MR.strings.glass_title_delete_ask_one)
+                        } else {
+                            stringResource(MR.strings.glass_title_delete_ask, pickedNow.size)
+                        },
+                        fontSize = Glass.label,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    // a mark kept only by the row (read here, above AniList's count) goes with the file: say so
+                    val onlyHere = GlassTitleState.readOnlyHere(cells, pickedNow, readUpTo)
+                    Text(
+                        when {
+                            onlyHere.size == 1 -> stringResource(MR.strings.glass_title_read_only_here_one, onlyHere.first())
+                            onlyHere.isNotEmpty() ->
+                                stringResource(MR.strings.glass_title_read_only_here, CoverageMatch.ranges(onlyHere))
+                            readUpTo > 0 -> stringResource(MR.strings.glass_title_delete_frees_anilist, freed, readUpTo)
+                            else -> stringResource(MR.strings.glass_title_delete_frees, freed)
+                        },
+                        color = if (onlyHere.isEmpty()) Glass.secondary else Glass.red,
+                        fontSize = Glass.caption,
+                    )
+                }
+                Box(
+                    Modifier
+                        .height(Glass.button)
+                        .clip(CircleShape)
+                        .background(Glass.red.copy(alpha = 0.9f))
+                        .clickable {
+                            val chosenVolumes = pickedNow
+                            selecting = false
+                            picked = emptySet()
+                            readMode = false
+                            // runs in the model's scope: leaving the page does not cancel it half-way
+                            model.deleteVolumes(chosenVolumes) { r ->
+                                if (r.deleted == 0 && r.failed == 0) return@deleteVolumes // no files found: nothing to say
+                                val sizeText = GlassTitleState.sizeText(r.freed)
+                                val done = when {
+                                    r.deleted == 0 && r.failed > 0 -> null
+                                    r.deleted == 1 -> context.stringResource(MR.strings.glass_title_deleted_one, sizeText)
+                                    else -> context.stringResource(MR.strings.glass_title_deleted, r.deleted, sizeText)
+                                }
+                                val failedText = if (r.failed > 0) context.stringResource(MR.strings.glass_title_delete_failed, r.failed) else null
+                                Toast.makeText(context, listOfNotNull(done, failedText).joinToString(" · "), Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(MR.strings.glass_title_delete_n, pickedNow.size),
+                        color = Color.Black,
+                        fontSize = Glass.label,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
             if (!phone) GlassRail(
@@ -743,6 +880,9 @@ private fun LegendItem(icon: String, text: String, color: Color) {
     }
 }
 
+/** A cell in Select mode: [pickable] = on the tablet and not the one being read; [reading] = that locked one. */
+private data class CellSelect(val pickable: Boolean, val picked: Boolean, val reading: Boolean)
+
 @Composable
 private fun VolumeCellView(
     cell: VolumeCell,
@@ -755,6 +895,10 @@ private fun VolumeCellView(
     onFetch: () -> Unit,
     onCancel: () -> Unit,
     onSetRead: (LocalVolume, Boolean) -> Unit,
+    /** Select mode: null = off; else whether this cell can be picked, is picked, is the locked reading volume. */
+    select: CellSelect? = null,
+    readHere: Boolean = false,
+    onToggle: () -> Unit = {},
 ) {
     var menu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(Glass.r8)
@@ -785,16 +929,21 @@ private fun VolumeCellView(
                 .background(Glass.panel)
                 // failed: the Downloads bar's hatch instead of a cover
                 .then(if (failed) Modifier.hatched(Color.White.copy(alpha = 0.18f)) else Modifier)
-                .border(if (current) 2.dp else 1.dp, if (current) Glass.ice else Glass.line, shape)
+                .border(
+                    if (current || select?.picked == true) 2.dp else 1.dp,
+                    if (current || select?.picked == true) Glass.ice else Glass.line,
+                    shape,
+                )
                 .combinedClickable(
                     onClick = {
                         when {
+                            select != null -> if (select.pickable) onToggle()
                             local != null -> onOpen(local)
                             cell.state == VolState.NONE || cell.state == VolState.READ || failed -> onFetch() // READ here = read on AniList, not on the tablet
                             else -> menu = true
                         }
                     },
-                    onLongClick = { if (local != null) menu = true },
+                    onLongClick = { if (local != null && select == null) menu = true },
                 ),
         ) {
             val context = LocalPlatformContext.current
@@ -826,17 +975,51 @@ private fun VolumeCellView(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
             icon?.let {
-                Box(
+                Row(
                     Modifier
                         .align(Alignment.TopEnd)
                         .padding(4.dp)
+                        .height(22.dp)
+                        .widthIn(min = 22.dp)
+                        .clip(CircleShape)
+                        .background(Glass.scrim)
+                        .padding(horizontal = if (readHere) 4.dp else 0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+                ) {
+                    // read and still on the tablet: both marks
+                    if (readHere && cell.state != VolState.READ) GlassIcon("check", size = 14.dp, tint = Glass.have)
+                    GlassIcon(it, size = 14.dp, tint = tint)
+                    if (readHere && cell.state == VolState.READ) GlassIcon("dot", size = 14.dp, tint = Color.White)
+                }
+            }
+            if (select != null && select.pickable) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .padding(bottom = 4.dp)
                         .size(22.dp)
                         .clip(CircleShape)
-                        .background(Glass.scrim),
+                        .background(if (select.picked) Glass.ice else Glass.scrim)
+                        .border(1.5.dp, if (select.picked) Glass.ice else Color.White.copy(alpha = 0.8f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GlassIcon(it, size = 14.dp, tint = tint)
+                    if (select.picked) GlassIcon("check", size = 14.dp, tint = Color.Black)
                 }
+            }
+            if (select?.reading == true) {
+                Text(
+                    stringResource(MR.strings.glass_title_reading),
+                    fontSize = Glass.caption,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 10.dp)
+                        .clip(CircleShape)
+                        .background(Glass.scrim)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
             if (failed) {
                 Text(

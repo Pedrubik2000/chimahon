@@ -190,4 +190,55 @@ class GlassTitleStateTest {
         GlassTitleState.nextUnread(all, emptySet(), 0, 12)?.id shouldBe 13L
         GlassTitleState.nextUnread(all + range, emptySet(), 0, 18)?.id shouldBe 999L
     }
+
+    // Mashle: 1-2 read on AniList only, 3-12 read here, 13 reading, 14 unread here, 15 not here
+    private fun selectCells() = GlassTitleState.cells(
+        15,
+        (3..12).map { vol(it, read = true) } + vol(13, page = 4) + vol(14),
+        emptyMap(),
+        readUpTo = 12,
+        totalKnown = true,
+    )
+
+    @Test
+    fun `select read picks read volumes on the tablet, not the reading one`() {
+        val cells = selectCells()
+        GlassTitleState.selectRead(cells, 12, 13) shouldBe (3..12).toSet()
+        GlassTitleState.selectable(cells, 13) shouldBe ((3..12) + 14).toSet()
+        GlassTitleState.readNotHere(cells) shouldBe listOf(1, 2)
+    }
+
+    @Test
+    fun `a volume under AniList's count on the tablet counts as read, the reading one never selectable`() {
+        val cells = GlassTitleState.cells(5, listOf(vol(2), vol(3, page = 7), vol(5)), emptyMap(), readUpTo = 3)
+        GlassTitleState.selectRead(cells, 3, 3) shouldBe setOf(2)
+        GlassTitleState.selectable(cells, 3) shouldBe setOf(2, 5)
+        GlassTitleState.readHere(cells[1], 3) shouldBe true // vol 2
+        GlassTitleState.readHere(cells[4], 3) shouldBe false // vol 5 unread
+        GlassTitleState.readHere(cells[3], 3) shouldBe false // vol 4 not here
+    }
+
+    @Test
+    fun `read only on the tablet is not picked by select read and warns when picked by hand`() {
+        // AniList read 3; vol 4 read here only; vol 6 half-read but not the Resume volume; vol 7 is
+        val cells = GlassTitleState.cells(
+            8,
+            listOf(vol(2, read = true), vol(4, read = true), vol(5), vol(6, page = 9), vol(7, page = 2)),
+            emptyMap(),
+            readUpTo = 3,
+            totalKnown = true,
+        )
+        GlassTitleState.selectRead(cells, 3, 7) shouldBe setOf(2)
+        GlassTitleState.locked(cells, 7) shouldBe setOf(6, 7)
+        GlassTitleState.selectable(cells, 7) shouldBe setOf(2, 4, 5)
+        GlassTitleState.readOnlyHere(cells, setOf(2, 4, 5), 3) shouldBe listOf(4) // 5 is unread: no mark lost
+        GlassTitleState.readOnlyHere(cells, setOf(2), 3) shouldBe emptyList()
+    }
+
+    @Test
+    fun `size text`() {
+        GlassTitleState.sizeText(1_430_000_000) shouldBe "1.4 GB"
+        GlassTitleState.sizeText(320_000_000) shouldBe "320 MB"
+        GlassTitleState.sizeText(0) shouldBe "0 MB"
+    }
 }

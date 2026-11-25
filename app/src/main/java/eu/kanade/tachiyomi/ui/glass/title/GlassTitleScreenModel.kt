@@ -53,6 +53,9 @@ import tachiyomi.domain.track.repository.TrackRepository
 import tachiyomi.source.local.LocalSource
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import com.hippo.unifile.UniFile
+import kotlinx.coroutines.withContext
+import tachiyomi.source.local.io.LocalSourceFileSystem
 import java.io.File
 import tachiyomi.domain.track.model.Track as DomainTrack
 
@@ -99,6 +102,9 @@ class GlassTitleScreenModel(
     /** The fallback link ([resolveLocal]) is written once per open. */
     private var linkTried = false
 
+    /** Chapter url -> its dateUpload when its file was deleted here: the row stays (read state), the volume does not. */
+    private val deletedUrls = MutableStateFlow(emptyMap<String, Long>())
+
     private val localFlow = combine(
         trackRepository.getTracksAsFlow()
             .map { tracks -> tracks.filter { it.trackerId == TrackerManager.ANILIST } }
@@ -114,13 +120,15 @@ class GlassTitleScreenModel(
                 // the files are only re-checked when the chapter list changes, not on every page turn
                 var seenKey = emptyList<Pair<String, Long>>()
                 var empty = emptySet<String>()
-                chapterRepository.getChapterByMangaIdAsFlow(pair.first.id).map { chapters ->
+                combine(chapterRepository.getChapterByMangaIdAsFlow(pair.first.id), deletedUrls) { chapters, deleted -> chapters to deleted }.map { (chapters, deleted) ->
                     val key = chapters.map { it.url to it.dateUpload } // dateUpload = file lastModified: a replaced file changes it
                     if (key != seenKey) {
                         empty = GlassTitleState.emptyUrls(chapters)
                         seenKey = key
                     }
-                    val volumes = chapters.filter { it.url !in empty }.mapNotNull { c ->
+                    // deleted here and not replaced since (dateUpload unchanged); an emptied folder lists as "unreadable", so emptyUrls alone would miss them
+                    val gone = chapters.filter { deleted[it.url] == it.dateUpload }.mapTo(mutableSetOf()) { it.url }
+                    val volumes = chapters.filter { it.url !in empty && it.url !in gone }.mapNotNull { c ->
                         GlassTitleState.volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
                     }
                     Local(pair.first, pair.second, chapters, GlassTitleState.dedupe(volumes))
@@ -289,6 +297,67 @@ class GlassTitleScreenModel(
     fun setRead(volume: LocalVolume, read: Boolean) {
         val chapter = local.value?.chapters?.firstOrNull { it.id == volume.chapterId } ?: return
         screenModelScope.launch(Dispatchers.IO) { setReadStatus.await(read, chapter) }
+    }
+
+    /** What a delete did, in volumes ([failed] = files that could not be removed) and bytes freed. */
+    data class DeleteResult(val deleted: Int, val failed: Int, val freed: Long)
+
+    /**
+     * The chapters of the cells shown for [numbers] (by chapter id: a hidden copy, a "Vol. 3.5" or a range file that
+     * reads as the same number is not one of them) and their files in the series folder (url = "folder/file").
+     */
+    private fun volumeFiles(numbers: Set<Int>): List<Pair<Chapter, UniFile>> {
+        val l = local.value ?: return emptyList()
+        val ids = l.volumes.filter { it.number in numbers }.mapTo(mutableSetOf()) { it.chapterId }
+        val chapters = l.chapters.filter { it.id in ids }
+        val dir = chapters.firstOrNull()?.url?.substringBefore('/') ?: return emptyList()
+        val byName = Injekt.get<LocalSourceFileSystem>().getFilesInMangaDirectory(dir).associateBy { it.name }
+        return chapters.mapNotNull { c -> byName[c.url.substringAfter('/')]?.let { c to it } }
+    }
+
+    private fun UniFile.bytes(): Long = if (isDirectory) listFiles().orEmpty().sumOf { it.bytes() } else length()
+
+    /** Bytes the files of [numbers] take (archives, epubs, folder contents). IO. */
+    suspend fun sizeOf(numbers: Set<Int>): Long = withContext(Dispatchers.IO) {
+        runCatching { volumeFiles(numbers).sumOf { it.second.bytes() } }.getOrDefault(0L)
+    }
+
+    /**
+     * Deletes the files of [numbers] and nothing else: chapter rows, read state and tracking stay (a sync would drop
+     * the rows, so none runs). Runs in the model's scope, [onDone] gets the result on the main thread. A storage error
+     * counts every volume as failed.
+     */
+    fun deleteVolumes(numbers: Set<Int>, onDone: (DeleteResult) -> Unit) {
+        screenModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                val gone = mutableMapOf<String, Long>()
+                var failed = 0
+                var freed = 0L
+                try {
+                    volumeFiles(numbers).forEach { (c, f) ->
+                        val size = f.bytes()
+                        if (f.delete()) {
+                            freed += size
+                            gone[c.url] = c.dateUpload
+                        } else {
+                            failed++
+                            if (f.exists()) {
+                                logcat(LogPriority.WARN) { "Volume file not fully deleted: ${c.url} (${f.bytes()} of $size bytes left)" }
+                            }
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logcat(LogPriority.WARN, e) { "Deleting volume files failed: $numbers" }
+                    failed = numbers.size - gone.size // replaces the loop's count: every volume not gone failed
+                }
+                // a folder volume that lost only some files still counts as failed above, and stays shown
+                deletedUrls.update { it + gone }
+                DeleteResult(gone.size, failed, freed)
+            }
+            onDone(result)
+        }
     }
 
     // AniList edits
