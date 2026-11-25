@@ -162,6 +162,15 @@ class GlassTitleStateTest {
     }
 
     @Test
+    fun `primary does not resume a chapter-range file above the total`() {
+        val all = (1..18).map { vol(it, read = true) } + vol(146)
+        GlassTitleState.primary(GlassTitleState.inRange(all, 18), 0, 18, emptySet()) shouldBe Primary.None
+        // unknown total: nothing is hidden
+        GlassTitleState.inRange(all, 0) shouldBe all
+        GlassTitleState.primary(GlassTitleState.inRange(all, 0), 0, 0, emptySet()) shouldBe Primary.Resume(vol(146))
+    }
+
+    @Test
     fun `nextUnread skips a chapter-range file and volumes above the total`() {
         // file-name parse as the title page: "Vol. 13.cbz" is volume 13, "ch146-153.rar" is 146 (capped by the total)
         fun file(name: String, id: Long, read: Boolean = false, page: Long = 0) = tachiyomi.domain.chapter.model.Chapter.create()

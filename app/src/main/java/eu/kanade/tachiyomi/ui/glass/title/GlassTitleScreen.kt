@@ -134,7 +134,13 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         val order = GlassTitleState.fetchOrder(inOrder, chosen, fillGaps)
         val missing = GlassTitleState.missing(count, volumes, active)
         val fetchable = GlassTitleState.fetchable(missing, order)
-        val primary = GlassTitleState.primary(volumes, entry?.progressVolumes ?: 0, count, active.keys)
+        // only volumes 1..AniList's total can be resumed (cells and counts keep every file)
+        val primary = GlassTitleState.primary(
+            GlassTitleState.inRange(volumes, entry?.volumes ?: 0),
+            entry?.progressVolumes ?: 0,
+            count,
+            active.keys,
+        )
         val current = when (primary) {
             is Primary.Resume -> primary.volume.number
             is Primary.Fetch -> primary.volume

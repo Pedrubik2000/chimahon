@@ -55,12 +55,16 @@ object GlassTitleState {
     fun nextUnread(chapters: List<Chapter>, empty: Set<String>, total: Int, progressVolumes: Int): Chapter? {
         val volumes = dedupe(
             chapters.filter { it.url !in empty }.mapNotNull { c ->
-                volumeNumber(c)?.takeIf { total <= 0 || it <= total }?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
+                volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
             },
         )
-        val resume = primary(volumes, progressVolumes, total, emptySet()) as? Primary.Resume ?: return null
+        val resume = primary(inRange(volumes, total), progressVolumes, total, emptySet()) as? Primary.Resume ?: return null
         return chapters.firstOrNull { it.id == resume.volume.chapterId }
     }
+
+    /** [volumes] numbered 1..[total] (0 = unknown: all): a chapter-range file read as "146" is no volume of an 18-volume series. */
+    fun inRange(volumes: List<LocalVolume>, total: Int): List<LocalVolume> =
+        if (total > 0) volumes.filter { it.number <= total } else volumes
 
     /** A local file counts as on the tablet unless it is an empty (0-byte) archive or epub; a directory always counts. */
     fun counts(isDirectory: Boolean, length: Long): Boolean = isDirectory || length > 0
