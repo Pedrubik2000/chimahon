@@ -102,6 +102,13 @@ Three ways to find what to read next, based on what you finished:
 - Tap **+** on a word you look up and it becomes a flashcard inside the app, with the sentence it came from. Anki is not needed (if Anki is set up, the card goes there too).
 - **Review** on the rail shows how many cards are due. Cards are scheduled with FSRS-6; Undo takes back the last answer.
 
+## 🎨 Word colours and faces
+
+- **Word colours** on the page (Settings › Mining › *Colour words*): red new, green due, blue mined, known words plain. kumahon splits the text itself (a one-time 80 MB dictionary download, Wi-Fi only).
+- **Known words** come in layers: the most frequent words (1k to 50k, from Jiten's frequency list), words you mark known, and, if you use [kumapie](https://github.com/Pedrubik2000/kumapie-tv), the words and cards it knows. The page menu counts the new, due and mined words on the pages you see.
+- **Sync with kumapie** (optional): pair with kumapie on the same network and reviews, known words and mined words go both ways.
+- **Character faces**: a character's picture before their name, from a character dictionary kumahon builds from AniList for the works you read (no spoilers).
+
 ## 📥 Download
 
 Builds are on the [Releases](https://github.com/Pedrubik2000/kumahon/releases) page: arm64 for tablets and phones, armeabi-v7a for older devices and TVs. The app installs as "kumahon", next to the original Chimahon.
@@ -122,6 +129,8 @@ The original's novel reader, mokuro support and anime player are still in the co
 - [hoshidicts](https://github.com/Manhhao/hoshidicts/): native dictionary engine.
 - Word colouring: [Sudachi](https://github.com/WorksApplications/Sudachi) and SudachiDict (Apache-2.0) split Japanese into words, with a port of
   [Jiten](https://github.com/Sirush/Jiten)'s parser (Apache-2.0) and [JL](https://github.com/rampaa/JL)'s deconjugation rules (Apache-2.0), the same as kumapie.
+- Character faces: a Kotlin port of [Japanese Character Name Dictionary](https://github.com/bee-san/Japanese_Character_Name_Dictionary)
+  by Autumn (Bee) (MIT, see `kumahon-core/.../chardict/NOTICE.md`), with character data from [AniList](https://anilist.co).
 - [Jitendex](https://jitendex.org) and the [EDRDG](https://www.edrdg.org/) (JMnedict, KANJIDIC): the dictionaries offered for download.
 - [Machita Chima (町田ちま)](https://www.youtube.com/channel/UCo7TRj3cS-f_1D9ZDmuTsjw): app name inspiration.
 
