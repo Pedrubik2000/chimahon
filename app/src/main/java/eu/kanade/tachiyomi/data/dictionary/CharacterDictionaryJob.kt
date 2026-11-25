@@ -55,7 +55,7 @@ class CharacterDictionaryJob(context: Context, params: WorkerParameters) : Corou
         var before = ""
         val mine = java.util.concurrent.atomic.AtomicReference("") // this job's own status text
         fun say(s: String) { mine.set(s); CharacterDictionary.setBuilding(app, s) }
-        fun clearStatus() { if (CharacterDictionary.building(app) == mine.get()) CharacterDictionary.setBuilding(app, "") } // a newer job's "waiting" stays
+        fun clearStatus() { CharacterDictionary.clearBuilding(app, mine.get()) } // a newer job's "waiting" stays
         try {
             setForegroundSafely()
             CharacterDictionary.verify(app)
@@ -69,7 +69,7 @@ class CharacterDictionaryJob(context: Context, params: WorkerParameters) : Corou
             }
             CharacterDictionary.recordNotFound(app, built.notFound)
             // nothing resolved: keep the old dictionary; some did: the rest stay out of builtWorks, so needsRebuild retries them
-            check(built.resolved.isNotEmpty()) { "no work found on AniList: ${built.unresolved.joinToString("; ")}" }
+            check(built.resolved.isNotEmpty()) { built.error ?: "no work found on AniList: ${built.unresolved.joinToString("; ")}" }
             say("importing")
             val prefs = Injekt.get<DictionaryPreferences>()
             val title = CharacterDictionary.TITLE
@@ -85,7 +85,7 @@ class CharacterDictionaryJob(context: Context, params: WorkerParameters) : Corou
                 val (message, ok) = zip.inputStream().use { importDictionaryFromStream(app, it, prefs.profileStore.getActiveProfile()) }
                 check(ok) { message }
                 DictionaryImportMutex.withLock { putFirst(prefs, added) }
-                CharacterDictionary.markBuilt(app, built.resolved, built.characters, built.notFound)
+                CharacterDictionary.markBuilt(app, built.resolved, built.characters, built.notFound, mine.get())
                 replacing = false
             }
             if (works.size > built.resolved.size + built.notFound.size) {

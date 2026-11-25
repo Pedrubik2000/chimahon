@@ -40,7 +40,7 @@ class FaceMatcherTest {
     }
 
     @Test fun `three pieces join to a name and the honorific is stripped`() {
-        val hits = FaceMatcher(dict, { false }).match("壬氏様が来た", tok("壬", "氏", "様", "が", "来た"), null)
+        val hits = FaceMatcher(dict).match("壬氏様が来た", tok("壬", "氏", "様", "が", "来た"), null)
         assertEquals(1, hits.size)
         assertEquals(0, hits[0].start)
         assertEquals(3, hits[0].length)
@@ -48,23 +48,74 @@ class FaceMatcherTest {
         assertArrayEquals(png, hits[0].portrait)
     }
 
-    @Test fun `a single word must also be auto known, a join need not`() {
+    @Test fun `a single headword and a join both match`() {
         val text = "壬氏が来た"
-        assertTrue(FaceMatcher(dict, { false }).match(text, tok("壬氏", "が", "来た"), null).isEmpty())
-        assertEquals(1, FaceMatcher(dict, { it == "壬氏" }).match(text, tok("壬氏", "が", "来た"), null).size)
-        assertEquals(1, FaceMatcher(dict, { false }).match(text, tok("壬", "氏", "が", "来た"), null).size) // 2-piece join
+        assertEquals(1, FaceMatcher(dict).match(text, tok("壬氏", "が", "来た"), null).size)
+        assertEquals(1, FaceMatcher(dict).match(text, tok("壬", "氏", "が", "来た"), null).size) // 2-piece join
+    }
+
+    private val names = Fake(
+        dict.entries + mapOf(
+            "千尋" to listOf(Glossary("c", card("w"))),
+            "千尋さん" to listOf(Glossary("c", card("w", "さん"))),
+            "山口" to listOf(Glossary("c", card("薬屋のひとりごと"))),
+            "氏" to listOf(Glossary("c", card("w"))),
+            "あい" to listOf(Glossary("c", card("w"))),
+        ),
+    )
+
+    @Test fun `a name with its honorific gets one face at the name start`() {
+        val hits = FaceMatcher(names).match("千尋さん ビール", tok("千尋", "さん", " ", "ビール"), null)
+        assertEquals(1, hits.size)
+        assertEquals(0, hits[0].start)
+        assertEquals("千尋", hits[0].name)
+    }
+
+    @Test fun `a surname alone and a name inside a text match`() {
+        assertEquals(1, FaceMatcher(names).match("山口", tok("山口"), null).size)
+        val hits = FaceMatcher(names).match("千尋さんビール", tok("千尋", "さん", "ビール"), null)
+        assertEquals(1, hits.size)
+        assertEquals(0, hits[0].start)
+    }
+
+    @Test fun `with no work a single name must also be auto known, with a work the headword is enough`() {
+        val one = tok("山口")
+        assertTrue(FaceMatcher(names, { false }).match("山口", one, null).isEmpty())
+        assertEquals(1, FaceMatcher(names, { true }).match("山口", one, null).size)
+        assertEquals(1, FaceMatcher(names, { false }).match("山口", one, "薬屋のひとりごと").size)
+    }
+
+    /** What the device has (tablet/emulator, 2026-11-24): the real splitter's tokens of the page text and a stored glossary, whose JSON escapes the slash of the portrait path. */
+    @Test fun `real tokens and a real escaped glossary give a face`() {
+        val real = """[{"type":"structured-content","content":[{"tag":"div","style":{"fontSize":"0.85em"},"content":[{"tag":"span","content":"さん","style":{"fontWeight":"bold"}},{"tag":"span","content":" — Generic polite suffix (Mr.\/Ms.\/Mrs.)"}]},{"tag":"div","data":{"id":"name"},"content":"山口千尋"},{"tag":"div","data":{"id":"name-romaji"},"content":"Chihiro Yamaguchi"},{"tag":"div","data":{"id":"portrait-container"},"content":{"tag":"img","path":"img\/c205752.jpg","width":67,"height":100}},{"tag":"div","data":{"id":"source"},"content":"From: 焼いてるふたり (Yaiteru Futari)"}]}]"""
+        val d = object : CharacterDict {
+            override fun glossaries(word: String) = if (word == "千尋" || word == "千尋さん") listOf(Glossary("c", real)) else emptyList()
+            override fun media(dict: String, path: String) = if (path == "img/c205752.jpg") png else null
+        }
+        val text = "千尋さんビール飲みたいって言ってましたよね"
+        val tokens = listOf("千尋/千尋/0", "さん/さん/2", "ビール/ビール/4", "飲みたい/飲む/7", "って/って/11", "言ってました/言う/13", "よね/よね/19")
+            .map { it.split("/").let { (s, b, at) -> Token(s, b, "", if (s == "さん") "接尾辞" else "名詞", at.toInt()) } }
+        val hits = FaceMatcher(d, { false }).match(text, tokens, "焼いてるふたり")
+        assertEquals(1, hits.size)
+        assertEquals(0, hits[0].start)
+        assertEquals("千尋", hits[0].name)
+    }
+
+    @Test fun `a one-character or hiragana headword gets no face`() {
+        assertTrue(FaceMatcher(names).match("氏", tok("氏"), null).isEmpty())
+        assertTrue(FaceMatcher(names).match("あい", tok("あい"), null).isEmpty())
     }
 
     @Test fun `only the work's characters when a work is given`() {
-        val m = FaceMatcher(dict, { true })
+        val m = FaceMatcher(dict)
         assertEquals(1, m.match("壬氏", tok("壬氏"), "薬屋のひとりごと 3").size)
         assertTrue(m.match("壬氏", tok("壬氏"), "別の作品").isEmpty())
     }
 
     @Test fun `a gap between pieces breaks the join and a hiragana word is skipped`() {
         val gapped = listOf(Token("壬", "壬", "", "名詞", 0), Token("氏", "氏", "", "名詞", 2))
-        assertTrue(FaceMatcher(dict, { false }).match("壬 氏", gapped, null).isEmpty())
-        assertTrue(FaceMatcher(dict, { true }).match("あ", listOf(Token("あ", "壬氏", "", "名詞", 0)), null).isEmpty())
+        assertTrue(FaceMatcher(dict).match("壬 氏", gapped, null).isEmpty())
+        assertTrue(FaceMatcher(dict).match("あ", listOf(Token("あ", "壬氏", "", "名詞", 0)), null).isEmpty())
     }
 
     @Test fun `entry parsing`() {
@@ -76,9 +127,22 @@ class FaceMatcherTest {
         assertFalse(CharacterEntry.fromWork(card("薬屋のひとりごと"), "x"))
     }
 
+    @Test fun `a title with a slash or an escape is read whole`() {
+        assertTrue(CharacterEntry.fromWork(card("Fate/Grand Order"), "Fate/Grand Order 2"))
+        val raw = """[{"type":"structured-content","content":[{"tag":"div","data":{"id":"source"},"content":"From: Pok${'\\'}u00e9mon Fate\/Zero"}]}]"""
+        assertTrue(CharacterEntry.fromWork(raw, "Pokémon Fate/Zero"))
+        assertFalse(CharacterEntry.fromWork(raw, "Pokémon Go"))
+    }
+
+    @Test fun `the portrait is the one in the portrait container, not an earlier voice actor image`() {
+        val raw = """[{"type":"structured-content","content":[{"tag":"div","data":{"id":"name-romaji"},"content":"X"},{"tag":"img","path":"img\/c1_va.jpg"},{"tag":"div","data":{"id":"portrait-container"},"content":{"tag":"img","path":"img\/c1.jpg"}}]}]"""
+        assertEquals("img/c1.jpg", CharacterEntry.portraitPath(raw))
+        assertNull(CharacterEntry.portraitPath("""[{"content":[{"tag":"img","path":"a.jpg"}]}]"""))
+    }
+
     @Test fun `portraits are asked through the cache`() {
         val asked = ArrayList<String>()
-        val m = FaceMatcher(dict, { true }) { k, f -> asked += k; f() }
+        val m = FaceMatcher(dict) { k, f -> asked += k; f() }
         m.portrait("壬氏", "w")
         assertEquals(listOf("壬氏\nw"), asked)
     }

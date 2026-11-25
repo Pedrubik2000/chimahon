@@ -444,7 +444,7 @@ class ReaderActivity : BaseActivity() {
             .filterNotNull()
             .onEach {
                 // kumapie's faces on the OCR text: only this manga's characters.
-                chimahon.ocr.KumapieColours.reading(this, it.title, it.description)
+                chimahon.ocr.KumapieColours.reading(this, it.title, it.description) { eu.kanade.tachiyomi.data.dictionary.CharacterDictionaryJob.schedule(this@ReaderActivity) }
                 // the character dictionary: debounced, and only if the set of works changed
                 eu.kanade.tachiyomi.data.dictionary.CharacterDictionaryJob.schedule(this)
                 updateViewer()

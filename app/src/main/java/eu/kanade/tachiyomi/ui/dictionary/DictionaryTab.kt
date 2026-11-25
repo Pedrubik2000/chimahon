@@ -777,10 +777,22 @@ data object DictionaryTab : Tab {
         private var session: Long? = null
         private var configuredPaths: chimahon.DictionaryPaths = chimahon.DictionaryPaths()
         private var cachedStyles: List<DictionaryStyle> = emptyList()
+        private var importedSeen = chimahon.chardict.CharacterDictionary.imported
+
+        /** The character dictionary was re-imported: this session still reads the old files, open a new one. */
+        private fun reopenIfImported() {
+            val n = chimahon.chardict.CharacterDictionary.imported
+            if (n == importedSeen) return
+            importedSeen = n
+            session?.let(HoshiDicts::destroyLookupObject)
+            session = null
+            configuredPaths = chimahon.DictionaryPaths()
+        }
 
         @Synchronized
         fun warmUp(paths: chimahon.DictionaryPaths) {
             if (chimahon.chardict.CharacterDictionary.importing) return
+            reopenIfImported()
             val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
             if (paths != configuredPaths) {
                 HoshiDicts.rebuildQuery(
@@ -798,6 +810,7 @@ data object DictionaryTab : Tab {
         @Synchronized
         fun queryKanji(char: String): chimahon.KanjiResult? {
             if (chimahon.chardict.CharacterDictionary.importing) return null
+            reopenIfImported()
             val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
             return try {
                 HoshiDicts.queryKanji(activeSession, char)
@@ -809,13 +822,14 @@ data object DictionaryTab : Tab {
         @Synchronized
         fun lookup(query: String, paths: chimahon.DictionaryPaths, languageCode: String = ""): LookupUiResult {
             if (chimahon.chardict.CharacterDictionary.importing) return LookupUiResult(emptyList(), cachedStyles, emptyMap(), null, null, null)
+            reopenIfImported()
             val t0 = SystemClock.elapsedRealtime()
             val ramBefore = currentUsedRamMb()
             var sessionCreateMs = 0L
             var rebuildMs = 0L
 
             val hadSession = session != null
-            val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
+            if (!hadSession) session = HoshiDicts.createLookupObject()
             if (!hadSession) {
                 sessionCreateMs = SystemClock.elapsedRealtime() - t0
             }
@@ -825,6 +839,7 @@ data object DictionaryTab : Tab {
                 warmUp(paths)
                 rebuildMs = SystemClock.elapsedRealtime() - rebuildStart
             }
+            val activeSession = session!! // warmUp may have reopened it: never a handle from before
 
             val lookupStart = SystemClock.elapsedRealtime()
             val effectiveLang = languageCode.lowercase()

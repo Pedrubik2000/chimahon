@@ -126,14 +126,17 @@ object KumapieColours {
         val stamp = CharacterDictionary.builtAt(context) // 0: none built, kumapie answers
         val key = "$stamp\n${work.orEmpty()}\n$text"
         faceCache.get(key)?.let { return it }
-        if (asking.add("faces:$key")) {
+        if (System.currentTimeMillis() >= notReadyUntil && asking.add("faces:$key")) {
             worker.execute {
                 val app = context.applicationContext
+                var failed = false
                 val faces = runCatching { if (stamp > 0) ownFaces(app, text, work, stamp) else askFaces(app, text, work) }
-                    .onFailure { Log.w("KumapieColours", "faces: $it") }.getOrNull().orEmpty()
-                faceCache.put(key, faces)
+                    .onFailure { Log.w("KumapieColours", "faces: $it"); failed = true }.getOrNull()
+                // null = not answered (model still downloading, dictionary importing): not cached, asked again after 5 s of draws;
+                // the model finishing its download calls clear(), which redraws every page. An exception is an answer (none): cached.
+                if (faces != null || failed) faceCache.put(key, faces.orEmpty()) else { notReadyUntil = System.currentTimeMillis() + NOT_READY_MS; android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ ready() }, NOT_READY_MS) } // one redraw when the window ends, so a static page gets its faces
                 asking.remove("faces:$key")
-                if (faces.isNotEmpty()) ready()
+                if (!faces.isNullOrEmpty()) ready()
             }
         }
         return null
@@ -148,16 +151,18 @@ object KumapieColours {
      * The reader opened [title]. Its Japanese title: the description's first line when that is one (the Real-Debrid
      * import puts AniList's there), the title itself when Japanese, else AniList's best match, asked once per run.
      */
-    fun reading(context: Context, title: String, description: String?) {
+    fun reading(context: Context, title: String, description: String?, onNoted: () -> Unit = {}) {
         val first = description?.lineSequence()?.firstOrNull()?.trim()
         work = listOfNotNull(first, title).firstOrNull { it.length <= 60 && '。' !in it && JAPANESE.containsMatchIn(it) }
             ?: works[title]
         Log.i("KumapieColours", "reading $title: work $work")
-        if (title.isNotBlank()) CharacterDictionary.note(context.applicationContext, work ?: title) // the character dictionary's set of works
-        if (work != null || title.isBlank()) return
+        if (title.isBlank()) return
+        // the character dictionary's set of works: noted once the Japanese title is known (the plain title first would add a second entry for the same manga)
+        work?.let { CharacterDictionary.note(context.applicationContext, it); onNoted(); return }
         worker.execute {
-            runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }.getOrNull()
-                ?.let { works[title] = it; work = it; Log.i("KumapieColours", "reading $title: AniList says $it") }
+            val native = runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }.getOrNull()
+            native?.let { works[title] = it; work = it; Log.i("KumapieColours", "reading $title: AniList says $it") }
+            CharacterDictionary.note(context.applicationContext, native ?: title); onNoted() // AniList failed or has no match: the title it is
         }
     }
 
@@ -177,11 +182,20 @@ object KumapieColours {
         return json.getJSONObject("data").optJSONObject("Media")?.optJSONObject("title")?.optString("native")?.takeIf { it.isNotBlank() }
     }
 
-    private fun ownFaces(context: Context, text: String, work: String?, stamp: Long): List<Face> {
+    @Volatile private var notReadyUntil = 0L
+    private const val NOT_READY_MS = 5_000L
+    private val missLogged = ConcurrentHashMap.newKeySet<String>() // texts whose not-ready miss was logged (cleared with the caches)
+
+    private fun missOnce(text: String): Boolean { if (missLogged.size > 500) missLogged.clear(); return missLogged.add(text) }
+
+    private fun ownFaces(context: Context, text: String, work: String?, stamp: Long): List<Face>? {
         colourer(context) // creates [japanese]
         val model = japanese!!
-        val words = model.words(text) ?: run { download(context); return emptyList() }
-        return CharacterDictionary.faces(context, text, words, work, model::autoKnown).mapNotNull { hit ->
+        val words = model.words(text) ?: run { download(context); if (missOnce(text)) Log.d("KumapieColours", "ownFaces: Japanese model not ready"); return null }
+        val hits = CharacterDictionary.faces(context, text, words, work, model::autoKnown) ?: run { if (missOnce(text)) Log.d("KumapieColours", "ownFaces: character dictionary not ready"); return null }
+        Log.d("KumapieColours", "ownFaces: ${text.length} chars, ${words.size} tokens, ${hits.size} hits, work $work")
+        if (Log.isLoggable("KumapieColours", Log.VERBOSE)) Log.d("KumapieColours", "ownFaces: \"${text.take(40)}\" [${words.joinToString(" ") { "${it.surface}/${it.base}/${it.begin}" }}], hits ${hits.map { it.name + "@" + it.start }}")
+        return hits.mapNotNull { hit ->
             val key = "$stamp\n${work.orEmpty()}\n${hit.name}"
             val picture = pictures[key]
                 ?: android.graphics.BitmapFactory.decodeByteArray(hit.portrait, 0, hit.portrait.size)?.let(::circle)?.also { pictures[key] = it }
@@ -222,7 +236,7 @@ object KumapieColours {
     }
 
     /** Forgets every text's colours (and the colourer's view of the store): after a sync, a rating, Undo or a new card the next draw colours again. */
-    fun clear() { cache.evictAll(); faceCache.evictAll(); colourer?.reload(); redraws.forEach { it() } }
+    fun clear() { cache.evictAll(); faceCache.evictAll(); missLogged.clear(); notReadyUntil = 0; colourer?.reload(); redraws.forEach { it() } }
 
     /**
      * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?, known?, text?}` goes to

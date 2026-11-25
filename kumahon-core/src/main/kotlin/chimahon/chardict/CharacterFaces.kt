@@ -35,27 +35,40 @@ object CharacterEntry {
     fun fromWork(glossary: String, work: String): Boolean {
         val w = workKey(work).trimEnd { it.isDigit() }
         if (w.length < 2) return false
-        return Regex("""From: ([^"\\]+)""").findAll(glossary).any { m ->
-            workKey(m.groupValues[1]).let { f -> f.length >= 2 && (f in w || w in f) }
+        // every "From: <title>" text of the parsed JSON (the single card's block or a multi-media row's span), unescaped
+        return nodes(glossary).filterIsInstance<String>().filter { "From: " in it }.any { s ->
+            workKey(s.substringAfter("From: ")).let { f -> f.length >= 2 && (f in w || w in f) }
+        }
+    }
+
+    /** Every value of the glossary's JSON, depth first (empty when it is not JSON). */
+    private fun nodes(json: String): Sequence<Any?> = nodes(runCatching { org.json.JSONTokener(json).nextValue() }.getOrNull())
+
+    private fun nodes(v: Any?): Sequence<Any?> = sequence {
+        yield(v)
+        when (v) {
+            is JSONArray -> for (i in 0 until v.length()) yieldAll(nodes(v.opt(i)))
+            is JSONObject -> for (k in v.keys()) yieldAll(nodes(v.opt(k)))
         }
     }
 
     fun workKey(s: String) = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC).lowercase().filter { it.isLetterOrDigit() }
 
-    /** The file of a character entry's portrait, or null. */
+    /** The file of a character entry's portrait (the img inside its "portrait-container", not the voice actor's later one), or null. */
     fun portraitPath(glossary: String): String? =
-        if ("\"portrait-container\"" !in glossary) null else Regex(""""path"\s*:\s*"([^"]+)"""").find(glossary)?.groupValues?.get(1)
+        nodes(glossary).filterIsInstance<JSONObject>().firstOrNull { it.optJSONObject("data")?.optString("id") == "portrait-container" }
+            ?.let { box -> nodes(box).filterIsInstance<JSONObject>().firstOrNull { it.has("path") }?.optString("path")?.ifEmpty { null } }
 }
 
 /**
  * Finds character names in a text, as kumapie's subtitles do (port of `WordColours.faces`): the words are joined up to 5 pieces
  * at a time, longest first (壬|氏|様 is 壬氏様, named 壬氏); a join of several pieces must be a name only the character
- * dictionary has, a single word must also be accepted by [autoKnown]; the honorific is stripped. With a work, only its characters.
+ * dictionary has, a single word is a name when it is a headword (2+ characters, not only kana), and with no work also when [autoKnown] accepts it; the honorific is stripped. With a work, only its characters.
  * [cache] stores a portrait by key (Android: a file in the cache dir); it is asked for every name, found or not.
  */
 class FaceMatcher(
     private val dict: CharacterDict,
-    private val autoKnown: (String) -> Boolean,
+    private val autoKnown: (String) -> Boolean = { true },
     private val cache: (String, () -> ByteArray?) -> ByteArray? = { _, f -> f() },
 ) {
     class Hit(val start: Int, val length: Int, val name: String, val portrait: ByteArray)
@@ -84,8 +97,12 @@ class FaceMatcher(
                 val last = ws[i + n - 1]
                 val t = text.substring(first.begin, last.begin + last.surface.length)
                 if (t.length != (i until i + n).sumOf { ws[it].surface.length }) continue // something between the pieces
+                // a single word: the dictionary holds only characters, so its headword is enough (Sudachi's part of speech for a name is unreliable); no 1-character or kana-only words
                 val name = (if (n > 1) characterName(t)
-                    else first.base.takeIf { dict.glossaries(it).isNotEmpty() && autoKnown(it) }) ?: continue
+                    else listOf(t, first.base).firstNotNullOfOrNull { w -> w.takeIf { it.length > 1 && !it.all { c -> c in 'ぁ'..'ゖ' } }?.let(::characterName) }
+                        // without the work (its title not known yet) any character's name would do: then Sudachi must also take it for a name
+                        ?.takeIf { !work.isNullOrBlank() || autoKnown(it) })
+                    ?: continue
                 val picture = portrait(name, work) ?: continue
                 out += Hit(first.begin, t.length, name, picture)
                 hit = n

@@ -128,6 +128,27 @@ class CharacterDictionaryBuilderTest {
         }
     }
 
+    @Test fun notFoundPlusAllMediaRefusedIsAResultNotAThrow() {
+        val dir = tmp()
+        try {
+            // Shokugeki resolves to 20954, but every characters query is refused
+            val inner = FakeAniList(emptyList())
+            val api = object : AniListTransport {
+                override fun post(body: String): AniListResponse =
+                    if ("characters(" in JSONObject(body).getString("query")) AniListResponse(404, null, """{"errors":[{"message":"Not Found."}]}""") else inner.post(body)
+            }
+            val builder = CharacterDictionaryBuilder(images = { null }, resizer = JvmImageResizer, anilist = AniListCharacters(api, { }, { 0 }), sleep = { })
+            val r = builder.buildForTitles(listOf("Shokugeki no Soma", "Nothing Like It"), File(dir, "m.zip"))
+            assertTrue(r.resolved.isEmpty())
+            assertEquals(listOf("Nothing Like It"), r.notFound)
+            assertEquals(setOf(MediaRef(20954, "MANGA")), r.failed.keys)
+            assertTrue(r.error!!.isNotBlank())
+            assertTrue(!File(dir, "m.zip").exists())
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
     @Test fun theJvmResizerFitsTheBoxKeepsSmallImagesAndPassesUndecodableBytesThrough() {
         val big = JvmImageResizer.resize(png(320, 200)) // wide: scaled by width
         assertEquals("jpg", big.ext); assertEquals(160, big.width); assertEquals(100, big.height)

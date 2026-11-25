@@ -55,15 +55,31 @@ object CharacterDictionary {
     @Synchronized
     fun note(context: Context, title: String): Boolean {
         val before = works(context)
-        val after = ReadWorks.add(before, title.trim())
-        if (after == before) return false
-        prefs(context).edit().putString("works", JSONArray(after).toString()).apply()
-        return true
+        val now = System.currentTimeMillis()
+        val key = CharacterEntry.workKey(title.trim())
+        // when each work was last opened (workKey to ms); written at most hourly per work
+        val opened = openedAt(context).toMutableMap()
+        val added = ReadWorks.add(before, title.trim())
+        // legacy works have no time yet: stamp them now so they can age out
+        var stale = key.isNotEmpty() && now - (opened[key] ?: 0) > 3_600_000
+        if (stale) opened[key] = now
+        for (w in added) if (opened.putIfAbsent(CharacterEntry.workKey(w), now) == null) stale = true
+        val recent = added.sortedByDescending { opened[CharacterEntry.workKey(it)] ?: now }.take(30).toSet()
+        val after = added.filter { it in recent || (opened[CharacterEntry.workKey(it)] ?: now) >= now - 180L * 24 * 3600_000 }
+        if (after == before && !stale) return false
+        val e = prefs(context).edit()
+        if (after != before) e.putString("works", JSONArray(after).toString())
+        if (stale) e.putString("openedAt", JSONObject(opened.filterKeys { k -> after.any { CharacterEntry.workKey(it) == k } } as Map<*, *>).toString())
+        e.apply()
+        return after != before
     }
+
+    private fun openedAt(context: Context): Map<String, Long> =
+        runCatching { JSONObject(prefs(context).getString("openedAt", "{}") ?: "{}").let { o -> o.keys().asSequence().associateWith { o.getLong(it) } } }.getOrDefault(emptyMap())
 
     /** Works AniList had no media for, workKey to when it was tried: left out of [needsRebuild] for a week. */
     private fun notFoundAt(context: Context): Map<String, Long> =
-        runCatching { JSONObject(prefs(context).getString("notFound", "{}")).let { o -> o.keys().asSequence().associateWith { o.getLong(it) } } }.getOrDefault(emptyMap())
+        runCatching { JSONObject(prefs(context).getString("notFound", "{}") ?: "{}").let { o -> o.keys().asSequence().associateWith { o.getLong(it) } } }.getOrDefault(emptyMap())
 
     /** [notFound] are tried now; the [resolved] ones are not "not found" any more. */
     fun recordNotFound(context: Context, notFound: List<String>, resolved: List<String> = emptyList()) {
@@ -95,16 +111,26 @@ object CharacterDictionary {
     }
 
     /** The job's progress line ("" = not running) and the last failure. */
-    fun setBuilding(context: Context, progress: String) { prefs(context).edit().putString("building", progress).putLong("buildingAt", System.currentTimeMillis()).apply() }
+    @Synchronized fun setBuilding(context: Context, progress: String) { prefs(context).edit().putString("building", progress).putLong("buildingAt", System.currentTimeMillis()).apply() }
+    /** Clears the progress line only while it is still [own] (a newer "waiting" stays); atomic with [setBuilding]. */
+    @Synchronized fun clearBuilding(context: Context, own: String) { if (building(context) == own) setBuilding(context, "") }
     fun building(context: Context): String = prefs(context).getString("building", "").orEmpty()
     fun setError(context: Context, message: String) { prefs(context).edit().putString("error", message).apply() }
 
-    fun markBuilt(context: Context, works: List<String>, characters: Int, notFound: List<String> = emptyList()) {
+    /** Counts imports: a lookup session opened before it is stale (DictionaryTab reopens when it changed). */
+    @Volatile var imported = 0
+        private set
+
+    /** [ownStatus]: the job's own status text; `building` is cleared only while it still holds that (a newer "waiting" stays). */
+    @Synchronized fun markBuilt(context: Context, works: List<String>, characters: Int, notFound: List<String> = emptyList(), ownStatus: String? = null) {
         recordNotFound(context, notFound, works)
         val now = System.currentTimeMillis()
-        prefs(context).edit().putString("builtWorks", JSONArray(works).toString()).putInt("characters", characters)
-            .putLong("builtAt", now).putString("building", "").putString("error", "").apply()
+        val e = prefs(context).edit().putString("builtWorks", JSONArray(works).toString()).putInt("characters", characters)
+            .putLong("builtAt", now).putString("error", "")
+        if (ownStatus == null || building(context) == ownStatus) e.putString("building", "")
+        e.apply()
         builtAtCache = now
+        imported++
         File(context.cacheDir, "faces").deleteRecursively() // the pictures of the old build
     }
 
@@ -148,10 +174,10 @@ object CharacterDictionary {
      * being read (null: any work's character). Pictures are kept as files in cacheDir/faces/<hash>.jpg, as kumapie does.
      */
     @Synchronized
-    fun faces(context: Context, text: String, words: List<JapaneseModel.Token>, work: String?, autoKnown: (String) -> Boolean): List<FaceMatcher.Hit> {
-        if (importing || !present(context)) return emptyList()
+    fun faces(context: Context, text: String, words: List<JapaneseModel.Token>, work: String?, autoKnown: (String) -> Boolean): List<FaceMatcher.Hit>? {
+        if (importing || !present(context)) return null // not an answer: ask again later
         verify(context) // worker thread
-        if (!present(context)) return emptyList()
+        if (!present(context)) return null
         val s = session(context)
         val dict = object : CharacterDict {
             override fun glossaries(word: String) = HoshiDicts.query(s, word).flatMap { t -> t.glossaries.map { Glossary(it.dictName, it.glossary) } }

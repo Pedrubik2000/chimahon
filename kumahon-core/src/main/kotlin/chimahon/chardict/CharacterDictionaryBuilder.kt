@@ -16,6 +16,8 @@ class BuildResult(
     val resolved: List<String> = emptyList(),
     /** The works AniList has no media for (permanent, unlike an [IOException] or a refused media, which a rebuild retries). */
     val notFound: List<String> = emptyList(),
+    /** Why nothing was built although works resolved (AniList refused every media); null otherwise. */
+    val error: String? = null,
 )
 
 /**
@@ -57,7 +59,13 @@ class CharacterDictionaryBuilder(
         }
         // nothing to build (every work not found, or its lookup failed): no zip, the caller records the not-found ones
         if (appTitles.isEmpty()) return BuildResult(emptyList(), emptyMap(), unresolved, 0, emptyMap(), emptyList(), notFound)
-        val r = build(appTitles.keys.toList(), out, appTitles)
+        val r = try {
+            build(appTitles.keys.toList(), out, appTitles)
+        } catch (e: AniListException) {
+            // every media of every resolved work refused: a result (the caller still records the not-found ones), no zip
+            val why = e.message ?: e.toString()
+            return BuildResult(emptyList(), appTitles.keys.associateWith { why }, unresolved, 0, emptyMap(), emptyList(), notFound, why)
+        }
         // a work any of whose media AniList refused is not resolved: it stays out of builtWorks and is retried
         val failedWorks = r.failed.keys.flatMap { appTitles[it].orEmpty() }.toSet()
         return BuildResult(r.media, r.failed, unresolved, r.characters, r.skippedNoJapanese, resolved.filter { it !in failedWorks }, notFound)
