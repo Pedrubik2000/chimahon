@@ -127,14 +127,13 @@ object KumapieColours {
         val key = "$stamp\n${work.orEmpty()}\n$text"
         faceCache.get(key)?.let { return it }
         if (System.currentTimeMillis() >= notReadyUntil && asking.add("faces:$key")) {
+            val app = context.applicationContext // not the Activity: the queued task must not hold it
             worker.execute {
-                val app = context.applicationContext
-                var failed = false
                 val faces = runCatching { if (stamp > 0) ownFaces(app, text, work, stamp) else askFaces(app, text, work) }
-                    .onFailure { Log.w("KumapieColours", "faces: $it"); failed = true }.getOrNull()
-                // null = not answered (model still downloading, dictionary importing): not cached, asked again after 5 s of draws;
-                // the model finishing its download calls clear(), which redraws every page. An exception is an answer (none): cached.
-                if (faces != null || failed) faceCache.put(key, faces.orEmpty()) else { notReadyUntil = System.currentTimeMillis() + NOT_READY_MS; android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ ready() }, NOT_READY_MS) } // one redraw when the window ends, so a static page gets its faces
+                    .onFailure { Log.w("KumapieColours", "faces: $it") }.let { if (it.isFailure && faceFailures.merge(key, 1, Int::plus)!! >= MAX_FACE_FAILURES) emptyList() else it.getOrNull() }
+                // null = not answered (model still downloading, dictionary importing) or an exception: not cached, asked again after 5 s of draws;
+                // the model finishing its download calls clear(), which redraws every page. The 3rd exception for a text is an answer (none): cached.
+                if (faces != null) faceCache.put(key, faces) else { notReadyUntil = System.currentTimeMillis() + NOT_READY_MS; android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ ready() }, NOT_READY_MS) } // one redraw when the window ends, so a static page gets its faces
                 asking.remove("faces:$key")
                 if (!faces.isNullOrEmpty()) ready()
             }
@@ -145,6 +144,11 @@ object KumapieColours {
     /** The Japanese title of the manga being read: kumapie gives faces only to its characters (null: any of that name). */
     @Volatile private var work: String? = null
     private val works = ConcurrentHashMap<String, String>()
+    private val faceFailures = ConcurrentHashMap<String, Int>() // exceptions per faces key; cleared with the caches
+    private const val MAX_FACE_FAILURES = 3
+    @Volatile private var readingTitle = ""
+    private val aniListFailedAt = ConcurrentHashMap<String, Long>()
+    private const val ANILIST_RETRY_MS = 5 * 60_000L
     private val JAPANESE = Regex("[\\u3040-\\u30ff\\u4e00-\\u9fff]")
 
     /**
@@ -154,15 +158,22 @@ object KumapieColours {
     fun reading(context: Context, title: String, description: String?, onNoted: () -> Unit = {}) {
         val first = description?.lineSequence()?.firstOrNull()?.trim()
         work = listOfNotNull(first, title).firstOrNull { it.length <= 60 && '。' !in it && JAPANESE.containsMatchIn(it) }
-            ?: works[title]
+            ?: works[title]?.takeIf { it.isNotEmpty() } // "": AniList had no match
+        readingTitle = title
         Log.i("KumapieColours", "reading $title: work $work")
         if (title.isBlank()) return
         // the character dictionary's set of works: noted once the Japanese title is known (the plain title first would add a second entry for the same manga)
         work?.let { CharacterDictionary.note(context.applicationContext, it); onNoted(); return }
+        if (works[title] == "") return // AniList said no match: not asked again, not noted again
+        if (System.currentTimeMillis() - (aniListFailedAt[title] ?: 0L) < ANILIST_RETRY_MS) return // failed a moment ago: not hammered
+        val app = context.applicationContext // not the Activity: the queued task must not hold it
         worker.execute {
-            val native = runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }.getOrNull()
-            native?.let { works[title] = it; work = it; Log.i("KumapieColours", "reading $title: AniList says $it") }
-            CharacterDictionary.note(context.applicationContext, native ?: title); onNoted() // AniList failed or has no match: the title it is
+            val answer = runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }
+            if (answer.isFailure) { aniListFailedAt[title] = System.currentTimeMillis(); return@execute } // transient: nothing noted, the next open asks again
+            val native = answer.getOrNull()
+            works[title] = native.orEmpty()
+            native?.let { if (readingTitle == title) work = it; Log.i("KumapieColours", "reading $title: AniList says $it") }
+            CharacterDictionary.note(app, native ?: title); onNoted() // AniList has no match: the title it is
         }
     }
 
@@ -192,7 +203,7 @@ object KumapieColours {
         colourer(context) // creates [japanese]
         val model = japanese!!
         val words = model.words(text) ?: run { download(context); if (missOnce(text)) Log.d("KumapieColours", "ownFaces: Japanese model not ready"); return null }
-        val hits = CharacterDictionary.faces(context, text, words, work, model::autoKnown) ?: run { if (missOnce(text)) Log.d("KumapieColours", "ownFaces: character dictionary not ready"); return null }
+        val hits = CharacterDictionary.faces(context, text, words, work, model::autoKnownName) ?: run { if (missOnce(text)) Log.d("KumapieColours", "ownFaces: character dictionary not ready"); return null }
         Log.d("KumapieColours", "ownFaces: ${text.length} chars, ${words.size} tokens, ${hits.size} hits, work $work")
         if (Log.isLoggable("KumapieColours", Log.VERBOSE)) Log.d("KumapieColours", "ownFaces: \"${text.take(40)}\" [${words.joinToString(" ") { "${it.surface}/${it.base}/${it.begin}" }}], hits ${hits.map { it.name + "@" + it.start }}")
         return hits.mapNotNull { hit ->
@@ -236,7 +247,7 @@ object KumapieColours {
     }
 
     /** Forgets every text's colours (and the colourer's view of the store): after a sync, a rating, Undo or a new card the next draw colours again. */
-    fun clear() { cache.evictAll(); faceCache.evictAll(); missLogged.clear(); notReadyUntil = 0; colourer?.reload(); redraws.forEach { it() } }
+    fun clear() { cache.evictAll(); faceCache.evictAll(); faceFailures.clear(); missLogged.clear(); notReadyUntil = 0; colourer?.reload(); redraws.forEach { it() } }
 
     /**
      * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?, known?, text?}` goes to

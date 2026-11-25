@@ -195,6 +195,13 @@ class JapaneseModel(
         runCatching { parse(listOf(word)).first() }.getOrNull()?.singleOrNull()?.let { it.pos == "感動詞" || it.sub == "固有名詞" } ?: false
     }
 
+    private val autoName = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    /** [autoKnown] for character faces: only a proper noun (固有名詞) is a name; an interjection (感動詞) is not. */
+    fun autoKnownName(word: String): Boolean = isReady && autoName.getOrPut(word) {
+        runCatching { parse(listOf(word)).first() }.getOrNull()?.singleOrNull()?.let { it.sub == "固有名詞" } ?: false
+    }
+
     private fun tokenizer(): Tokenizer = synchronized(Companion) {
         loaded?.takeIf { it.first == dic.path }?.second ?: run {
             check(isReady) { "The Japanese dictionary isn't downloaded yet." }
