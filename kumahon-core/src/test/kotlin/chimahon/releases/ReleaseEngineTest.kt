@@ -143,11 +143,25 @@ class ReleaseEngineTest {
         val c = engine.run(at("2026-11-27"), b.state, mapOf(2L to listOf(jpro)))
         assertEquals(d("2027-01-15"), row(c.state, 42, 2).date)
         assertTrue(c.events.isEmpty())
-        // the calendar itself moves to a later day: books' 01-16 is now the earliest known, still one change
+        // the calendar itself moves to a later day: Kodansha's calendar rules, so the delay wins over books' 01-16, one change
         val moved = engine.run(at("2026-11-28"), c.state, mapOf(2L to listOf(jpro, cal.copy(date = d("2027-01-22")))))
-        assertEquals(d("2027-01-16"), row(moved.state, 42, 2).date)
-        assertEquals("books.or.jp", row(moved.state, 42, 2).source)
+        assertEquals(d("2027-01-22"), row(moved.state, 42, 2).date)
+        assertEquals("kodansha", row(moved.state, 42, 2).source)
         assertEquals(1, moved.events.count { it.kind == EventKind.DATE_CHANGED })
+    }
+
+    @Test fun kodanshaCalendarDelayWinsOverBooks() {
+        val blueLock = WatchedSeries(2, "ブルーロック", "講談社", lastKnownVol = 41)
+        val jpro = l("ブルーロック 42", "2026-12-01", "books.or.jp", "講談社")
+        val cal = l("ブルーロック（４２）", "2026-12-01", "kodansha", "講談社")
+        val a = engine.run(at("2026-11-20"), ReleaseState(series = listOf(blueLock)), mapOf(2L to listOf(jpro, cal)))
+        // Kodansha delays to 12-15, books still says 12-01
+        val b = engine.run(at("2026-11-22"), a.state, mapOf(2L to listOf(jpro, cal.copy(date = d("2026-12-15")))))
+        assertEquals(d("2026-12-15"), row(b.state, 42, 2).date)
+        assertEquals(1, b.events.count { it.kind == EventKind.DATE_CHANGED })
+        val c = engine.run(at("2026-12-01"), b.state, mapOf(2L to listOf(jpro, cal.copy(date = d("2026-12-15")))))
+        assertTrue(c.events.none { it.kind == EventKind.OUT_TODAY })
+        assertEquals(d("2026-12-15"), row(c.state, 42, 2).date)
     }
 
     @Test fun lateEarlierSourceWinsWhileTheFirstStillAnswers() {

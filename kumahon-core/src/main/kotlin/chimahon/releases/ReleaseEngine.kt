@@ -63,15 +63,16 @@ class ReleaseEngine(private val zone: ZoneId = ZoneId.of("Asia/Tokyo")) {
                 var previous = old?.previousDate
 
                 // latest known date per source: only the sources that answered change their entry (a failed or silent one keeps its last date);
-                // the row date is the earliest of them.
+                // the row date is Kodansha's calendar date if it has one, else the earliest of the others (NDL last).
                 var dates = old?.dates.orEmpty().ifEmpty { if (old?.source != null && old.date != null) mapOf(old.source to old.date) else emptyMap() }
                 val answered = cands[vol].orEmpty().filter { it.date != null }.groupBy { it.source }.mapValues { e -> e.value.minOf { it.date!! } }
                 if (answered.isNotEmpty() && (old == null || old.date == null || old.state < VolState.RELEASED)) {
                     // a source that answered for this series but no longer lists this volume drops its future date (a postponed volume leaves the calendar)
                     val answeredSeries = listings[id].orEmpty().map { it.source }.toSet()
                     dates = dates.filter { (src, d) -> src !in answeredSeries || src in answered || d < today } + answered
-                    // NDL is the fallback (plan): its dates count only when no other source has one, so a stale NDL date can't hide a delay
-                    val ruling = dates.filterKeys { it != NdlSearch.ID }.ifEmpty { dates }
+                    // Kodansha's own calendar is the publisher's word and shows delays first: when it has a date it rules alone, earlier or later.
+                    // Otherwise NDL is the fallback (plan): its dates count only when no other source has one, so a stale NDL date can't hide a delay
+                    val ruling = dates.filterKeys { it == KodanshaCalendar.ID }.ifEmpty { dates.filterKeys { it != NdlSearch.ID } }.ifEmpty { dates }
                     val newDate = ruling.values.min()
                     val oldDate = old?.date
                     // on a tie keep the stored source (no flapping), else the lowest id
