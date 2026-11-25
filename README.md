@@ -105,7 +105,7 @@ Three ways to find what to read next, based on what you finished:
 ## 🎨 Word colours and faces
 
 - **Word colours** on the page (Settings › Mining › *Colour words*): red new, green due, blue mined, known words plain. kumahon splits the text itself (a one-time 80 MB dictionary download, Wi-Fi only).
-- **Known words** come in layers: the most frequent words (1k to 50k, from Jiten's frequency list), words you mark known, and, if you use [kumapie](https://github.com/Pedrubik2000/kumapie-tv), the words and cards it knows. The page menu counts the new, due and mined words on the pages you see.
+- **Known words** come in layers: the most frequent words (1k to 50k, from Jiten's frequency list), words you mark known, and, if you use [kumapie](https://github.com/Pedrubik2000/kumapie-tv), the words and cards it knows; optionally the words of your Anki Mined deck in kuma3 or AnkiDroid on the same device (known when a card is stable for 1 to 30 days, your choice). The page menu counts the new, due and mined words on the pages you see.
 - **Sync with kumapie** (optional): pair with kumapie on the same network and reviews, known words and mined words go both ways.
 - **Character faces**: a character's picture before their name, from a character dictionary kumahon builds from AniList for the works you read (no spoilers).
 
