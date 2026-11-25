@@ -281,6 +281,6 @@ object GlassTitles {
     fun volumeLabel(next: NextVolume): String = when {
         next.number < 0 -> next.name
         next.number % 1.0 == 0.0 -> next.number.toLong().toString()
-        else -> next.number.toString()
+        else -> "%.1f".format(java.util.Locale.ROOT, next.number)
     }
 }

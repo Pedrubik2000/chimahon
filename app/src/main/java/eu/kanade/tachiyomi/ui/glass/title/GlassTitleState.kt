@@ -46,6 +46,22 @@ object GlassTitleState {
         MangaImportUtil.volumeNumber(chapter.url.substringBeforeLast('/'), chapter.url.substringAfterLast('/'))
             ?.takeIf { it >= 1 }
 
+    /**
+     * Home's next volume = the title page's Resume: the same volumes (file-name number [volumeNumber], not in [empty],
+     * deduped) and [primary]'s rule (a volume being read, else the first unread after the highest read here or on
+     * AniList, [progressVolumes]). Volumes above [total] (0 = unknown, no cap) are dropped: a chapter-range file
+     * ("ch146-153") is no volume. Null when the page would Fetch or has nothing.
+     */
+    fun nextUnread(chapters: List<Chapter>, empty: Set<String>, total: Int, progressVolumes: Int): Chapter? {
+        val volumes = dedupe(
+            chapters.filter { it.url !in empty }.mapNotNull { c ->
+                volumeNumber(c)?.takeIf { total <= 0 || it <= total }?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
+            },
+        )
+        val resume = primary(volumes, progressVolumes, total, emptySet()) as? Primary.Resume ?: return null
+        return chapters.firstOrNull { it.id == resume.volume.chapterId }
+    }
+
     /** A local file counts as on the tablet unless it is an empty (0-byte) archive or epub; a directory always counts. */
     fun counts(isDirectory: Boolean, length: Long): Boolean = isDirectory || length > 0
 

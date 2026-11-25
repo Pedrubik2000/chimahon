@@ -9,6 +9,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.anilist.VolumeCounts
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.ui.glass.title.GlassTitleState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,7 +25,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import tachiyomi.domain.chapter.interactor.GetChaptersByMangaId
-import tachiyomi.domain.chapter.service.getChapterSort
 import tachiyomi.domain.library.model.LibraryManga
 import tachiyomi.domain.manga.interactor.GetLibraryManga
 import tachiyomi.domain.track.model.Track
@@ -117,10 +117,13 @@ class GlassTitlesModel(
         }
         for (c in candidates) {
             val manga = local.getValue(c.localMangaId!!).manga
-            val chapter = getChaptersByMangaId.await(manga.id, applyFilter = true)
-                .sortedWith(getChapterSort(manga, sortDescending = false))
-                .firstOrNull { !it.read }
-                ?: continue
+            val chapters = getChaptersByMangaId.await(manga.id, applyFilter = true)
+            val chapter = GlassTitleState.nextUnread(
+                chapters,
+                GlassTitleState.emptyUrls(chapters),
+                c.total ?: 0, // AniList's volume count; totalChapters is the number of files
+                c.entry.progressVolumes,
+            ) ?: continue
             next[c.mediaId] = NextVolume(chapter.id, chapter.name, chapter.chapterNumber, chapter.lastPageRead)
             if (next.size == 5) break
         }

@@ -160,4 +160,25 @@ class GlassTitleStateTest {
         GlassTitleState.needsMangaDex(null, listOf(vol(1))) shouldBe true
         GlassTitleState.needsMangaDex(0, emptyList()) shouldBe true
     }
+
+    @Test
+    fun `nextUnread skips a chapter-range file and volumes above the total`() {
+        // file-name parse as the title page: "Vol. 13.cbz" is volume 13, "ch146-153.rar" is 146 (capped by the total)
+        fun file(name: String, id: Long, read: Boolean = false, page: Long = 0) = tachiyomi.domain.chapter.model.Chapter.create()
+            .copy(id = id, read = read, lastPageRead = page, url = "MASHLE/$name")
+        fun vol(n: Int, read: Boolean = false, page: Long = 0) = file("Vol. $n.cbz", n.toLong(), read, page)
+        val range = file("ch146-153.rar", 999)
+        val chapters = (11..18).map { vol(it, read = it <= 12) } + range
+        GlassTitleState.nextUnread(chapters, emptySet(), 18, 0)?.id shouldBe 13L
+        GlassTitleState.nextUnread(chapters, setOf("MASHLE/Vol. 13.cbz"), 18, 0)?.id shouldBe 14L
+        GlassTitleState.nextUnread(listOf(range), emptySet(), 18, 0) shouldBe null
+        // an in-progress volume wins over the lowest unread one
+        val partway = chapters.map { if (it.id == 15L) it.copy(lastPageRead = 7) else it }
+        GlassTitleState.nextUnread(partway, emptySet(), 18, 0)?.id shouldBe 15L
+        // AniList progress 12, nothing read here, files 1..18: resume at 13; total unknown (0) = no cap
+        val all = (1..18).map { vol(it) }
+        GlassTitleState.nextUnread(all, emptySet(), 18, 12)?.id shouldBe 13L
+        GlassTitleState.nextUnread(all, emptySet(), 0, 12)?.id shouldBe 13L
+        GlassTitleState.nextUnread(all + range, emptySet(), 0, 18)?.id shouldBe 999L
+    }
 }
