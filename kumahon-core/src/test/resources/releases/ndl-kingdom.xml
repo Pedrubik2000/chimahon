@@ -1,0 +1,2768 @@
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:openSearch="http://a9.com/-/spec/opensearchrss/1.0/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" version="2.0">
+  <channel>
+    <title>キングダム - 国立国会図書館サーチ OpenSearch</title>
+    <link>https://ios-v2-prod-eks-alb.ndlsearch.ndl.go.jp/api/opensearch?title=%E3%82%AD%E3%83%B3%E3%82%B0%E3%83%80%E3%83%A0&amp;cnt=100</link>
+    <description>Search results for title=キングダム cnt=100</description>
+    <language>ja</language>
+    <openSearch:totalResults>1416</openSearch:totalResults>
+    <openSearch:startIndex>1</openSearch:startIndex>
+    <openSearch:itemsPerPage>100</openSearch:itemsPerPage>
+    <item>
+      <title>アーサー・ブラウン/クレイジー・ワールド・オブ・アーサー・ブラウン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008925374</link>
+      <description><![CDATA[<p>ユニバーサル ミュージック,1991,<p><ul><li>タイトル：アーサー・ブラウン/クレイジー・ワールド・オブ・アーサー・ブラウン</li><li>タイトル（読み）：アーサー ブラウン クレイジー ワールド オブ アーサー ブラウン クレージーワールドオブアーサーブラウン</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008925374</guid>
+      <pubDate>Wed, 15 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>アーサー・ブラウン/クレイジー・ワールド・オブ・アーサー・ブラウン</dc:title>
+      <dcndl:titleTranscription>アーサー ブラウン クレイジー ワールド オブ アーサー ブラウン クレージーワールドオブアーサーブラウン</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサル ミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1991</dc:date>
+      <dcterms:issued>1991.10</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">POCP-2084</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008925374</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録方式: (1) ～ (5) モノラル収録, 収録時間: 58分01秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008925374"/>
+      <dc:description> 1991</dc:description>
+    </item>
+    <item>
+      <title>愛を捧げよ-the secret shangri-la 「劇場版うたの☆プリンスさまっ♪マジloveキングダム」挿入歌</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029405899</link>
+      <description><![CDATA[<p>King Record,2019,<p><ul><li>タイトル：愛を捧げよ-the secret shangri-la 「劇場版うたの☆プリンスさまっ♪マジloveキングダム」挿入歌</li><li>タイトル（読み）：アイ オ ササゲヨ the secret shangri-la</li><li>責任表示：HE★VENS</li></ul>]]></description>
+      <author>HE★VENS</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029405899</guid>
+      <pubDate>Thu, 20 Jun 2019 00:47:39 +0900</pubDate>
+      <dc:title>愛を捧げよ-the secret shangri-la 「劇場版うたの☆プリンスさまっ♪マジloveキングダム」挿入歌</dc:title>
+      <dcndl:titleTranscription>アイ オ ササゲヨ the secret shangri-la</dcndl:titleTranscription>
+      <dc:publisher>King Record</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2019</dc:date>
+      <dcterms:issued>2019.4</dcterms:issued>
+      <dcndl:price>1300円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (20分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">KICM-3337</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029405899</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23220940</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029405899"/>
+      <dc:description> 2019</dc:description>
+    </item>
+    <item>
+      <title>インペリテリ/アイ・オブ・ザ・ハリケーン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008971548</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,1997,<p><ul><li>タイトル：インペリテリ/アイ・オブ・ザ・ハリケーン</li><li>タイトル（読み）：アイ オブ ザ ハリケーン</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008971548</guid>
+      <pubDate>Tue, 21 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>インペリテリ/アイ・オブ・ザ・ハリケーン</dc:title>
+      <dcndl:titleTranscription>アイ オブ ザ ハリケーン</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1997</dc:date>
+      <dcterms:issued>1997.12</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-60167</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008971548</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 44分28秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008971548"/>
+      <dc:description> 1997</dc:description>
+    </item>
+    <item>
+      <title>アイスハウス/マン・オブ・カラーズ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008901439</link>
+      <description><![CDATA[<p>フォーライフレコード,1997,<p><ul><li>タイトル：アイスハウス/マン・オブ・カラーズ</li><li>タイトル（読み）：アイスハウス マン オブ カラーズ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008901439</guid>
+      <pubDate>Sat, 11 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>アイスハウス/マン・オブ・カラーズ</dc:title>
+      <dcndl:titleTranscription>アイスハウス マン オブ カラーズ</dcndl:titleTranscription>
+      <dc:publisher>フォーライフレコード</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1997</dc:date>
+      <dcterms:issued>1997.5</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">FLCP-1004</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008901439</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 53分59秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008901439"/>
+      <dc:description> 1997</dc:description>
+    </item>
+    <item>
+      <title>愛と妄想のキングダム : プロジェクトテレジューク</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029020198</link>
+      <description><![CDATA[<p>東映ビデオ,2018,<p><ul><li>タイトル：愛と妄想のキングダム : プロジェクトテレジューク</li><li>タイトル（読み）：アイ ト モウソウ ノ キングダム</li><li>責任表示：鈴木太一 脚本・監督,染谷俊之 [ほか] 出演</li></ul>]]></description>
+      <author>鈴木太一 脚本・監督,染谷俊之 [ほか] 出演</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029020198</guid>
+      <pubDate>Wed, 14 Nov 2018 01:44:40 +0900</pubDate>
+      <dc:title>愛と妄想のキングダム : プロジェクトテレジューク</dc:title>
+      <dcndl:titleTranscription>アイ ト モウソウ ノ キングダム</dcndl:titleTranscription>
+      <dc:publisher>東映ビデオ</dc:publisher>
+      <dc:publisher>東映 (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2018</dc:date>
+      <dcterms:issued>2018.10</dcterms:issued>
+      <dcndl:price>4500円</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (102分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">DSTD-20105</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029020198</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23130587</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029020198"/>
+      <dc:description> 2018</dc:description>
+    </item>
+    <item>
+      <title>ロスト・ホライズン/アウェイクニング・ザ・ワールド</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009038968</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,2001,<p><ul><li>タイトル：ロスト・ホライズン/アウェイクニング・ザ・ワールド</li><li>タイトル（読み）：アウェイクニング ザ ワールド</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009038968</guid>
+      <pubDate>Wed, 29 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>ロスト・ホライズン/アウェイクニング・ザ・ワールド</dc:title>
+      <dcndl:titleTranscription>アウェイクニング ザ ワールド</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2001</dc:date>
+      <dcterms:issued>2001.3</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-61274</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009038968</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 43分28秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009038968"/>
+      <dc:description> 2001</dc:description>
+    </item>
+    <item>
+      <title>青い鳥を捜して/タカラヅカ・ドリーム・キングダム : 東京宝塚劇場 : 雪組公演</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I033820720</link>
+      <description><![CDATA[<p>阪急電鉄歌劇事業部,2005,<p><ul><li>タイトル：青い鳥を捜して/タカラヅカ・ドリーム・キングダム : 東京宝塚劇場 : 雪組公演</li><li>タイトル（読み）：アオイ トリ オ サガシテ / タカラズカ ・ ドリーム ・ キングダム : トウキョウ タカラズカ ゲキジョウ : ホシグミ コウエン</li><li>責任表示：宝塚歌劇団 監修</li></ul>]]></description>
+      <author>宝塚歌劇団 監修</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I033820720</guid>
+      <pubDate>Tue, 10 Dec 2024 23:34:24 +0900</pubDate>
+      <dc:title>青い鳥を捜して/タカラヅカ・ドリーム・キングダム : 東京宝塚劇場 : 雪組公演</dc:title>
+      <dcndl:titleTranscription>アオイ トリ オ サガシテ / タカラズカ ・ ドリーム ・ キングダム : トウキョウ タカラズカ ゲキジョウ : ホシグミ コウエン</dcndl:titleTranscription>
+      <dc:publisher>阪急電鉄歌劇事業部</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2005</dc:date>
+      <dcterms:issued>2005.1</dcterms:issued>
+      <dcndl:price>1000円 (税込)</dcndl:price>
+      <dc:extent>1冊 (ページ付なし)</dc:extent>
+      <dc:identifier xsi:type="dcndl:NDLBibID">033820720</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24059282</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">Y93</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I033820720"/>
+      <dc:description> 2005</dc:description>
+    </item>
+    <item>
+      <title>青い鳥を捜して,タカラヅカ・ドリーム・キングダム 雪組公演</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010892927</link>
+      <description><![CDATA[<p>宝塚クリエイティブアーツ,2005,<p><ul><li>タイトル：青い鳥を捜して,タカラヅカ・ドリーム・キングダム 雪組公演</li><li>タイトル（読み）：アオイ トリ オ サガシテ タカラズカ ドリーム キングダム</li><li>シリーズ名：宝塚歌劇</li></ul>]]></description>
+      <author/>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010892927</guid>
+      <pubDate>Mon, 1 Sep 2014 22:37:15 +0900</pubDate>
+      <dc:title>青い鳥を捜して,タカラヅカ・ドリーム・キングダム 雪組公演</dc:title>
+      <dcndl:titleTranscription>アオイ トリ オ サガシテ タカラズカ ドリーム キングダム</dcndl:titleTranscription>
+      <dcndl:seriesTitle>宝塚歌劇</dcndl:seriesTitle>
+      <dc:publisher>宝塚クリエイティブアーツ</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2005</dc:date>
+      <dcterms:issued>2005.2</dcterms:issued>
+      <dcndl:price>10500円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (165分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TCAD-052</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010892927</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21772547</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010892927"/>
+      <dc:description> 2005</dc:description>
+    </item>
+    <item>
+      <title>朝海ひかるザ・ラストデイ ドキュメント06.12.24 : 退団記念</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010905155</link>
+      <description><![CDATA[<p>宝塚クリエイティブアーツ,2007,<p><ul><li>タイトル：朝海ひかるザ・ラストデイ ドキュメント06.12.24 : 退団記念</li><li>タイトル（読み）：アサミ ヒカル ザ ラスト デイ</li><li>責任表示：朝海ひかる [出演]</li><li>シリーズ名：宝塚歌劇</li></ul>]]></description>
+      <author>朝海ひかる [出演]</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010905155</guid>
+      <pubDate>Wed, 21 Jul 2010 01:46:57 +0900</pubDate>
+      <dc:title>朝海ひかるザ・ラストデイ ドキュメント06.12.24 : 退団記念</dc:title>
+      <dcndl:titleTranscription>アサミ ヒカル ザ ラスト デイ</dcndl:titleTranscription>
+      <dcndl:seriesTitle>宝塚歌劇</dcndl:seriesTitle>
+      <dc:publisher>宝塚クリエイティブアーツ</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.2</dcterms:issued>
+      <dcndl:price>6300円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (132分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TCAD-156</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010905155</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21777735</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010905155"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>明日へ・Exit</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I024700848</link>
+      <description><![CDATA[<p>エイベックス・マーケティング,2013,<p><ul><li>タイトル：明日へ・Exit</li><li>タイトル（読み）：アス エ Exit</li><li>責任表示：The Sketchbook</li></ul>]]></description>
+      <author>The Sketchbook</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I024700848</guid>
+      <pubDate>Mon, 7 Oct 2013 18:50:42 +0900</pubDate>
+      <dc:title>明日へ・Exit</dc:title>
+      <dcndl:titleTranscription>アス エ Exit</dcndl:titleTranscription>
+      <dc:publisher>エイベックス・マーケティング</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2013</dc:date>
+      <dcterms:issued>2013.9</dcterms:issued>
+      <dcndl:price>1890円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">AVCA-62925</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">024700848</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22306635</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I024700848"/>
+      <dc:description> 2013</dc:description>
+    </item>
+    <item>
+      <title>アスリープ・イン・ザ・ブレッド・アイル</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010654388</link>
+      <description><![CDATA[<p>ユニバーサルミュージック,2009,<p><ul><li>タイトル：アスリープ・イン・ザ・ブレッド・アイル</li><li>タイトル（読み）：アスリープ イン ザ ブレッド アイル</li><li>責任表示：アッシャー・ロス</li></ul>]]></description>
+      <author>アッシャー・ロス</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010654388</guid>
+      <pubDate>Sat, 6 Feb 2010 03:17:56 +0900</pubDate>
+      <dc:title>アスリープ・イン・ザ・ブレッド・アイル</dc:title>
+      <dcndl:titleTranscription>アスリープ イン ザ ブレッド アイル</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサルミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2009</dc:date>
+      <dcterms:issued>2009.11</dcterms:issued>
+      <dcndl:price>1980円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">UICT-1051</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010654388</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21703624</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010654388"/>
+      <dc:description> 2009</dc:description>
+    </item>
+    <item>
+      <title>アテグナトス</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029547919</link>
+      <description><![CDATA[<p>Ward Records,2019,<p><ul><li>タイトル：アテグナトス</li><li>タイトル（読み）：アテグナトス</li><li>責任表示：エルヴェイティ</li></ul>]]></description>
+      <author>エルヴェイティ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029547919</guid>
+      <pubDate>Thu, 30 May 2019 01:24:17 +0900</pubDate>
+      <dc:title>アテグナトス</dc:title>
+      <dcndl:titleTranscription>アテグナトス</dcndl:titleTranscription>
+      <dc:publisher>Ward Records</dc:publisher>
+      <dc:publisher>Sony Music Marketing (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2019</dc:date>
+      <dcterms:issued>2019.4</dcterms:issued>
+      <dcndl:price>2500円</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GQCS-90696</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029547919</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23210957</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029547919"/>
+      <dc:description> 2019</dc:description>
+    </item>
+    <item>
+      <title>アドベンチャー・キングダム／未来の勇者と５つの試練</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I14232100521</link>
+      <description><![CDATA[<p>トランスフォーマー,2012,TMSD398<p><ul><li>タイトル：アドベンチャー・キングダム／未来の勇者と５つの試練</li><li>タイトル（読み）：アドベンチヤ－キングダムミライノユウシヤトイツツノシ</li><li>責任表示：ベン・ソムボハールド　監督</li></ul>]]></description>
+      <author>ベン・ソムボハールド,ベン・ソムボハールド　監督</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I14232100521</guid>
+      <pubDate>Thu, 14 Dec 2023 00:00:00 +0900</pubDate>
+      <dc:title>アドベンチャー・キングダム／未来の勇者と５つの試練</dc:title>
+      <dcndl:titleTranscription>アドベンチヤ－キングダムミライノユウシヤトイツツノシ</dcndl:titleTranscription>
+      <dc:creator>ベン・ソムボハールド</dc:creator>
+      <dcndl:creatorTranscription>ベン　ソムボハ－ルド</dcndl:creatorTranscription>
+      <dc:publisher>トランスフォーマー</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2012</dc:date>
+      <dcterms:issued>2012年</dcterms:issued>
+      <dc:extent>126 ; 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">TMSD398</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NSMARCNO">7005468712</dc:identifier>
+      <rdfs:seeAlso rdf:resource="https://www.lib.sagamihara.kanagawa.jp/TOSHOW/asp/WwShousaiKen.aspx?FCode=2100521"/>
+      <dc:description> 2012</dc:description>
+    </item>
+    <item>
+      <title>アドベンチャー・キングダム未来の勇者と5つの試練</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I026841389</link>
+      <description><![CDATA[<p>トランスフォーマー,2015,<p><ul><li>タイトル：アドベンチャー・キングダム未来の勇者と5つの試練</li><li>タイトル（読み）：アドベンチャー キングダム ミライ ノ ユウシャ ト 5ツ ノ シレン</li><li>責任表示：ヤン・テルラウ 原作,バルト・ヴェスターラーケン [ほか] 脚本,ベン・ソムボハールト 監督</li></ul>]]></description>
+      <author>ヤン・テルラウ 原作,バルト・ヴェスターラーケン [ほか] 脚本,ベン・ソムボハールト 監督</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I026841389</guid>
+      <pubDate>Tue, 16 Feb 2016 22:53:07 +0900</pubDate>
+      <dc:title>アドベンチャー・キングダム未来の勇者と5つの試練</dc:title>
+      <dcndl:titleTranscription>アドベンチャー キングダム ミライ ノ ユウシャ ト 5ツ ノ シレン</dcndl:titleTranscription>
+      <dc:publisher>トランスフォーマー</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2015</dc:date>
+      <dcterms:issued>[2015.11]</dcterms:issued>
+      <dcndl:price>4104円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (126分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TMSS-329</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">026841389</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22687124</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <dc:description>英語タイトル: To be king</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I026841389"/>
+      <dc:description> 2015</dc:description>
+    </item>
+    <item>
+      <title>アナザー・キングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008287412</link>
+      <description><![CDATA[<p>1,秋田書店,2006,4-253-09796-0<p><ul><li>タイトル：アナザー・キングダム</li><li>タイトル（読み）：アナザー キングダム</li><li>責任表示：藤田麻貴 著</li><li>シリーズ名：Bonita comics</li><li>NDC(9)：726.1</li></ul>]]></description>
+      <author>藤田, 麻貴,藤田麻貴 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008287412</guid>
+      <pubDate>Mon, 18 Oct 2021 18:47:48 +0900</pubDate>
+      <dc:title>アナザー・キングダム</dc:title>
+      <dcndl:titleTranscription>アナザー キングダム</dcndl:titleTranscription>
+      <dc:creator>藤田, 麻貴</dc:creator>
+      <dcndl:creatorTranscription>フジタ, マキ</dcndl:creatorTranscription>
+      <dcndl:volume>1</dcndl:volume>
+      <dcndl:seriesTitle>Bonita comics</dcndl:seriesTitle>
+      <dc:publisher>秋田書店</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2006</dc:date>
+      <dcterms:issued>2006.7</dcterms:issued>
+      <dcndl:price>390円</dcndl:price>
+      <dc:extent>1冊</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-253-09796-0</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-253-09796-0</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008287412</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21087089</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">726.1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008287412"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16457460"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784253097963"/>
+      <dc:description> 2006</dc:description>
+    </item>
+    <item>
+      <title>アナザー・キングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009182279</link>
+      <description><![CDATA[<p>2,秋田書店,2007,978-4-253-09797-0<p><ul><li>タイトル：アナザー・キングダム</li><li>タイトル（読み）：アナザー キングダム</li><li>責任表示：藤田麻貴 著</li><li>シリーズ名：Bonita comics</li><li>NDC(9)：726.1</li></ul>]]></description>
+      <author>藤田, 麻貴,藤田麻貴 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009182279</guid>
+      <pubDate>Mon, 25 Oct 2021 18:16:53 +0900</pubDate>
+      <dc:title>アナザー・キングダム</dc:title>
+      <dcndl:titleTranscription>アナザー キングダム</dcndl:titleTranscription>
+      <dc:creator>藤田, 麻貴</dc:creator>
+      <dcndl:creatorTranscription>フジタ, マキ</dcndl:creatorTranscription>
+      <dcndl:volume>2</dcndl:volume>
+      <dcndl:seriesTitle>Bonita comics</dcndl:seriesTitle>
+      <dc:publisher>秋田書店</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.12</dcterms:issued>
+      <dcndl:price>390円</dcndl:price>
+      <dc:extent>1冊 (ページ付なし)</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-253-09797-0</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009182279</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21338992</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">726.1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009182279"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784253097970"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>アニマル・キングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I023859001</link>
+      <description><![CDATA[<p>トランスフォーマー,2012,<p><ul><li>タイトル：アニマル・キングダム</li><li>タイトル（読み）：アニマル キングダム</li><li>責任表示：デヴィッド・ミショッド 監督・脚本,ジェームズ・フレッシュヴィル [ほか出演]</li></ul>]]></description>
+      <author>デヴィッド・ミショッド 監督・脚本,ジェームズ・フレッシュヴィル [ほか出演]</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I023859001</guid>
+      <pubDate>Wed, 26 Dec 2012 01:08:11 +0900</pubDate>
+      <dc:title>アニマル・キングダム</dc:title>
+      <dcndl:titleTranscription>アニマル キングダム</dcndl:titleTranscription>
+      <dc:publisher>トランスフォーマー</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2012</dc:date>
+      <dcterms:issued>[2012.9]</dcterms:issued>
+      <dcndl:price>3990円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (113分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TMSS-246</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">023859001</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22175675</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <dc:description>原タイトル: Animal kingdom</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I023859001"/>
+      <dc:description> 2012</dc:description>
+    </item>
+    <item>
+      <title>アニマル・キングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I026609975</link>
+      <description><![CDATA[<p>JVCケンウッド・ビクターエンタテインメント,2015,<p><ul><li>タイトル：アニマル・キングダム</li><li>タイトル（読み）：アニマル キングダム</li><li>責任表示：フォロー・ユア・インスティンクト</li></ul>]]></description>
+      <author>フォロー・ユア・インスティンクト</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I026609975</guid>
+      <pubDate>Mon, 4 Jan 2016 18:36:33 +0900</pubDate>
+      <dc:title>アニマル・キングダム</dc:title>
+      <dcndl:titleTranscription>アニマル キングダム</dcndl:titleTranscription>
+      <dc:publisher>JVCケンウッド・ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2015</dc:date>
+      <dcterms:issued>2015.9</dcterms:issued>
+      <dcndl:price>2000円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (48分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-65333</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">026609975</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22665733</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I026609975"/>
+      <dc:description> 2015</dc:description>
+    </item>
+    <item>
+      <title>アニマルキングダム／ダンス！ダンス！大冒険！！</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I1423901545</link>
+      <description><![CDATA[<p>ポニーキャニオン,1999,VWSJ4358<p><ul><li>タイトル：アニマルキングダム／ダンス！ダンス！大冒険！！</li><li>タイトル（読み）：アニマルキングダムダンスダンスダイボウケン</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I1423901545</guid>
+      <pubDate>Thu, 14 Dec 2023 00:00:00 +0900</pubDate>
+      <dc:title>アニマルキングダム／ダンス！ダンス！大冒険！！</dc:title>
+      <dcndl:titleTranscription>アニマルキングダムダンスダンスダイボウケン</dcndl:titleTranscription>
+      <dc:publisher>ポニーキャニオン</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">1999</dc:date>
+      <dcterms:issued>1999年</dcterms:issued>
+      <dc:extent>36 ; 1巻</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">VWSJ4358</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NSMARCNO">1354176601</dc:identifier>
+      <rdfs:seeAlso rdf:resource="https://www.lib.sagamihara.kanagawa.jp/TOSHOW/asp/WwShousaiKen.aspx?FCode=901545"/>
+      <dc:description> 1999</dc:description>
+    </item>
+    <item>
+      <title>Ａｎｉｍａｌ　ｓｔｏｒｉｅｓ　：　Ｈｅａｒｔｗａｒｍｉｎｇ　ｔｒｕｅ　ｔａｌｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000931245</link>
+      <description><![CDATA[<p>Ｎａｔｉｏｎａｌ　Ｇｅｏｇｒａｐｈｉｃ　Ｓｏｃｉｅｔｙ,2014,978-1-4263-1725-5<p><ul><li>タイトル：Ａｎｉｍａｌ　ｓｔｏｒｉｅｓ　：　Ｈｅａｒｔｗａｒｍｉｎｇ　ｔｒｕｅ　ｔａｌｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</li><li>タイトル（読み）：アニマル　ストーリーズ　ハートウォーミング　トゥルー　テイルズ　フロム　ディ　アニマル　キングダム</li><li>責任表示：Ｊａｎｅ　Ｙｏｌｅｎ／著,Ｊｕｉ　Ｉｓｈｉｄａ／絵,Ｈｅｉｄｉ　Ｅ．　Ｙ．　Ｓｔｅｍｐｌｅ／著,Ａｄａｍ　Ｓｔｅｍｐｌｅ／著,Ｊａｓｏｎ　Ｓｔｅｍｐｌｅ／著</li><li>シリーズ名：Ｎａｔｉｏｎａｌ　Ｇｅｏｇｒａｐｈｉｃ　Ｋｉｄｓ</li><li>シリーズ名（読み）：ナショナル　ジオグラフィック　キッズ</li><li>NDC(9)：480.4</li></ul>]]></description>
+      <author>Yolen Jane,Ｉｓｈｉｄａ　Ｊｕｉ,Ｓｔｅｍｐｌｅ　Ｈｅｉｄｉ　Ｅ．　Ｙ．,Ｓｔｅｍｐｌｅ　Ａｄａｍ,Ｓｔｅｍｐｌｅ　Ｊａｓｏｎ,Ｊａｎｅ　Ｙｏｌｅｎ／著,Ｊｕｉ　Ｉｓｈｉｄａ／絵,Ｈｅｉｄｉ　Ｅ．　Ｙ．　Ｓｔｅｍｐｌｅ／著,Ａｄａｍ　Ｓｔｅｍｐｌｅ／著,Ｊａｓｏｎ　Ｓｔｅｍｐｌｅ／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000931245</guid>
+      <pubDate>Thu, 16 Jul 2020 19:20:34 +0900</pubDate>
+      <dc:title>Ａｎｉｍａｌ　ｓｔｏｒｉｅｓ　：　Ｈｅａｒｔｗａｒｍｉｎｇ　ｔｒｕｅ　ｔａｌｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</dc:title>
+      <dcndl:titleTranscription>アニマル　ストーリーズ　ハートウォーミング　トゥルー　テイルズ　フロム　ディ　アニマル　キングダム</dcndl:titleTranscription>
+      <dc:creator>Yolen Jane</dc:creator>
+      <dc:creator>Ｉｓｈｉｄａ　Ｊｕｉ</dc:creator>
+      <dc:creator>Ｓｔｅｍｐｌｅ　Ｈｅｉｄｉ　Ｅ．　Ｙ．</dc:creator>
+      <dc:creator>Ｓｔｅｍｐｌｅ　Ａｄａｍ</dc:creator>
+      <dc:creator>Ｓｔｅｍｐｌｅ　Ｊａｓｏｎ</dc:creator>
+      <dcndl:creatorTranscription>ヨーレン ジェーン</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>ＩＳＨＩＤＡ　ＪＵＩ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>ステンプル　ハイジ　Ｅ　Ｙ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>ＳＴＥＭＰＬＥ　ＡＤＡＭ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>ＳＴＥＭＰＬＥ　ＪＡＳＯＮ</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>Ｎａｔｉｏｎａｌ　Ｇｅｏｇｒａｐｈｉｃ　Ｋｉｄｓ</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>ナショナル　ジオグラフィック　キッズ</dcndl:seriesTitleTranscription>
+      <dc:publisher>Ｎａｔｉｏｎａｌ　Ｇｅｏｇｒａｐｈｉｃ　Ｓｏｃｉｅｔｙ</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2014</dc:date>
+      <dcterms:issued>２０１４</dcterms:issued>
+      <dcndl:price>￥３７２３</dcndl:price>
+      <dc:extent>１５９ｐ　：　ｉｌｌ．，　ｍａｐｓ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-1-4263-1725-5</dc:identifier>
+      <dc:subject>動物-物語</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">480.4</dc:subject>
+      <dc:description>Ｉｎｄｅｘ：　ｐ１５８‐１５９</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000931245"/>
+      <dc:description> 2014</dc:description>
+    </item>
+    <item>
+      <title>アニメキングダム「キャラクターソングミニアルバム」</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I024907847</link>
+      <description><![CDATA[<p>闘,エイベックス・マーケティング,2013,<p><ul><li>タイトル：アニメキングダム「キャラクターソングミニアルバム」</li><li>タイトル（読み）：アニメ キングダム キャラクター ソング ミニ アルバム</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I024907847</guid>
+      <pubDate>Tue, 21 Jan 2014 20:30:12 +0900</pubDate>
+      <dc:title>アニメキングダム「キャラクターソングミニアルバム」</dc:title>
+      <dcndl:titleTranscription>アニメ キングダム キャラクター ソング ミニ アルバム</dcndl:titleTranscription>
+      <dcndl:volume>闘</dcndl:volume>
+      <dc:publisher>エイベックス・マーケティング</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2013</dc:date>
+      <dcterms:issued>2013.12</dcterms:issued>
+      <dcndl:price>2625円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (46分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">AVCA-74034</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">024907847</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22344928</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I024907847"/>
+      <dc:description> 2013</dc:description>
+    </item>
+    <item>
+      <title>アニメキングダム「キャラクターソングミニアルバム」</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I024907848</link>
+      <description><![CDATA[<p>智,エイベックス・マーケティング,2013,<p><ul><li>タイトル：アニメキングダム「キャラクターソングミニアルバム」</li><li>タイトル（読み）：アニメ キングダム キャラクター ソング ミニ アルバム</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I024907848</guid>
+      <pubDate>Tue, 21 Jan 2014 20:30:59 +0900</pubDate>
+      <dc:title>アニメキングダム「キャラクターソングミニアルバム」</dc:title>
+      <dcndl:titleTranscription>アニメ キングダム キャラクター ソング ミニ アルバム</dcndl:titleTranscription>
+      <dcndl:volume>智</dcndl:volume>
+      <dc:publisher>エイベックス・マーケティング</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2013</dc:date>
+      <dcterms:issued>2013.12</dcterms:issued>
+      <dcndl:price>2625円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">AVCA-74035</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">024907848</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22344929</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I024907848"/>
+      <dc:description> 2013</dc:description>
+    </item>
+    <item>
+      <title>アフターマス</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I023191576</link>
+      <description><![CDATA[<p>Rubicon Music,2011,<p><ul><li>タイトル：アフターマス</li><li>タイトル（読み）：アフターマス</li><li>責任表示：アクセンスター</li></ul>]]></description>
+      <author>アクセンスター</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I023191576</guid>
+      <pubDate>Mon, 10 Mar 2025 22:26:16 +0900</pubDate>
+      <dc:title>アフターマス</dc:title>
+      <dcndl:titleTranscription>アフターマス</dcndl:titleTranscription>
+      <dc:publisher>Rubicon Music</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2011</dc:date>
+      <dcterms:issued>[2011.6]</dcterms:issued>
+      <dcndl:price>2381円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">RBNCD-1044a</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">023191576</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24089900</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I023191576"/>
+      <dc:description> 2011</dc:description>
+    </item>
+    <item>
+      <title>アフリカ・トゥ・アメリカ the journey of the drum : dj Kaori's selection</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008577243</link>
+      <description><![CDATA[<p>ユニバーサルミュージック,2007,<p><ul><li>タイトル：アフリカ・トゥ・アメリカ the journey of the drum : dj Kaori's selection</li><li>タイトル（読み）：アフリカ トゥ アメリカ</li><li>責任表示：サウンズ・オブ・ブラックネス</li></ul>]]></description>
+      <author>サウンズ・オブ・ブラックネス</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008577243</guid>
+      <pubDate>Sat, 11 Aug 2007 00:04:48 +0900</pubDate>
+      <dc:title>アフリカ・トゥ・アメリカ the journey of the drum : dj Kaori's selection</dc:title>
+      <dcndl:titleTranscription>アフリカ トゥ アメリカ</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサルミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.4</dcterms:issued>
+      <dcndl:price>1680円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (68分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">UICY-6809</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008577243</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21267430</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008577243"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>アブソルート・ロックin UK</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000007948458</link>
+      <description><![CDATA[<p>ユニバーサルミュージック,2005,<p><ul><li>タイトル：アブソルート・ロックin UK</li><li>タイトル（読み）：アブソルート ロック in UK</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000007948458</guid>
+      <pubDate>Tue, 22 Nov 2005 02:05:30 +0900</pubDate>
+      <dc:title>アブソルート・ロックin UK</dc:title>
+      <dcndl:titleTranscription>アブソルート ロック in UK</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサルミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2005</dc:date>
+      <dcterms:issued>2005.7</dcterms:issued>
+      <dcndl:price>2548円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">UICO-4016</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000007948458</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20914374</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007948458"/>
+      <dc:description> 2005</dc:description>
+    </item>
+    <item>
+      <title>アメリカザリガニのキカイノカラダ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010402029</link>
+      <description><![CDATA[<p>太平洋ゲーム祭,エンターブレイン,2009,<p><ul><li>タイトル：アメリカザリガニのキカイノカラダ</li><li>タイトル（読み）：アメリカザリガニ ノ キカイ ノ カラダ</li><li>責任表示：アメリカザリガニ [出演]</li><li>シリーズ名：ファミ通DVDビデオ</li></ul>]]></description>
+      <author>アメリカザリガニ [出演]</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010402029</guid>
+      <pubDate>Fri, 4 Sep 2009 00:39:29 +0900</pubDate>
+      <dc:title>アメリカザリガニのキカイノカラダ</dc:title>
+      <dcndl:titleTranscription>アメリカザリガニ ノ キカイ ノ カラダ</dcndl:titleTranscription>
+      <dcndl:volume>太平洋ゲーム祭</dcndl:volume>
+      <dcndl:seriesTitle>ファミ通DVDビデオ</dcndl:seriesTitle>
+      <dc:publisher>エンターブレイン</dc:publisher>
+      <dc:publisher>ポニーキャニオン (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2009</dc:date>
+      <dcterms:issued>2009.7</dcterms:issued>
+      <dcndl:price>5040円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (126分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">PCBX-51034</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010402029</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21626805</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YL321</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010402029"/>
+      <dc:description> 2009</dc:description>
+    </item>
+    <item>
+      <title>アメリカの旅の文学 : ワンダーの世界を歩く</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010117085</link>
+      <description><![CDATA[<p>昭和堂,2009,978-4-8122-0927-1<p><ul><li>タイトル：アメリカの旅の文学 : ワンダーの世界を歩く</li><li>タイトル（読み）：アメリカ ノ タビ ノ ブンガク : ワンダー ノ セカイ オ アルク</li><li>責任表示：亀井俊介 編著</li><li>NDC(9)：935.6</li></ul>]]></description>
+      <author>亀井, 俊介, 1932-2023,亀井俊介 編著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010117085</guid>
+      <pubDate>Tue, 12 Sep 2023 22:41:51 +0900</pubDate>
+      <dc:title>アメリカの旅の文学 : ワンダーの世界を歩く</dc:title>
+      <dcndl:titleTranscription>アメリカ ノ タビ ノ ブンガク : ワンダー ノ セカイ オ アルク</dcndl:titleTranscription>
+      <dc:creator>亀井, 俊介, 1932-2023</dc:creator>
+      <dcndl:creatorTranscription>カメイ, シュンスケ, 1932-2023</dcndl:creatorTranscription>
+      <dc:publisher>昭和堂</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2009</dc:date>
+      <dcterms:issued>2009.5</dcterms:issued>
+      <dcndl:price>2700円</dcndl:price>
+      <dc:extent>271, 25p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-8122-0927-1</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010117085</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21594614</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NSMARCNO">100820000</dc:identifier>
+      <dc:subject>紀行文学--アメリカ合衆国</dc:subject>
+      <dc:subject xsi:type="dcndl:NDLC">KS184</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">935.6</dc:subject>
+      <dc:description>年譜あり 索引あり</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000151990"/>
+      <rdfs:seeAlso rdf:resource="https://www.plib.pref.aomori.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1103052238"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.miyagi.jp/winj/opac/switch-detail-iccap.do?bibid=1101133445"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.pref.saitama.jp//winj/opac/switch-detail-iccap.do?bibid=1100922987"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.chiba.lg.jp//licsxp-iopac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000001968291"/>
+      <rdfs:seeAlso rdf:resource="https://catalog.library.metro.tokyo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1107787274"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1109031149"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.sagamihara.kanagawa.jp/TOSHOW/asp/WwShousaiKen.aspx?FCode=1445881"/>
+      <rdfs:seeAlso rdf:resource="https://opac.pref-lib.niigata.niigata.jp/winj/opac/switch-detail-iccap.do?bibid=1106343077"/>
+      <rdfs:seeAlso rdf:resource="https://lib2.lib.pref.toyama.jp/opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009810839981"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.ishikawa.lg.jp/wo/opc_srh/srh_detail/1100000234971/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library-archives.pref.fukui.lg.jp/wo/opc_srh/srh_detail/1104837262/"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.pref.gifu.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1102124254"/>
+      <rdfs:seeAlso rdf:resource="https://www.tosyokan.pref.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000910595770"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001101583389"/>
+      <rdfs:seeAlso rdf:resource="http://websv.aichi-pref-library.jp/winj/opac/switch-detail-iccap.do?bibid=1182228369"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.nagoya.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000910008650"/>
+      <rdfs:seeAlso rdf:resource="http://opac1.library.pref.mie.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1102744979"/>
+      <rdfs:seeAlso rdf:resource="https://www.shiga-pref-library.jp/wo/opc_srh/srh_detail/2218133/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.kyoto.jp/bib/?B10686146"/>
+      <rdfs:seeAlso rdf:resource="https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000011854874"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib-sakai.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000900442018"/>
+      <rdfs:seeAlso rdf:resource="https://opacsvr01.library.pref.nara.jp/opac/volume/546971"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.pref.tottori.jp/winj/opac/switch-detail-iccap.do?bibid=1101609068"/>
+      <rdfs:seeAlso rdf:resource="https://www2.library.pref.shimane.lg.jp/opac/switch-detail-iccap.do?bibid=1101231387"/>
+      <rdfs:seeAlso rdf:resource="https://opac.libnet.pref.okayama.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009811181550"/>
+      <rdfs:seeAlso rdf:resource="http://www.lib.pref.fukuoka.jp/winj/opac/switch-detail-iccap.do?bibid=1109033893"/>
+      <rdfs:seeAlso rdf:resource="https://www2.tosyo-saga.jp/kentosyo2/opac/switch-detail-iccap.do?bibid=1101211903"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000625968"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010117085"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784812209271"/>
+      <dc:description> 2009</dc:description>
+    </item>
+    <item>
+      <title>アリアンロッド・サガ・リプレイ・ブレイク</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000011007573</link>
+      <description><![CDATA[<p>3 (キングダム・フォールズ),富士見書房,2010,978-4-8291-4595-1<p><ul><li>タイトル：アリアンロッド・サガ・リプレイ・ブレイク</li><li>タイトル（読み）：アリアンロッド サガ リプレイ ブレイク</li><li>責任表示：鈴吹太郎, F.E.A.R. 著</li><li>シリーズ名：富士見dragon book ; 438</li><li>シリーズ名（読み）：フジミ dragon book ; 438</li><li>NDC(9)：798</li></ul>]]></description>
+      <author>鈴吹, 太郎,鈴吹太郎, F.E.A.R. 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000011007573</guid>
+      <pubDate>Wed, 24 Nov 2010 20:28:49 +0900</pubDate>
+      <dc:title>アリアンロッド・サガ・リプレイ・ブレイク</dc:title>
+      <dcndl:titleTranscription>アリアンロッド サガ リプレイ ブレイク</dcndl:titleTranscription>
+      <dc:creator>鈴吹, 太郎</dc:creator>
+      <dcndl:creatorTranscription>スズフキ, タロウ</dcndl:creatorTranscription>
+      <dcndl:volume>3 (キングダム・フォールズ)</dcndl:volume>
+      <dcndl:seriesTitle>富士見dragon book ; 438</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>フジミ dragon book ; 438</dcndl:seriesTitleTranscription>
+      <dc:publisher>富士見書房</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2010</dc:date>
+      <dcterms:issued>2010.9</dcterms:issued>
+      <dcndl:price>680円</dcndl:price>
+      <dc:extent>382p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-8291-4595-1</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000011007573</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21836421</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NSMARCNO">113853500</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">Y78</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">798</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000012151155"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.city.hiroshima.jp/winj/opac/switch-detail-iccap.do?bibid=1103229260"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000011007573"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/82914595A03957500000"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784829145951"/>
+      <dc:description> 2010</dc:description>
+    </item>
+    <item>
+      <title>アルゴリズム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029189472</link>
+      <description><![CDATA[<p>Ward Records,2018,<p><ul><li>タイトル：アルゴリズム</li><li>タイトル（読み）：アルゴリズム</li><li>責任表示：ビヨンド・クリエイション</li></ul>]]></description>
+      <author>ビヨンド・クリエイション</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029189472</guid>
+      <pubDate>Fri, 30 Nov 2018 00:36:58 +0900</pubDate>
+      <dc:title>アルゴリズム</dc:title>
+      <dcndl:titleTranscription>アルゴリズム</dcndl:titleTranscription>
+      <dc:publisher>Ward Records</dc:publisher>
+      <dc:publisher>Sony Music Marketing (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2018</dc:date>
+      <dcterms:issued>2018.10</dcterms:issued>
+      <dcndl:price>2300円</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GQCS-90648</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029189472</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23137294</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029189472"/>
+      <dc:description> 2018</dc:description>
+    </item>
+    <item>
+      <title>アルマゲドン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034056018</link>
+      <description><![CDATA[<p>Ward Records,2025,<p><ul><li>タイトル：アルマゲドン</li><li>タイトル（読み）：アルマゲドン</li><li>責任表示：ウォーキングス</li></ul>]]></description>
+      <author>ウォーキングス</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034056018</guid>
+      <pubDate>Wed, 8 Oct 2025 02:35:01 +0900</pubDate>
+      <dc:title>アルマゲドン</dc:title>
+      <dcndl:titleTranscription>アルマゲドン</dcndl:titleTranscription>
+      <dc:publisher>Ward Records</dc:publisher>
+      <dc:publisher>Sony Music Solutions</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2025</dc:date>
+      <dcterms:issued>2025.7</dcterms:issued>
+      <dcndl:price>4000円</dcndl:price>
+      <dc:extent>CD 2枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GQCS-91628</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034056018</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24170272</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>頒布</dc:description>
+      <dc:description>所要時間: 96分29秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034056018"/>
+      <dc:description> 2025</dc:description>
+    </item>
+    <item>
+      <title>アレックス・バイロットズ・ヴードゥー・サークル</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010003216</link>
+      <description><![CDATA[<p>King Records,2008,<p><ul><li>タイトル：アレックス・バイロットズ・ヴードゥー・サークル</li><li>タイトル（読み）：アレックス バイロットズ ヴードゥー サークル</li><li>責任表示：アレックス・バイロットズ・ヴードゥー・サークル</li></ul>]]></description>
+      <author>アレックス・バイロットズ・ヴードゥー・サークル</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010003216</guid>
+      <pubDate>Fri, 20 Feb 2009 00:08:49 +0900</pubDate>
+      <dc:title>アレックス・バイロットズ・ヴードゥー・サークル</dc:title>
+      <dcndl:titleTranscription>アレックス バイロットズ ヴードゥー サークル</dcndl:titleTranscription>
+      <dc:publisher>King Records</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2008</dc:date>
+      <dcterms:issued>2008.11</dcterms:issued>
+      <dcndl:price>2700円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (75分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">KICP-1334</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010003216</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21536935</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010003216"/>
+      <dc:description> 2008</dc:description>
+    </item>
+    <item>
+      <title>アワーグラス</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009173943</link>
+      <description><![CDATA[<p>EMIミュージック・ジャパン,2007,<p><ul><li>タイトル：アワーグラス</li><li>タイトル（読み）：アワーグラス</li><li>責任表示：デイヴ・ガーン</li></ul>]]></description>
+      <author>デイヴ・ガーン</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009173943</guid>
+      <pubDate>Wed, 6 Feb 2008 20:58:19 +0900</pubDate>
+      <dc:title>アワーグラス</dc:title>
+      <dcndl:titleTranscription>アワーグラス</dcndl:titleTranscription>
+      <dc:publisher>EMIミュージック・ジャパン</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.10</dcterms:issued>
+      <dcndl:price>2500円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TOCP-66717</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009173943</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21357622</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009173943"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>アンティリウス: ザ・キング・オブ・ザ・ライト</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I026152906</link>
+      <description><![CDATA[<p>Rubicon Music,2015,<p><ul><li>タイトル：アンティリウス: ザ・キング・オブ・ザ・ライト</li><li>タイトル（読み）：アンティリウス: ザ ・ キング ・ オブ ・ ザ ・ ライト</li><li>責任表示：カレドン</li></ul>]]></description>
+      <author>カレドン</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I026152906</guid>
+      <pubDate>Mon, 20 Jan 2025 22:23:57 +0900</pubDate>
+      <dc:title>アンティリウス: ザ・キング・オブ・ザ・ライト</dc:title>
+      <dcndl:titleTranscription>アンティリウス: ザ ・ キング ・ オブ ・ ザ ・ ライト</dcndl:titleTranscription>
+      <dc:publisher>Rubicon Music</dc:publisher>
+      <dc:publisher>KNOWlEdGE AlliaNCE</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2015</dc:date>
+      <dcterms:issued>2015.3</dcterms:issued>
+      <dcndl:price>2381円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">RBNCD-1185</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">026152906</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24069436</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>頒布</dc:description>
+      <dc:description>所要時間: 77分8秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I026152906"/>
+      <dc:description> 2015</dc:description>
+    </item>
+    <item>
+      <title>アンノウン・キングダム・デイズ　異世界で騎士の花嫁になりました</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000137-I04000000A09123500000</link>
+      <description><![CDATA[<p>KADOKAWA,2019-10-25,<p><ul><li>タイトル：アンノウン・キングダム・デイズ　異世界で騎士の花嫁になりました</li><li>タイトル（読み）：アンノウンキングダムデイズ001イセカイデキシノハナヨメニナリマシタ</li><li>責任表示：iroha 著・文・その他,空梅雨 イラスト</li></ul>]]></description>
+      <author>iroha,空梅雨,iroha 著・文・その他,空梅雨 イラスト</author>
+      <category>図書</category>
+      <category>電子書籍・電子雑誌</category>
+      <category>デジタル</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000137-I04000000A09123500000</guid>
+      <pubDate>Fri, 23 Aug 2024 18:53:00 +0900</pubDate>
+      <dc:title>アンノウン・キングダム・デイズ　異世界で騎士の花嫁になりました</dc:title>
+      <dcndl:titleTranscription>アンノウンキングダムデイズ001イセカイデキシノハナヨメニナリマシタ</dcndl:titleTranscription>
+      <dc:creator>iroha</dc:creator>
+      <dc:creator>空梅雨</dc:creator>
+      <dcndl:creatorTranscription>イロハ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>カラツユ</dcndl:creatorTranscription>
+      <dc:publisher>KADOKAWA</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2019-10-25</dc:date>
+      <dcterms:issued>2019-10-25</dcterms:issued>
+      <dc:description>発売</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/04000000A09123500000"/>
+      <dc:description> 2019-10-25</dc:description>
+    </item>
+    <item>
+      <title>Ｕｎｌｉｋｅｌｙ　ｈｅｒｏｅｓ　：　３７　ｉｎｓｐｉｒｉｎｇ　ｓｔｏｒｉｅｓ　ｏｆ　ｃｏｕｒａｇｅ　ａｎｄ　ｈｅａｒｔ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000907619</link>
+      <description><![CDATA[<p>Workman Publishing,2014,978-0-7611-7441-7<p><ul><li>タイトル：Ｕｎｌｉｋｅｌｙ　ｈｅｒｏｅｓ　：　３７　ｉｎｓｐｉｒｉｎｇ　ｓｔｏｒｉｅｓ　ｏｆ　ｃｏｕｒａｇｅ　ａｎｄ　ｈｅａｒｔ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</li><li>タイトル（読み）：アンライクリー　ヒーローズ　サーティセヴン　インスパイアリング　ストーリーズ　オブ　カーリッジ　アンド　ハート　フロム　ディ　アニマル　キングダム</li><li>責任表示：Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</li><li>NDC(9)：480</li></ul>]]></description>
+      <author>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．,Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000907619</guid>
+      <pubDate>Fri, 21 Feb 2020 03:10:33 +0900</pubDate>
+      <dc:title>Ｕｎｌｉｋｅｌｙ　ｈｅｒｏｅｓ　：　３７　ｉｎｓｐｉｒｉｎｇ　ｓｔｏｒｉｅｓ　ｏｆ　ｃｏｕｒａｇｅ　ａｎｄ　ｈｅａｒｔ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</dc:title>
+      <dcndl:titleTranscription>アンライクリー　ヒーローズ　サーティセヴン　インスパイアリング　ストーリーズ　オブ　カーリッジ　アンド　ハート　フロム　ディ　アニマル　キングダム</dcndl:titleTranscription>
+      <dc:creator>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．</dc:creator>
+      <dcndl:creatorTranscription>ホーランド　ジェニファー　Ｓ</dcndl:creatorTranscription>
+      <dc:publisher>Workman Publishing</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2014</dc:date>
+      <dcterms:issued>２０１４</dcterms:issued>
+      <dcndl:price>￥２１０６</dcndl:price>
+      <dc:extent>２４６ｐ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-0-7611-7441-7</dc:identifier>
+      <dc:subject>動物</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">480</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000907619"/>
+      <dc:description> 2014</dc:description>
+    </item>
+    <item>
+      <title>Ｕｎｌｉｋｅｌｙ　ｆｒｉｅｎｄｓｈｉｐｓ　：　４７　ｒｅｍａｒｋａｂｌｅ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000477213</link>
+      <description><![CDATA[<p>Workman Publishing,2011,978-0-7611-5913-1<p><ul><li>タイトル：Ｕｎｌｉｋｅｌｙ　ｆｒｉｅｎｄｓｈｉｐｓ　：　４７　ｒｅｍａｒｋａｂｌｅ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</li><li>タイトル（読み）：アンライクリー　フレンドシップス　フォーティセヴン　リマーカブル　ストーリーズ　フロム　ディ　アニマル　キングダム</li><li>責任表示：Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</li><li>NDC(9)：480</li></ul>]]></description>
+      <author>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．,Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000477213</guid>
+      <pubDate>Fri, 21 Feb 2020 03:10:33 +0900</pubDate>
+      <dc:title>Ｕｎｌｉｋｅｌｙ　ｆｒｉｅｎｄｓｈｉｐｓ　：　４７　ｒｅｍａｒｋａｂｌｅ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</dc:title>
+      <dcndl:titleTranscription>アンライクリー　フレンドシップス　フォーティセヴン　リマーカブル　ストーリーズ　フロム　ディ　アニマル　キングダム</dcndl:titleTranscription>
+      <dc:creator>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．</dc:creator>
+      <dcndl:creatorTranscription>ホーランド　ジェニファー　Ｓ</dcndl:creatorTranscription>
+      <dc:publisher>Workman Publishing</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2011</dc:date>
+      <dcterms:issued>２０１１</dcterms:issued>
+      <dcndl:price>￥１２１３</dcndl:price>
+      <dc:extent>２１０ｐ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-0-7611-5913-1</dc:identifier>
+      <dc:subject>動物</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">480</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000477213"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1111078750"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001101955791"/>
+      <dc:description> 2011</dc:description>
+    </item>
+    <item>
+      <title>Ｕｎｌｉｋｅｌｙ　ｌｏｖｅｓ　：　４３　ｈｅａｒｔｗａｒｍｉｎｇ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000733557</link>
+      <description><![CDATA[<p>Workman Publishing,2013,978-0-7611-7442-4<p><ul><li>タイトル：Ｕｎｌｉｋｅｌｙ　ｌｏｖｅｓ　：　４３　ｈｅａｒｔｗａｒｍｉｎｇ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</li><li>タイトル（読み）：アンライクリー　ラヴズ　フォーティスリー　ハートワーミング　ストーリーズ　フロム　ディ　アニマル　キングダム</li><li>責任表示：Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</li><li>NDC(9)：480</li></ul>]]></description>
+      <author>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．,Ｊｅｎｎｉｆｅｒ　Ｓ．　Ｈｏｌｌａｎｄ／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000733557</guid>
+      <pubDate>Fri, 21 Feb 2020 03:10:33 +0900</pubDate>
+      <dc:title>Ｕｎｌｉｋｅｌｙ　ｌｏｖｅｓ　：　４３　ｈｅａｒｔｗａｒｍｉｎｇ　ｓｔｏｒｉｅｓ　ｆｒｏｍ　ｔｈｅ　ａｎｉｍａｌ　ｋｉｎｇｄｏｍ</dc:title>
+      <dcndl:titleTranscription>アンライクリー　ラヴズ　フォーティスリー　ハートワーミング　ストーリーズ　フロム　ディ　アニマル　キングダム</dcndl:titleTranscription>
+      <dc:creator>Ｈｏｌｌａｎｄ　Ｊｅｎｎｉｆｅｒ　Ｓ．</dc:creator>
+      <dcndl:creatorTranscription>ホーランド　ジェニファー　Ｓ</dcndl:creatorTranscription>
+      <dc:publisher>Workman Publishing</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2013</dc:date>
+      <dcterms:issued>２０１３</dcterms:issued>
+      <dcndl:price>￥１５４８</dcndl:price>
+      <dc:extent>１５，　２２４ｐ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-0-7611-7442-4</dc:identifier>
+      <dc:subject>動物</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">480</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000733557"/>
+      <dc:description> 2013</dc:description>
+    </item>
+    <item>
+      <title>E.M.フォースター著作集</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000002495735</link>
+      <description><![CDATA[<p>5,みすず書房,1996,4-622-04575-3<p><ul><li>タイトル：E.M.フォースター著作集</li><li>タイトル（読み）：イー エム フォースター チョサクシュウ</li></ul>]]></description>
+      <author>Forster, Edward Morgan, 1879-1970,小池, 滋, 1931-2023</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000002495735</guid>
+      <pubDate>Thu, 30 Jan 2025 00:01:14 +0900</pubDate>
+      <dc:title>E.M.フォースター著作集</dc:title>
+      <dcndl:titleTranscription>イー エム フォースター チョサクシュウ</dcndl:titleTranscription>
+      <dc:creator>Forster, Edward Morgan, 1879-1970</dc:creator>
+      <dc:creator>小池, 滋, 1931-2023</dc:creator>
+      <dcndl:creatorTranscription>コイケ, シゲル, 1931-2023</dcndl:creatorTranscription>
+      <dcndl:volume>5</dcndl:volume>
+      <dc:publisher>みすず書房</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1996</dc:date>
+      <dcterms:issued>1996.4</dcterms:issued>
+      <dcndl:price>4120円 (税込)</dcndl:price>
+      <dc:extent>349p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-622-04575-3</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-622-04575-3</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000002495735</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">96058103</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">KS156</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC8">938</dc:subject>
+      <dc:description>原タイトル: Collected short stories</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.hokkaido.jp/wo/opc_srh/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001000936951"/>
+      <rdfs:seeAlso rdf:resource="https://www.plib.pref.aomori.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1100705895"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.miyagi.jp/winj/opac/switch-detail-iccap.do?bibid=1104313959"/>
+      <rdfs:seeAlso rdf:resource="https://www.apl.pref.akita.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009610016429"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.pref.yamagata.jp/winj/opac/switch-detail-iccap.do?bibid=1100294482"/>
+      <rdfs:seeAlso rdf:resource="http://www.lib.pref.tochigi.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1100861554"/>
+      <rdfs:seeAlso rdf:resource="https://www1.library.pref.gunma.jp/winj/opac/switch-detail-iccap.do?bibid=1100235836"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.pref.saitama.jp//winj/opac/switch-detail-iccap.do?bibid=1123454714"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.city.saitama.jp/bookdetail?num=763822&amp;ctg=1"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.chiba.lg.jp//licsxp-iopac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000228302"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.chiba.jp/licsxp-opac/WOpacTifSchCmpdDispAction.do"/>
+      <rdfs:seeAlso rdf:resource="https://catalog.library.metro.tokyo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1102276072"/>
+      <rdfs:seeAlso rdf:resource="https://www.klnet.pref.kanagawa.jp/winj/opac/switch-detail-iccap.do?bibid=1100485846"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1196021637"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.kawasaki.jp/bookdetail?num=1240362&amp;ctg=1"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.sagamihara.kanagawa.jp/TOSHOW/asp/WwShousaiKen.aspx?FCode=764196"/>
+      <rdfs:seeAlso rdf:resource="https://opac.pref-lib.niigata.niigata.jp/winj/opac/switch-detail-iccap.do?bibid=1105010239"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.ishikawa.lg.jp/wo/opc_srh/srh_detail/1009710011527/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library-archives.pref.fukui.lg.jp/wo/opc_srh/srh_detail/1103472257/"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.pref.yamanashi.jp/licsxp-opac/WOpacMnuTopInitAction.do"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.nagano.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009610021119"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.pref.gifu.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1100414812"/>
+      <rdfs:seeAlso rdf:resource="https://www.tosyokan.pref.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009610025787"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001101066470"/>
+      <rdfs:seeAlso rdf:resource="http://websv.aichi-pref-library.jp/winj/opac/switch-detail-iccap.do?bibid=1110495691"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.nagoya.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009610018847"/>
+      <rdfs:seeAlso rdf:resource="http://opac1.library.pref.mie.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1101247376"/>
+      <rdfs:seeAlso rdf:resource="https://www.shiga-pref-library.jp/wo/opc_srh/srh_detail/1008028/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.kyoto.jp/bib/?B10034576"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bib/?B10753757"/>
+      <rdfs:seeAlso rdf:resource="https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000533080"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib-sakai.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000352258"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.hyogo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1101537018"/>
+      <rdfs:seeAlso rdf:resource="https://opacsvr01.library.pref.nara.jp/opac/volume/132402"/>
+      <rdfs:seeAlso rdf:resource="http://www.lib.wakayama-c.ed.jp/winj/opac/switch-detail-iccap.do?bibid=1100341085"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.pref.tottori.jp/winj/opac/switch-detail-iccap.do?bibid=1100307139"/>
+      <rdfs:seeAlso rdf:resource="https://www2.library.pref.shimane.lg.jp/opac/switch-detail-iccap.do?bibid=1100462625"/>
+      <rdfs:seeAlso rdf:resource="https://www2.hplibra.pref.hiroshima.jp/bib/?B11121756"/>
+      <rdfs:seeAlso rdf:resource="https://library.pref.yamaguchi.lg.jp//wo/opc_srh/srh_detail/9610039643/"/>
+      <rdfs:seeAlso rdf:resource="https://alislibopac.bunmori.tokushima.jp/winj/opac/switch-detail-iccap.do?bibid=1100384900"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.kagawa.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1106019944"/>
+      <rdfs:seeAlso rdf:resource="https://www.ehimetosyokan.jp/winj/opac/switch-detail-iccap.do?bibid=1100129289"/>
+      <rdfs:seeAlso rdf:resource="https://opac.library.kochi.jp/winj/opac/switch-detail-iccap.do?bibid=1108174696"/>
+      <rdfs:seeAlso rdf:resource="http://www.lib.pref.fukuoka.jp/winj/opac/switch-detail-iccap.do?bibid=1104114104"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.fukuoka.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1104053252"/>
+      <rdfs:seeAlso rdf:resource="https://www2.tosyo-saga.jp/kentosyo2/opac/switch-detail-iccap.do?bibid=1100423368"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009610035604"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.kumamoto.jp/winj/opac/switch-detail-iccap.do?bibid=1135015607"/>
+      <rdfs:seeAlso rdf:resource="https://library.pref.oita.jp/winj/opac/switch-detail-iccap.do?bibid=1106029013"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.pref.miyazaki.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1100689641"/>
+      <rdfs:seeAlso rdf:resource="https://www2.library.pref.kagoshima.jp/kento/opac/switch-detail-iccap.do?bibid=1134017312"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.okinawa.jp/winj/opac/switch-detail-iccap.do?bibid=1106072783"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000002495735"/>
+      <rdfs:seeAlso rdf:resource="https://dl.ndl.go.jp/pid/13620111"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784622045755"/>
+      <dc:description> 1996</dc:description>
+    </item>
+    <item>
+      <title>「イースV」オーケストラヴァージョン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008957402</link>
+      <description><![CDATA[<p>キングレコード,1996,<p><ul><li>タイトル：「イースV」オーケストラヴァージョン</li><li>タイトル（読み）：イースV オーケストラ ヴァージョン イースV オーケストラ バージョン</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008957402</guid>
+      <pubDate>Sat, 18 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>「イースV」オーケストラヴァージョン</dc:title>
+      <dcndl:titleTranscription>イースV オーケストラ ヴァージョン イースV オーケストラ バージョン</dcndl:titleTranscription>
+      <dc:publisher>キングレコード</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1996</dc:date>
+      <dcterms:issued>1996.4</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">KICA-1178</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008957402</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 48分35秒</dc:description>
+      <dc:description>ジャンル: ゲーム</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008957402"/>
+      <dc:description> 1996</dc:description>
+    </item>
+    <item>
+      <title>イギリス技術職人イザムバード・キングダム・ブルネルのお話 : 歴史をつくった人々</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000128-IB16468620</link>
+      <description><![CDATA[<p>LLP技術史出版会,2007,<p><ul><li>タイトル：イギリス技術職人イザムバード・キングダム・ブルネルのお話 : 歴史をつくった人々</li><li>タイトル（読み）：イギリス ギジュツ ショクニン イザムバード キングダム ブルネル ノ オハナシ : レキシ オ ツクッタ ヒトビト</li><li>責任表示：マーチン・マルコム∥著,大川時夫∥訳,岡野幹雄∥絵</li></ul>]]></description>
+      <author>マーチン・マルコム,大川/時夫,岡野/幹雄,マーチン・マルコム∥著,大川時夫∥訳,岡野幹雄∥絵</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000128-IB16468620</guid>
+      <pubDate>Thu, 13 Nov 2025 17:57:32 +0900</pubDate>
+      <dc:title>イギリス技術職人イザムバード・キングダム・ブルネルのお話 : 歴史をつくった人々</dc:title>
+      <dcndl:titleTranscription>イギリス ギジュツ ショクニン イザムバード キングダム ブルネル ノ オハナシ : レキシ オ ツクッタ ヒトビト</dcndl:titleTranscription>
+      <dc:creator>マーチン・マルコム</dc:creator>
+      <dc:creator>大川/時夫</dc:creator>
+      <dc:creator>岡野/幹雄</dc:creator>
+      <dcndl:creatorTranscription>マルコム マーチン</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>オオカワ トキオ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>オカノ ミキオ</dcndl:creatorTranscription>
+      <dc:publisher>LLP技術史出版会</dc:publisher>
+      <dc:publisher>星雲社</dc:publisher>
+      <dcndl:publicationPlace>JA</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.7</dcterms:issued>
+      <dcndl:price>1500円</dcndl:price>
+      <dc:extent>28p ; 22×22cm</dc:extent>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16468620"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>イギリス産業革命史の旅-3-連合王国全体(ユナイテッド・キングダム)に鉄道を</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I3351079</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：イギリス産業革命史の旅-3-連合王国全体(ユナイテッド・キングダム)に鉄道を</li><li>タイトル（読み）：イギリス サンギョウ カクメイシ ノ タビ 3 レンゴウ オウコク ゼンタイ</li><li>責任表示：剣持 一巳</li></ul>]]></description>
+      <author>剣持 一巳,剣持 一巳</author>
+      <category>記事</category>
+      <category>デジタル</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I3351079</guid>
+      <pubDate>Sat, 6 Feb 1999 09:26:35 +0900</pubDate>
+      <dc:title>イギリス産業革命史の旅-3-連合王国全体(ユナイテッド・キングダム)に鉄道を</dc:title>
+      <dcndl:titleTranscription>イギリス サンギョウ カクメイシ ノ タビ 3 レンゴウ オウコク ゼンタイ</dcndl:titleTranscription>
+      <dc:creator>剣持 一巳</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">3351079</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZM1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I3351079"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1523669555650446208"/>
+      <dc:description>掲載誌：技術と人間 / 技術と人間 [編] 9 p.p92～105</dc:description>
+    </item>
+    <item>
+      <title>イザムバード・キングダム・ブルネルのお話 : イギリス技術職人</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008834073</link>
+      <description><![CDATA[<p>技術史出版会,2007,978-4-434-10803-7<p><ul><li>タイトル：イザムバード・キングダム・ブルネルのお話 : イギリス技術職人</li><li>タイトル（読み）：イザムバード キングダム ブルネル ノ オハナシ : イギリス ギジュツ ショクニン</li><li>責任表示：マーチン・マルコルム 著,おおかわときお 訳,おかのみきお 絵,技術史出版会 編</li><li>シリーズ名：歴史をつくった人々</li><li>シリーズ名（読み）：レキシ オ ツクッタ ヒトビト</li><li>NDC(9)：289.3</li></ul>]]></description>
+      <author>Malcolm, Martin,大川, 時夫,岡野, 幹雄,技術史出版会,マーチン・マルコルム 著,おおかわときお 訳,おかのみきお 絵,技術史出版会 編</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008834073</guid>
+      <pubDate>Mon, 11 Jul 2022 20:01:06 +0900</pubDate>
+      <dc:title>イザムバード・キングダム・ブルネルのお話 : イギリス技術職人</dc:title>
+      <dcndl:titleTranscription>イザムバード キングダム ブルネル ノ オハナシ : イギリス ギジュツ ショクニン</dcndl:titleTranscription>
+      <dc:creator>Malcolm, Martin</dc:creator>
+      <dc:creator>大川, 時夫</dc:creator>
+      <dc:creator>岡野, 幹雄</dc:creator>
+      <dc:creator>技術史出版会</dc:creator>
+      <dcndl:creatorTranscription>オオカワ, トキオ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>オカノ, ミキオ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>ギジュツシ シュッパンカイ</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>歴史をつくった人々</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>レキシ オ ツクッタ ヒトビト</dcndl:seriesTitleTranscription>
+      <dc:publisher>技術史出版会</dc:publisher>
+      <dc:publisher>星雲社 (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.7</dcterms:issued>
+      <dcndl:price>1500円</dcndl:price>
+      <dc:extent>28p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-434-10803-7</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008834073</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21277264</dc:identifier>
+      <dc:subject>Brunel, Isambard Kingdom, 1806-1859</dc:subject>
+      <dcndl:genre>児童図書</dcndl:genre>
+      <dcndl:genreTranscription>ジドウ トショ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y3</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">289.3</dc:subject>
+      <dc:description>標題紙のタイトル: イザムバード・キングダム・ブルネル</dc:description>
+      <dc:description>原タイトル: Isambard kingdom brunel</dc:description>
+      <dc:description>文献あり</dc:description>
+      <dc:description>年表あり</dc:description>
+      <rdfs:seeAlso rdf:resource="https://catalog.library.metro.tokyo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1107268309"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.nagano.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001100468627"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.pref.tottori.jp/winj/opac/switch-detail-iccap.do?bibid=1101438868"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000138862"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008834073"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>イザムバード・キングダム・ブルネル : 1806(文化3年)-1859(安政6年)</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000136-I1970304959835837218</link>
+      <description><![CDATA[<p>LLP技術史出版会,2007,9784434108037<p><ul><li>タイトル：イザムバード・キングダム・ブルネル : 1806(文化3年)-1859(安政6年)</li><li>タイトル（読み）：イザムバード キングダム ブルネル : 1806 ブンカ 3ネン 1859 アンセイ 6ネン</li><li>責任表示：マーチン・マルコルム著 ; おおかわときお訳 ; おかのみきお絵</li><li>NDC(9)：289.3</li></ul>]]></description>
+      <author>Malcolm, Martin,大川, 時夫,岡野, 幹雄,マーチン・マルコルム著 ; おおかわときお訳 ; おかのみきお絵</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000136-I1970304959835837218</guid>
+      <pubDate>Fri, 25 Sep 2026 11:13:32 +0900</pubDate>
+      <dc:title>イザムバード・キングダム・ブルネル : 1806(文化3年)-1859(安政6年)</dc:title>
+      <dcndl:titleTranscription>イザムバード キングダム ブルネル : 1806 ブンカ 3ネン 1859 アンセイ 6ネン</dcndl:titleTranscription>
+      <dc:creator>Malcolm, Martin</dc:creator>
+      <dc:creator>大川, 時夫</dc:creator>
+      <dc:creator>岡野, 幹雄</dc:creator>
+      <dcndl:creatorTranscription>オオカワ, トキオ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>オカノ, ミキオ</dcndl:creatorTranscription>
+      <dc:publisher>LLP技術史出版会</dc:publisher>
+      <dc:publisher>星雲社 (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2007</dc:date>
+      <dcterms:issued>2007.7</dcterms:issued>
+      <dc:identifier xsi:type="dcndl:ISBN">9784434108037</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">9784434108037</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NIIBibID">BA83805930</dc:identifier>
+      <dc:subject>Brunel, Isambard Kingdom(1806-1859)</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">289.3</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC8">289.3</dc:subject>
+      <dc:description>ブルネルの生涯と活躍の年表: p24-25</dc:description>
+      <dc:description>もっと知りたい人のために: p27</dc:description>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1970304959835837218"/>
+      <dc:description> 2007</dc:description>
+    </item>
+    <item>
+      <title>伊豆アニマルキングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000020-I30285</link>
+      <description><![CDATA[<p>伊豆バイオパーク,<p><ul><li>タイトル：伊豆アニマルキングダム</li><li>タイトル（読み）：イズアニマルキングダム</li></ul>]]></description>
+      <author/>
+      <category>webサイト</category>
+      <category>デジタル</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000020-I30285</guid>
+      <pubDate>Fri, 25 Sep 2026 01:00:13 +0900</pubDate>
+      <dc:title>伊豆アニマルキングダム</dc:title>
+      <dcndl:titleTranscription>イズアニマルキングダム</dcndl:titleTranscription>
+      <dc:publisher>伊豆バイオパーク</dc:publisher>
+      <dc:description>コレクション種別（組織種別）: 法人・機構</dc:description>
+      <dc:description>コレクション種別（テーマ）: 企業</dc:description>
+      <dc:description>起点URL: https://izu-animal-kingdom.com/</dc:description>
+      <rdfs:seeAlso rdf:resource="https://warp.ndl.go.jp/waid/30285"/>
+      <dc:description/>
+    </item>
+    <item>
+      <title>スターダスト・レビュー</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009056930</link>
+      <description><![CDATA[<p>ゼティマ,1997,<p><ul><li>タイトル：スターダスト・レビュー</li><li>タイトル（読み）：イトシテルノ ツズキ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009056930</guid>
+      <pubDate>Fri, 31 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>スターダスト・レビュー</dc:title>
+      <dcndl:titleTranscription>イトシテルノ ツズキ</dcndl:titleTranscription>
+      <dc:publisher>ゼティマ</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1997</dc:date>
+      <dcterms:issued>1997.6</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">EPDA-45</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009056930</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC13</dc:subject>
+      <dc:description>収録時間: 14分46秒</dc:description>
+      <dc:description>ジャンル: シングル・邦楽ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009056930"/>
+      <dc:description> 1997</dc:description>
+    </item>
+    <item>
+      <title>イナズマイレブン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I023612474</link>
+      <description><![CDATA[<p>28,ジェネオン・ユニバーサル・エンターテイメント,2011,<p><ul><li>タイトル：イナズマイレブン</li><li>タイトル（読み）：イナズマ イレブン</li><li>責任表示：レベルファイブ 原作,OLM アニメーション制作</li></ul>]]></description>
+      <author>レベルファイブ 原作,OLM アニメーション制作</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I023612474</guid>
+      <pubDate>Mon, 2 Jun 2025 17:06:36 +0900</pubDate>
+      <dc:title>イナズマイレブン</dc:title>
+      <dcndl:titleTranscription>イナズマ イレブン</dcndl:titleTranscription>
+      <dcndl:volume>28</dcndl:volume>
+      <dc:publisher>ジェネオン・ユニバーサル・エンターテイメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2011</dc:date>
+      <dcterms:issued>2011.5</dcterms:issued>
+      <dcndl:price>5040円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (97分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GNBA-1658</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">023612474</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22872471</dc:identifier>
+      <dcndl:genre>アニメーション</dcndl:genre>
+      <dcndl:genreTranscription>アニメーション</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">YLZ11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I023612474"/>
+      <dc:description> 2011</dc:description>
+    </item>
+    <item>
+      <title>イナズマイレブン</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I023612482</link>
+      <description><![CDATA[<p>29,ジェネオン・ユニバーサル・エンターテイメント,2011,<p><ul><li>タイトル：イナズマイレブン</li><li>タイトル（読み）：イナズマ イレブン</li><li>責任表示：レベルファイブ 原作,OLM アニメーション制作</li></ul>]]></description>
+      <author>レベルファイブ 原作,OLM アニメーション制作</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I023612482</guid>
+      <pubDate>Mon, 2 Jun 2025 17:06:37 +0900</pubDate>
+      <dc:title>イナズマイレブン</dc:title>
+      <dcndl:titleTranscription>イナズマ イレブン</dcndl:titleTranscription>
+      <dcndl:volume>29</dcndl:volume>
+      <dc:publisher>ジェネオン・ユニバーサル・エンターテイメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2011</dc:date>
+      <dcterms:issued>2011.5</dcterms:issued>
+      <dcndl:price>5040円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (97分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GNBA-1659</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">023612482</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22872472</dc:identifier>
+      <dcndl:genre>アニメーション</dcndl:genre>
+      <dcndl:genreTranscription>アニメーション</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">YLZ11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I023612482"/>
+      <dc:description> 2011</dc:description>
+    </item>
+    <item>
+      <title>居眠りキングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000007320981</link>
+      <description><![CDATA[<p>集英社,2004,4-08-600401-1<p><ul><li>タイトル：居眠りキングダム</li><li>タイトル（読み）：イネムリ キングダム</li><li>責任表示：野梨原花南 著</li><li>シリーズ名：コバルト文庫</li><li>シリーズ名（読み）：コバルト ブンコ</li><li>NDC(9)：913.6</li></ul>]]></description>
+      <author>野梨原, 花南,野梨原花南 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000007320981</guid>
+      <pubDate>Fri, 14 May 2004 23:12:54 +0900</pubDate>
+      <dc:title>居眠りキングダム</dc:title>
+      <dcndl:titleTranscription>イネムリ キングダム</dcndl:titleTranscription>
+      <dc:creator>野梨原, 花南</dc:creator>
+      <dcndl:creatorTranscription>ノリハラ, カナン</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>コバルト文庫</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>コバルト ブンコ</dcndl:seriesTitleTranscription>
+      <dc:publisher>集英社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2004</dc:date>
+      <dcterms:issued>2004.4</dcterms:issued>
+      <dcndl:price>476円</dcndl:price>
+      <dc:extent>226p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-08-600401-1</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-08-600401-1</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000007320981</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20575580</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">KH447</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">913.6</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.hokkaido.jp/wo/opc_srh/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1006400120696"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.city.saitama.jp/bookdetail?num=1258730&amp;ctg=1"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.chiba.jp/licsxp-opac/WOpacTifSchCmpdDispAction.do"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1104024368"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.kawasaki.jp/bookdetail?num=304372&amp;ctg=1"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001100369568"/>
+      <rdfs:seeAlso rdf:resource="https://www.shiga-pref-library.jp/wo/opc_srh/srh_detail/1730187/"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bib/?B11157259"/>
+      <rdfs:seeAlso rdf:resource="https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000010729250"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib-sakai.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000001709848"/>
+      <rdfs:seeAlso rdf:resource="https://opac.libnet.pref.okayama.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009810559506"/>
+      <rdfs:seeAlso rdf:resource="https://alislibopac.bunmori.tokushima.jp/winj/opac/switch-detail-iccap.do?bibid=1101502873"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.fukuoka.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1102817672"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009810684007"/>
+      <rdfs:seeAlso rdf:resource="https://library.pref.oita.jp/winj/opac/switch-detail-iccap.do?bibid=1109505483"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007320981"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16226356"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784086004015"/>
+      <dc:description> 2004</dc:description>
+    </item>
+    <item>
+      <title>イバラキングダムvs彩の国 : 常熱大陸presents大学野球初心者読本</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034427176</link>
+      <description><![CDATA[<p>常熱大陸,2022,<p><ul><li>タイトル：イバラキングダムvs彩の国 : 常熱大陸presents大学野球初心者読本</li><li>タイトル（読み）：イバラキングダム vs サイ ノ クニ : ジョウネツ タイリク presents ダイガク ヤキュウ ショシンシャ トクホン</li><li>責任表示：蒼屋真澄 著</li></ul>]]></description>
+      <author>蒼屋真澄 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034427176</guid>
+      <pubDate>Sat, 6 Dec 2025 00:46:14 +0900</pubDate>
+      <dc:title>イバラキングダムvs彩の国 : 常熱大陸presents大学野球初心者読本</dc:title>
+      <dcndl:titleTranscription>イバラキングダム vs サイ ノ クニ : ジョウネツ タイリク presents ダイガク ヤキュウ ショシンシャ トクホン</dcndl:titleTranscription>
+      <dc:publisher>常熱大陸</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2022</dc:date>
+      <dcterms:issued>2022.12</dcterms:issued>
+      <dc:extent>22 p</dc:extent>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034427176</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24196510</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">Y93</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034427176"/>
+      <dc:description> 2022</dc:description>
+    </item>
+    <item>
+      <title>いま、この国に必要なのは、ブルネル・スピリット : イザムバード・キングダム・ブルネルから学ぶこと</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I032499373</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：いま、この国に必要なのは、ブルネル・スピリット : イザムバード・キングダム・ブルネルから学ぶこと</li><li>タイトル（読み）：イマ 、 コノ クニ ニ ヒツヨウ ナ ノ ワ 、 ブルネル ・ スピリット : イザムバード ・ キングダム ・ ブルネル カラ マナブ コト</li><li>責任表示：佐藤 建吉</li></ul>]]></description>
+      <author>佐藤 建吉,佐藤 建吉</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I032499373</guid>
+      <pubDate>Sat, 26 Nov 2022 02:18:22 +0900</pubDate>
+      <dc:title>いま、この国に必要なのは、ブルネル・スピリット : イザムバード・キングダム・ブルネルから学ぶこと</dc:title>
+      <dcndl:titleTranscription>イマ 、 コノ クニ ニ ヒツヨウ ナ ノ ワ 、 ブルネル ・ スピリット : イザムバード ・ キングダム ・ ブルネル カラ マナブ コト</dcndl:titleTranscription>
+      <dc:creator>佐藤 建吉</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">032499373</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZW1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I032499373"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1520012777806392960"/>
+      <dc:description>掲載誌：善隣 530 p.8-16</dc:description>
+    </item>
+    <item>
+      <title>いま求められる「ブルネル・スピリット」 : イザムバード・キングダム・ブルネル没後160年を記念して</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I029653207</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：いま求められる「ブルネル・スピリット」 : イザムバード・キングダム・ブルネル没後160年を記念して</li><li>タイトル（読み）：イマ モトメラレル 「 ブルネル ・ スピリット 」 : イザムバード ・ キングダム ・ ブルネル ボツゴ 160ネン オ キネン シテ</li><li>責任表示：佐藤 建吉</li><li>シリーズ名：終刊記念総特集 ポスト平成日本を考える</li><li>シリーズ名（読み）：シュウカンキネン ソウ トクシュウ ポスト ヘイセイ ニホン オ カンガエル</li></ul>]]></description>
+      <author>佐藤 建吉,佐藤 建吉</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I029653207</guid>
+      <pubDate>Sat, 11 May 2019 01:10:48 +0900</pubDate>
+      <dc:title>いま求められる「ブルネル・スピリット」 : イザムバード・キングダム・ブルネル没後160年を記念して</dc:title>
+      <dcndl:titleTranscription>イマ モトメラレル 「 ブルネル ・ スピリット 」 : イザムバード ・ キングダム ・ ブルネル ボツゴ 160ネン オ キネン シテ</dcndl:titleTranscription>
+      <dc:creator>佐藤 建吉</dc:creator>
+      <dcndl:seriesTitle>終刊記念総特集 ポスト平成日本を考える</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>シュウカンキネン ソウ トクシュウ ポスト ヘイセイ ニホン オ カンガエル</dcndl:seriesTitleTranscription>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029653207</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZW1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I029653207"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1523669554668756864"/>
+      <dc:description>掲載誌：日本主義 45 p.84-89</dc:description>
+    </item>
+    <item>
+      <title>イン・エクストレミス</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I023839136</link>
+      <description><![CDATA[<p>Arcàngelo,1998,<p><ul><li>タイトル：イン・エクストレミス</li><li>タイトル（読み）：イン エクストレミス</li><li>責任表示：シンキング・プレイグ</li></ul>]]></description>
+      <author>シンキング・プレイグ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I023839136</guid>
+      <pubDate>Thu, 23 Aug 2012 19:19:18 +0900</pubDate>
+      <dc:title>イン・エクストレミス</dc:title>
+      <dcndl:titleTranscription>イン エクストレミス</dcndl:titleTranscription>
+      <dc:publisher>Arcàngelo</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1998</dc:date>
+      <dcterms:issued>[1998]</dcterms:issued>
+      <dcndl:price>2500円</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">ARC-2113</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">023839136</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22113039</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I023839136"/>
+      <dc:description> 1998</dc:description>
+    </item>
+    <item>
+      <title>マーカス・ロバーツ/イン・オナー・オブ・デューク</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009029028</link>
+      <description><![CDATA[<p>ソニーレコード,1999,<p><ul><li>タイトル：マーカス・ロバーツ/イン・オナー・オブ・デューク</li><li>タイトル（読み）：イン オナー オブ デューク</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009029028</guid>
+      <pubDate>Tue, 28 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>マーカス・ロバーツ/イン・オナー・オブ・デューク</dc:title>
+      <dcndl:titleTranscription>イン オナー オブ デューク</dcndl:titleTranscription>
+      <dc:publisher>ソニーレコード</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1999</dc:date>
+      <dcterms:issued>1999.12</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">SRCS-2167</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009029028</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録年月: 99.4, 収録時間: 73分23秒</dc:description>
+      <dc:description>ジャンル: ジャズ&amp;フュージョン</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009029028"/>
+      <dc:description> 1999</dc:description>
+    </item>
+    <item>
+      <title>イングラム・キングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I031950395</link>
+      <description><![CDATA[<p>P-Vine,2022,<p><ul><li>タイトル：イングラム・キングダム</li><li>タイトル（読み）：イングラム ・ キングダム</li><li>責任表示：イングラム</li><li>シリーズ名：Groove-diggers</li></ul>]]></description>
+      <author>イングラム</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I031950395</guid>
+      <pubDate>Mon, 22 Aug 2022 22:56:16 +0900</pubDate>
+      <dc:title>イングラム・キングダム</dc:title>
+      <dcndl:titleTranscription>イングラム ・ キングダム</dcndl:titleTranscription>
+      <dcndl:seriesTitle>Groove-diggers</dcndl:seriesTitle>
+      <dc:publisher>P-Vine</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2022</dc:date>
+      <dcterms:issued>2022.4</dcterms:issued>
+      <dcndl:price>2400円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">PCD-94098</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">031950395</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23702702</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>初回生産限定盤</dc:description>
+      <dc:description>所要時間: 39分42秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I031950395"/>
+      <dc:description> 2022</dc:description>
+    </item>
+    <item>
+      <title>Inside the robot kingdom　：　Japan, mechatronics, and the coming robotopia</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211001000607633</link>
+      <description><![CDATA[<p>Kodansha International,1988,0-87011-854-4<p><ul><li>タイトル：Inside the robot kingdom　：　Japan, mechatronics, and the coming robotopia</li><li>タイトル（読み）：インサイド ザ ロボット キングダム　ジャパン メカトロニクス アンド ザ カミング ロボトピア</li><li>責任表示：Frederik L. Schodt／著</li><li>NDC(9)：548.3</li></ul>]]></description>
+      <author>Schodt Frederik,Frederik L. Schodt／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211001000607633</guid>
+      <pubDate>Fri, 21 Feb 2020 03:15:37 +0900</pubDate>
+      <dc:title>Inside the robot kingdom　：　Japan, mechatronics, and the coming robotopia</dc:title>
+      <dcndl:titleTranscription>インサイド ザ ロボット キングダム　ジャパン メカトロニクス アンド ザ カミング ロボトピア</dcndl:titleTranscription>
+      <dc:creator>Schodt Frederik</dc:creator>
+      <dcndl:creatorTranscription>ショット フレデリック</dcndl:creatorTranscription>
+      <dc:publisher>Kodansha International</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">1988</dc:date>
+      <dcterms:issued>1988</dcterms:issued>
+      <dcndl:price>￥３２００</dcndl:price>
+      <dc:extent>256p : ill.</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">0-87011-854-4</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">0-87011-854-4</dc:identifier>
+      <dc:subject>ロボット</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">548.3</dc:subject>
+      <dc:description>Notes: p237-246</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001000607633"/>
+      <rdfs:seeAlso rdf:resource="https://catalog.library.metro.tokyo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1340173565"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1193073595"/>
+      <dc:description> 1988</dc:description>
+    </item>
+    <item>
+      <title>フルード・オンシズ/イン・ザ・ニュー・オールド・ファッションド・ウェイ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009040186</link>
+      <description><![CDATA[<p>エイベックス,2001,<p><ul><li>タイトル：フルード・オンシズ/イン・ザ・ニュー・オールド・ファッションド・ウェイ</li><li>タイトル（読み）：イン ザ ニュー オールド ファッションド ウェイ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009040186</guid>
+      <pubDate>Wed, 29 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>フルード・オンシズ/イン・ザ・ニュー・オールド・ファッションド・ウェイ</dc:title>
+      <dcndl:titleTranscription>イン ザ ニュー オールド ファッションド ウェイ</dcndl:titleTranscription>
+      <dc:publisher>エイベックス</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2001</dc:date>
+      <dcterms:issued>2001.5</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">AVCM-65068</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009040186</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 52分31秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009040186"/>
+      <dc:description> 2001</dc:description>
+    </item>
+    <item>
+      <title>イン・ザ・ブラック</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000010598549</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,2009,<p><ul><li>タイトル：イン・ザ・ブラック</li><li>タイトル（読み）：イン ザ ブラック</li><li>責任表示：キティ</li></ul>]]></description>
+      <author>キティ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000010598549</guid>
+      <pubDate>Tue, 24 Nov 2009 20:48:32 +0900</pubDate>
+      <dc:title>イン・ザ・ブラック</dc:title>
+      <dcndl:titleTranscription>イン ザ ブラック</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2009</dc:date>
+      <dcterms:issued>2009.9</dcterms:issued>
+      <dcndl:price>2625円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-64765</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000010598549</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21673405</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000010598549"/>
+      <dc:description> 2009</dc:description>
+    </item>
+    <item>
+      <title>インタビュー 水晶玉子『水晶玉子のオリエンタル占星術 : 幸運を呼ぶ366日メッセージつき 開運暦2024』『乱世を生き抜く! 水晶玉子の『キングダム』占い』 2024年を幸せに生きるために</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I033181795</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：インタビュー 水晶玉子『水晶玉子のオリエンタル占星術 : 幸運を呼ぶ366日メッセージつき 開運暦2024』『乱世を生き抜く! 水晶玉子の『キングダム』占い』 2024年を幸せに生きるために</li><li>タイトル（読み）：インタビュー スイショウ タマゴ 『 スイショウ タマゴ ノ オリエンタル センセイジュツ : コウウン オ ヨブ 366ニチ メッセージツキ カイウンレキ 2024 』 『 ランセイ オ イキヌク! スイショウ タマゴ ノ 『 キングダム 』 ウラナイ 』 2024ネン オ シアワセ ニ イキル タメニ</li><li>責任表示：水晶 玉子,芳 麗</li></ul>]]></description>
+      <author>水晶 玉子,芳 麗,水晶 玉子,芳 麗</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I033181795</guid>
+      <pubDate>Thu, 30 Nov 2023 00:57:39 +0900</pubDate>
+      <dc:title>インタビュー 水晶玉子『水晶玉子のオリエンタル占星術 : 幸運を呼ぶ366日メッセージつき 開運暦2024』『乱世を生き抜く! 水晶玉子の『キングダム』占い』 2024年を幸せに生きるために</dc:title>
+      <dcndl:titleTranscription>インタビュー スイショウ タマゴ 『 スイショウ タマゴ ノ オリエンタル センセイジュツ : コウウン オ ヨブ 366ニチ メッセージツキ カイウンレキ 2024 』 『 ランセイ オ イキヌク! スイショウ タマゴ ノ 『 キングダム 』 ウラナイ 』 2024ネン オ シアワセ ニ イキル タメニ</dcndl:titleTranscription>
+      <dc:creator>水晶 玉子</dc:creator>
+      <dc:creator>芳 麗</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">033181795</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZU11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I033181795"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1520016880913144448"/>
+      <dc:description>掲載誌：青春と読書 / 集英社 [編] 12(通号 569) p.1-3</dc:description>
+    </item>
+    <item>
+      <title>インパクト・レヴュー Culture &amp; Critique 映画を「読む」・本を「観る」 「キングダム」・「大日本帝国」の戦争の「普遍性」--「キングダム・オブ・ヘブン」・『スクリーンの中の戦争』</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I7417873</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：インパクト・レヴュー Culture & Critique 映画を「読む」・本を「観る」 「キングダム」・「大日本帝国」の戦争の「普遍性」--「キングダム・オブ・ヘブン」・『スクリーンの中の戦争』</li><li>タイトル（読み）：インパクト レヴュー Culture Critique エイガ オ ヨム ホン オ ミル キングダム ダイニッポン テイコク ノ センソウ ノ フヘンセイ キングダム オブ ヘブン スクリーン ノ ナカ ノ センソウ</li><li>責任表示：天野 恵一</li></ul>]]></description>
+      <author>天野 恵一,天野 恵一</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I7417873</guid>
+      <pubDate>Fri, 16 Sep 2005 22:50:31 +0900</pubDate>
+      <dc:title>インパクト・レヴュー Culture &amp; Critique 映画を「読む」・本を「観る」 「キングダム」・「大日本帝国」の戦争の「普遍性」--「キングダム・オブ・ヘブン」・『スクリーンの中の戦争』</dc:title>
+      <dcndl:titleTranscription>インパクト レヴュー Culture Critique エイガ オ ヨム ホン オ ミル キングダム ダイニッポン テイコク ノ センソウ ノ フヘンセイ キングダム オブ ヘブン スクリーン ノ ナカ ノ センソウ</dcndl:titleTranscription>
+      <dc:creator>天野 恵一</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">7417873</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZE1</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I7417873"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1520573330433572096"/>
+      <dc:description>掲載誌：インパクション = Impaction / インパクト出版会 編(通号 147) p.178～183</dc:description>
+    </item>
+    <item>
+      <title>インフェルノ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000007471555</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,2004,<p><ul><li>タイトル：インフェルノ</li><li>タイトル（読み）：インフェルノ</li><li>責任表示：モーターヘッド</li></ul>]]></description>
+      <author>モーターヘッド</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000007471555</guid>
+      <pubDate>Thu, 7 Oct 2004 01:40:33 +0900</pubDate>
+      <dc:title>インフェルノ</dc:title>
+      <dcndl:titleTranscription>インフェルノ</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2004</dc:date>
+      <dcterms:issued>2004.7</dcterms:issued>
+      <dcndl:price>2520円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (52分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-62803</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000007471555</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20663331</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007471555"/>
+      <dc:description> 2004</dc:description>
+    </item>
+    <item>
+      <title>マグナム/インヴェイジョン・マグナム・ライヴ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009026067</link>
+      <description><![CDATA[<p>テイチク/インペリアルレコード,1999,<p><ul><li>タイトル：マグナム/インヴェイジョン・マグナム・ライヴ</li><li>タイトル（読み）：インヴェイジョン ライヴ インベイジョン ライブ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009026067</guid>
+      <pubDate>Tue, 28 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>マグナム/インヴェイジョン・マグナム・ライヴ</dc:title>
+      <dcndl:titleTranscription>インヴェイジョン ライヴ インベイジョン ライブ</dcndl:titleTranscription>
+      <dc:publisher>テイチク/インペリアルレコード</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1999</dc:date>
+      <dcterms:issued>1999.9</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">TECW-21877</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009026067</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録方式: ライヴ収録, 収録時間: 41分31秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009026067"/>
+      <dc:description> 1999</dc:description>
+    </item>
+    <item>
+      <title>インペリテリ/スクリーミング・シンフォニー</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008957591</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,1996,<p><ul><li>タイトル：インペリテリ/スクリーミング・シンフォニー</li><li>タイトル（読み）：インペリテリ スクリーミング シンフォニー</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008957591</guid>
+      <pubDate>Sat, 18 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>インペリテリ/スクリーミング・シンフォニー</dc:title>
+      <dcndl:titleTranscription>インペリテリ スクリーミング シンフォニー</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1996</dc:date>
+      <dcterms:issued>1996.5</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-5729</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008957591</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 33分09秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008957591"/>
+      <dc:description> 1996</dc:description>
+    </item>
+    <item>
+      <title>インポスター</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I031716718</link>
+      <description><![CDATA[<p>Sony Music Labels,2021,<p><ul><li>タイトル：インポスター</li><li>タイトル（読み）：インポスター</li><li>責任表示：デイヴ・ガーン, ソウルセイヴァーズ</li></ul>]]></description>
+      <author>デイヴ・ガーン, ソウルセイヴァーズ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I031716718</guid>
+      <pubDate>Sat, 15 Jan 2022 06:05:15 +0900</pubDate>
+      <dc:title>インポスター</dc:title>
+      <dcndl:titleTranscription>インポスター</dcndl:titleTranscription>
+      <dc:publisher>Sony Music Labels</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2021</dc:date>
+      <dcterms:issued>2021.11</dcterms:issued>
+      <dcndl:price>2400円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">SICP-6418</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">031716718</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23619974</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>所要時間: 46分50秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I031716718"/>
+      <dc:description> 2021</dc:description>
+    </item>
+    <item>
+      <title>ウィ・アー・ラヴ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034269555</link>
+      <description><![CDATA[<p>ユニバーサルミュージック,2025,<p><ul><li>タイトル：ウィ・アー・ラヴ</li><li>タイトル（読み）：ウィ ・ アー ・ ラヴ</li><li>責任表示：ザ・シャーラタンズ</li></ul>]]></description>
+      <author>ザ・シャーラタンズ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034269555</guid>
+      <pubDate>Wed, 3 Dec 2025 23:08:57 +0900</pubDate>
+      <dc:title>ウィ・アー・ラヴ</dc:title>
+      <dcndl:titleTranscription>ウィ ・ アー ・ ラヴ</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサルミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2025</dc:date>
+      <dcterms:issued>2025.10</dcterms:issued>
+      <dcndl:price>3000円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">UICB-15006</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034269555</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24194713</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>頒布</dc:description>
+      <dc:description>所要時間: 49分56秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034269555"/>
+      <dc:description> 2025</dc:description>
+    </item>
+    <item>
+      <title>ウィー・アー・ザ・ナイト</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030324893</link>
+      <description><![CDATA[<p>マーキー・インコーポレイティド,2020,<p><ul><li>タイトル：ウィー・アー・ザ・ナイト</li><li>タイトル（読み）：ウィー アー ザ ナイト</li><li>責任表示：マグナス・カールソンズ・フリー・フォール</li></ul>]]></description>
+      <author>マグナス・カールソンズ・フリー・フォール</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030324893</guid>
+      <pubDate>Tue, 28 Jul 2020 19:00:37 +0900</pubDate>
+      <dc:title>ウィー・アー・ザ・ナイト</dc:title>
+      <dcndl:titleTranscription>ウィー アー ザ ナイト</dcndl:titleTranscription>
+      <dc:publisher>マーキー・インコーポレイティド</dc:publisher>
+      <dc:publisher>ビクターエンタテインメント (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.6</dcterms:issued>
+      <dcndl:price>2700円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (63分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">MICP-11555</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030324893</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23394363</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030324893"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>ウィ・ケイム・ヒア・トゥ・ラヴ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I028665292</link>
+      <description><![CDATA[<p>JVCケンウッド・ビクターエンタテインメント,2018,<p><ul><li>タイトル：ウィ・ケイム・ヒア・トゥ・ラヴ</li><li>タイトル（読み）：ウィ ケイム ヒア トゥ ラヴ</li><li>責任表示：セバスチャン・イザンバールfrom IL DIVO</li></ul>]]></description>
+      <author>セバスチャン・イザンバールfrom IL DIVO</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I028665292</guid>
+      <pubDate>Tue, 6 Mar 2018 20:29:34 +0900</pubDate>
+      <dc:title>ウィ・ケイム・ヒア・トゥ・ラヴ</dc:title>
+      <dcndl:titleTranscription>ウィ ケイム ヒア トゥ ラヴ</dcndl:titleTranscription>
+      <dc:publisher>JVCケンウッド・ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2018</dc:date>
+      <dcterms:issued>2018.1</dcterms:issued>
+      <dcndl:price>2500円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (45分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VICP-65480</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">028665292</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23015640</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I028665292"/>
+      <dc:description> 2018</dc:description>
+    </item>
+    <item>
+      <title>ウィズダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I032131815</link>
+      <description><![CDATA[<p>Ward Records,2022,<p><ul><li>タイトル：ウィズダム</li><li>タイトル（読み）：ウィズダム</li><li>責任表示：アルタリア</li></ul>]]></description>
+      <author>アルタリア</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I032131815</guid>
+      <pubDate>Thu, 18 Aug 2022 20:27:29 +0900</pubDate>
+      <dc:title>ウィズダム</dc:title>
+      <dcndl:titleTranscription>ウィズダム</dcndl:titleTranscription>
+      <dc:publisher>Ward Records</dc:publisher>
+      <dc:publisher>Sony Music Solutions</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2022</dc:date>
+      <dcterms:issued>2022.7</dcterms:issued>
+      <dcndl:price>2600円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">GQCS-91214</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">032131815</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23717272</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>頒布</dc:description>
+      <dc:description>所要時間: 51分16秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I032131815"/>
+      <dc:description> 2022</dc:description>
+    </item>
+    <item>
+      <title>ウェイメーカー</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030537803</link>
+      <description><![CDATA[<p>King Record,2020,<p><ul><li>タイトル：ウェイメーカー</li><li>タイトル（読み）：ウェイメーカー</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030537803</guid>
+      <pubDate>Fri, 22 Jan 2021 00:46:15 +0900</pubDate>
+      <dc:title>ウェイメーカー</dc:title>
+      <dcndl:titleTranscription>ウェイメーカー</dcndl:titleTranscription>
+      <dc:publisher>King Record</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.9</dcterms:issued>
+      <dcndl:price>2700円</dcndl:price>
+      <dc:extent>CD 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">KICP-4031</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030537803</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23474385</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>所要時間: 40分46秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030537803"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>ヴァン・モリソン/ウェイヴレングス</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008975485</link>
+      <description><![CDATA[<p>ユニバーサル ミュージック,1998,<p><ul><li>タイトル：ヴァン・モリソン/ウェイヴレングス</li><li>タイトル（読み）：ウェイヴレングス ウェイブレングス</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008975485</guid>
+      <pubDate>Wed, 22 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>ヴァン・モリソン/ウェイヴレングス</dc:title>
+      <dcndl:titleTranscription>ウェイヴレングス ウェイブレングス</dcndl:titleTranscription>
+      <dc:publisher>ユニバーサル ミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1998</dc:date>
+      <dcterms:issued>1998.3</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">POCP-2612</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008975485</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 50分00秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008975485"/>
+      <dc:description> 1998</dc:description>
+    </item>
+    <item>
+      <title>ウェイヴレングス +2</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009344011</link>
+      <description><![CDATA[<p>ユニバーサルミュージック,2008,<p><ul><li>タイトル：ウェイヴレングス +2</li><li>タイトル（読み）：ウェイヴレングス</li><li>責任表示：ヴァン・モリソン</li><li>シリーズ名：Van Morrison paper sleeve collection</li></ul>]]></description>
+      <author>ヴァン・モリソン</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009344011</guid>
+      <pubDate>Wed, 12 Nov 2008 00:08:51 +0900</pubDate>
+      <dc:title>ウェイヴレングス +2</dc:title>
+      <dcndl:titleTranscription>ウェイヴレングス</dcndl:titleTranscription>
+      <dcndl:seriesTitle>Van Morrison paper sleeve collection</dcndl:seriesTitle>
+      <dc:publisher>ユニバーサルミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2008</dc:date>
+      <dcterms:issued>2008.3</dcterms:issued>
+      <dcndl:price>2800円 (税込)</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">UICY-93436</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009344011</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">21426841</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009344011"/>
+      <dc:description> 2008</dc:description>
+    </item>
+    <item>
+      <title>ウォーク・ジ・アース : デラックス・エディション</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I028390523</link>
+      <description><![CDATA[<p>JVCケンウッド・ビクターエンタテインメント,2017,<p><ul><li>タイトル：ウォーク・ジ・アース : デラックス・エディション</li><li>タイトル（読み）：ウォーク ジ アース</li><li>責任表示：ヨーロッパ</li></ul>]]></description>
+      <author>ヨーロッパ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I028390523</guid>
+      <pubDate>Fri, 8 Dec 2017 22:19:27 +0900</pubDate>
+      <dc:title>ウォーク・ジ・アース : デラックス・エディション</dc:title>
+      <dcndl:titleTranscription>ウォーク ジ アース</dcndl:titleTranscription>
+      <dc:publisher>JVCケンウッド・ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2017</dc:date>
+      <dcterms:issued>2017.10</dcterms:issued>
+      <dcndl:price>4800円</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VIZP-154</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">028390523</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">22980096</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>付属資料: DVD 1枚 : LIVE AT LOUD PARK 13</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I028390523"/>
+      <dc:description> 2017</dc:description>
+    </item>
+    <item>
+      <title>ウォー・マシーン : デラックス・エディション</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I033717588</link>
+      <description><![CDATA[<p>ビクターエンタテインメント,2024,<p><ul><li>タイトル：ウォー・マシーン : デラックス・エディション</li><li>タイトル（読み）：ウォー ・ マシーン</li><li>責任表示：インペリテリ</li></ul>]]></description>
+      <author>インペリテリ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I033717588</guid>
+      <pubDate>Fri, 21 Feb 2025 22:50:11 +0900</pubDate>
+      <dc:title>ウォー・マシーン : デラックス・エディション</dc:title>
+      <dcndl:titleTranscription>ウォー ・ マシーン</dcndl:titleTranscription>
+      <dc:publisher>ビクターエンタテインメント</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2024</dc:date>
+      <dcterms:issued>2024.11</dcterms:issued>
+      <dcndl:price>4364円</dcndl:price>
+      <dc:extent>CD 2枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VIZP-180</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">033717588</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24083350</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>所要時間: 116分52秒</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I033717588"/>
+      <dc:description> 2024</dc:description>
+    </item>
+    <item>
+      <title>ウォルト・ディズニー・テイクス・ユー・トゥー・ディズニーランド　：　A musical tour of the magic kingdom</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I22213001301823677</link>
+      <description><![CDATA[<p>エイベックス・マーケティング・コミュニケーションズ,2005-10,<p><ul><li>タイトル：ウォルト・ディズニー・テイクス・ユー・トゥー・ディズニーランド　：　A musical tour of the magic kingdom</li><li>タイトル（読み）：ウォルト ディズニー テイクス ユー トゥー ディズニーランド　ア ミュージカル ツアー オブ ザ マジック キングダム</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I22213001301823677</guid>
+      <pubDate>Tue, 2 Jun 2026 02:15:31 +0900</pubDate>
+      <dc:title>ウォルト・ディズニー・テイクス・ユー・トゥー・ディズニーランド　：　A musical tour of the magic kingdom</dc:title>
+      <dcndl:titleTranscription>ウォルト ディズニー テイクス ユー トゥー ディズニーランド　ア ミュージカル ツアー オブ ザ マジック キングダム</dcndl:titleTranscription>
+      <dc:publisher>エイベックス・マーケティング・コミュニケーションズ</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2005-10</dc:date>
+      <dcterms:issued>2005.10</dcterms:issued>
+      <dcndl:price>￥２０９５</dcndl:price>
+      <dc:extent>1</dc:extent>
+      <dc:identifier xsi:type="dcndl:TRCMARCNO">05913818</dc:identifier>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=3001301823677"/>
+      <dc:description> 2005-10</dc:description>
+    </item>
+    <item>
+      <title>うちがキングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034326083</link>
+      <description><![CDATA[<p>1,小学館,2025,978-4-09-863550-4<p><ul><li>タイトル：うちがキングダム</li><li>タイトル（読み）：ウチ ガ キングダム</li><li>責任表示：森巡る, 砂糖野しおん 著</li><li>シリーズ名：ビッグコミックス</li><li>シリーズ名（読み）：ビッグ コミックス</li><li>NDC(10)：726.1</li></ul>]]></description>
+      <author>森, 巡る,砂糖野, しおん,森巡る, 砂糖野しおん 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034326083</guid>
+      <pubDate>Wed, 22 Oct 2025 19:59:12 +0900</pubDate>
+      <dc:title>うちがキングダム</dc:title>
+      <dcndl:titleTranscription>ウチ ガ キングダム</dcndl:titleTranscription>
+      <dc:creator>森, 巡る</dc:creator>
+      <dc:creator>砂糖野, しおん</dc:creator>
+      <dcndl:creatorTranscription>モリ, メグル</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>サトウノ, シオン</dcndl:creatorTranscription>
+      <dcndl:volume>1</dcndl:volume>
+      <dcndl:seriesTitle>ビッグコミックス</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>ビッグ コミックス</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2025</dc:date>
+      <dcterms:issued>2025.10</dcterms:issued>
+      <dcndl:price>700円</dcndl:price>
+      <dc:extent>154p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-09-863550-4</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034326083</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24176183</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">07553551</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">726.1</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034326083"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/098635500000d0000000"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784098635504"/>
+      <dc:description> 2025</dc:description>
+    </item>
+    <item>
+      <title>うちがキングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034626966</link>
+      <description><![CDATA[<p>2,小学館,2026,978-4-09-863808-6<p><ul><li>タイトル：うちがキングダム</li><li>タイトル（読み）：ウチ ガ キングダム</li><li>責任表示：森巡る, 砂糖野しおん 著</li><li>シリーズ名：ビッグコミックス</li><li>シリーズ名（読み）：ビッグ コミックス</li><li>NDC(10)：726.1</li></ul>]]></description>
+      <author>森, 巡る,砂糖野, しおん,森巡る, 砂糖野しおん 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034626966</guid>
+      <pubDate>Thu, 16 Apr 2026 20:20:02 +0900</pubDate>
+      <dc:title>うちがキングダム</dc:title>
+      <dcndl:titleTranscription>ウチ ガ キングダム</dcndl:titleTranscription>
+      <dc:creator>森, 巡る</dc:creator>
+      <dc:creator>砂糖野, しおん</dc:creator>
+      <dcndl:creatorTranscription>モリ, メグル</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>サトウノ, シオン</dcndl:creatorTranscription>
+      <dcndl:volume>2</dcndl:volume>
+      <dcndl:seriesTitle>ビッグコミックス</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>ビッグ コミックス</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2026</dc:date>
+      <dcterms:issued>2026.4</dcterms:issued>
+      <dcndl:price>700円</dcndl:price>
+      <dc:extent>203p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-09-863808-6</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034626966</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24243846</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">07563509</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">726.1</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034626966"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/098638080000d0000000"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784098638086"/>
+      <dc:description> 2026</dc:description>
+    </item>
+    <item>
+      <title>うちがキングダム</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I034948111</link>
+      <description><![CDATA[<p>3,小学館,2026,978-4-09-864110-9<p><ul><li>タイトル：うちがキングダム</li><li>タイトル（読み）：ウチ ガ キングダム</li><li>責任表示：森巡る, 砂糖野しおん 著</li><li>シリーズ名：ビッグコミックス</li><li>シリーズ名（読み）：ビッグ コミックス</li><li>NDC(10)：726.1</li></ul>]]></description>
+      <author>森, 巡る,砂糖野, しおん,森巡る, 砂糖野しおん 著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I034948111</guid>
+      <pubDate>Wed, 7 Oct 2026 20:25:06 +0900</pubDate>
+      <dc:title>うちがキングダム</dc:title>
+      <dcndl:titleTranscription>ウチ ガ キングダム</dcndl:titleTranscription>
+      <dc:creator>森, 巡る</dc:creator>
+      <dc:creator>砂糖野, しおん</dc:creator>
+      <dcndl:creatorTranscription>モリ, メグル</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>サトウノ, シオン</dcndl:creatorTranscription>
+      <dcndl:volume>3</dcndl:volume>
+      <dcndl:seriesTitle>ビッグコミックス</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>ビッグ コミックス</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2026</dc:date>
+      <dcterms:issued>2026.10</dcterms:issued>
+      <dcndl:price>720円</dcndl:price>
+      <dc:extent>221p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-09-864110-9</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034948111</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24306658</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">07573710</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">726.1</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I034948111"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/098641100000d0000000"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784098641109"/>
+      <dc:description> 2026</dc:description>
+    </item>
+    <item>
+      <title>ウルトラブラスト 「劇場版うたの☆プリンスさまっ♪ マジloveキングダム」挿入歌</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I028741131</link>
+      <description><![CDATA[<p>King Record,2018,<p><ul><li>タイトル：ウルトラブラスト 「劇場版うたの☆プリンスさまっ♪ マジloveキングダム」挿入歌</li><li>タイトル（読み）：ウルトラ ブラスト</li><li>責任表示：ST☆RISH</li></ul>]]></description>
+      <author>ST☆RISH</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I028741131</guid>
+      <pubDate>Fri, 8 Jun 2018 00:33:41 +0900</pubDate>
+      <dc:title>ウルトラブラスト 「劇場版うたの☆プリンスさまっ♪ マジloveキングダム」挿入歌</dc:title>
+      <dcndl:titleTranscription>ウルトラ ブラスト</dcndl:titleTranscription>
+      <dc:publisher>King Record</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2018</dc:date>
+      <dcterms:issued>2018.2</dcterms:issued>
+      <dcndl:price>1300円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (18分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">KICM-3335</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">028741131</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23056084</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I028741131"/>
+      <dc:description> 2018</dc:description>
+    </item>
+    <item>
+      <title>ウルトラマリーン/ユナイテッド・キングダムズ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000008940558</link>
+      <description><![CDATA[<p>ワーナーミュージック,1993,<p><ul><li>タイトル：ウルトラマリーン/ユナイテッド・キングダムズ</li><li>タイトル（読み）：ウルトラマリーン ユナイテッド キングダムズ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000008940558</guid>
+      <pubDate>Fri, 17 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>ウルトラマリーン/ユナイテッド・キングダムズ</dc:title>
+      <dcndl:titleTranscription>ウルトラマリーン ユナイテッド キングダムズ</dcndl:titleTranscription>
+      <dc:publisher>ワーナーミュージック</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">1993</dc:date>
+      <dcterms:issued>1993.9</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">WMC5-643</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000008940558</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 65分18秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000008940558"/>
+      <dc:description> 1993</dc:description>
+    </item>
+    <item>
+      <title>エアロビート～ユーロビート・ヴァージョン5～</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000009036952</link>
+      <description><![CDATA[<p>エイベックス,2000,<p><ul><li>タイトル：エアロビート～ユーロビート・ヴァージョン5～</li><li>タイトル（読み）：エアロビート ユーロビート ヴァージョン5 ユーロビート バージョン5</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000009036952</guid>
+      <pubDate>Wed, 29 Aug 2007 08:59:59 +0900</pubDate>
+      <dc:title>エアロビート～ユーロビート・ヴァージョン5～</dc:title>
+      <dcndl:titleTranscription>エアロビート ユーロビート ヴァージョン5 ユーロビート バージョン5</dcndl:titleTranscription>
+      <dc:publisher>エイベックス</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2000</dc:date>
+      <dcterms:issued>2000.11</dcterms:issued>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">AVCD-11865</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000009036952</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <dc:description>収録時間: 77分13秒</dc:description>
+      <dc:description>ジャンル: 洋楽ロック&amp;ポップス</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000009036952"/>
+      <dc:description> 2000</dc:description>
+    </item>
+    <item>
+      <title>映画 偽りのテロサスペンス『キングダム』</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I8934793</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：映画 偽りのテロサスペンス『キングダム』</li><li>タイトル（読み）：エイガ イツワリ ノ テロ サスペンス キングダム</li></ul>]]></description>
+      <author/>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I8934793</guid>
+      <pubDate>Wed, 14 May 2025 20:10:23 +0900</pubDate>
+      <dc:title>映画 偽りのテロサスペンス『キングダム』</dc:title>
+      <dcndl:titleTranscription>エイガ イツワリ ノ テロ サスペンス キングダム</dcndl:titleTranscription>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">8934793</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZA5</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I8934793"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1522262179743706112"/>
+      <dc:description>掲載誌：Newsweek = ニューズウィーク 39(通号 1074) p.71</dc:description>
+    </item>
+    <item>
+      <title>映画キングダム運命の炎ビジュアルブック</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I032937655</link>
+      <description><![CDATA[<p>集英社,2023,978-4-08-790133-7<p><ul><li>タイトル：映画キングダム運命の炎ビジュアルブック</li><li>タイトル（読み）：エイガ キングダム ウンメイ ノ ホノオ ビジュアル ブック</li><li>NDC(10)：778.21</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I032937655</guid>
+      <pubDate>Sat, 19 Aug 2023 06:28:28 +0900</pubDate>
+      <dc:title>映画キングダム運命の炎ビジュアルブック</dc:title>
+      <dcndl:titleTranscription>エイガ キングダム ウンメイ ノ ホノオ ビジュアル ブック</dcndl:titleTranscription>
+      <dc:publisher>集英社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2023</dc:date>
+      <dcterms:issued>2023.7</dcterms:issued>
+      <dcndl:price>1800円</dcndl:price>
+      <dc:extent>96p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-08-790133-7</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">032937655</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23867801</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">34499171</dc:identifier>
+      <dc:subject>映画 日本</dc:subject>
+      <dc:subject xsi:type="dcndl:NDLC">Y88</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">778.21</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I032937655"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1971430859805710985"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784087901337"/>
+      <dc:description> 2023</dc:description>
+    </item>
+    <item>
+      <title>映画「キングダム」オリジナル・サウンドトラック</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029547980</link>
+      <description><![CDATA[<p>バップ,2019,<p><ul><li>タイトル：映画「キングダム」オリジナル・サウンドトラック</li><li>タイトル（読み）：エイガ キングダム オリジナル サウンドトラック</li><li>責任表示：やまだ豊 音楽</li></ul>]]></description>
+      <author>やまだ豊 音楽</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029547980</guid>
+      <pubDate>Fri, 20 Dec 2019 02:03:07 +0900</pubDate>
+      <dc:title>映画「キングダム」オリジナル・サウンドトラック</dc:title>
+      <dcndl:titleTranscription>エイガ キングダム オリジナル サウンドトラック</dcndl:titleTranscription>
+      <dc:publisher>バップ</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2019</dc:date>
+      <dcterms:issued>2019.4</dcterms:issued>
+      <dcndl:price>2500円</dcndl:price>
+      <dc:extent>録音ディスク 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">VPCD-86245</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029547980</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23309871</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029547980"/>
+      <dc:description> 2019</dc:description>
+    </item>
+    <item>
+      <title>映画キングダム写真集-THE MAKING-</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I029605822</link>
+      <description><![CDATA[<p>集英社,2019,978-4-08-780864-3<p><ul><li>タイトル：映画キングダム写真集-THE MAKING-</li><li>タイトル（読み）：エイガ キングダム シャシンシュウ ザ メイキング</li><li>NDC(10)：778.21</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I029605822</guid>
+      <pubDate>Fri, 10 May 2019 23:05:36 +0900</pubDate>
+      <dc:title>映画キングダム写真集-THE MAKING-</dc:title>
+      <dcndl:titleTranscription>エイガ キングダム シャシンシュウ ザ メイキング</dcndl:titleTranscription>
+      <dc:publisher>集英社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2019</dc:date>
+      <dcterms:issued>2019.4</dcterms:issued>
+      <dcndl:price>2200円</dcndl:price>
+      <dc:extent>1冊(ページ付なし)</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-08-780864-3</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">029605822</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23202265</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">33908060</dc:identifier>
+      <dc:subject>映画 日本</dc:subject>
+      <dc:subject xsi:type="dcndl:NDLC">Y88</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">778.21</dc:subject>
+      <dc:description>ジャンプ・コミック出版編集部特別編集</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www2.tosyo-saga.jp/kentosyo2/opac/switch-detail-iccap.do?bibid=1102194633"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I029605822"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1971712334811209773"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784087808643"/>
+      <dc:description> 2019</dc:description>
+    </item>
+    <item>
+      <title>映画KINGDOM大将軍の帰還ビジュアルブック</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I033567501</link>
+      <description><![CDATA[<p>集英社,2024,978-4-08-790175-7<p><ul><li>タイトル：映画KINGDOM大将軍の帰還ビジュアルブック</li><li>タイトル（読み）：エイガ キングダム ダイショウグン ノ キカン ビジュアル ブック</li><li>NDC(10)：778.21</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I033567501</guid>
+      <pubDate>Tue, 23 Jul 2024 06:18:44 +0900</pubDate>
+      <dc:title>映画KINGDOM大将軍の帰還ビジュアルブック</dc:title>
+      <dcndl:titleTranscription>エイガ キングダム ダイショウグン ノ キカン ビジュアル ブック</dcndl:titleTranscription>
+      <dc:publisher>集英社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2024</dc:date>
+      <dcterms:issued>2024.7</dcterms:issued>
+      <dcndl:price>1800円</dcndl:price>
+      <dc:extent>94p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-08-790175-7</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">033567501</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">24003010</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">34625042</dc:identifier>
+      <dc:subject>映画 日本</dc:subject>
+      <dc:subject xsi:type="dcndl:NDLC">Y88</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">778.21</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>奥付のタイトル: 映画キングダム大将軍の帰還ビジュアルブック</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I033567501"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1971712334784728749"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784087901757"/>
+      <dc:description> 2024</dc:description>
+    </item>
+    <item>
+      <title>映画キングダム2遥かなる大地へ写真集-THE MAKING-</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I032224449</link>
+      <description><![CDATA[<p>集英社,2022,978-4-08-790084-2<p><ul><li>タイトル：映画キングダム2遥かなる大地へ写真集-THE MAKING-</li><li>タイトル（読み）：エイガ キングダム ツー ハルカ ナル ダイチ エ シャシンシュウ ザ メイキング</li><li>NDC(10)：778.21</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I032224449</guid>
+      <pubDate>Wed, 3 Aug 2022 23:41:51 +0900</pubDate>
+      <dc:title>映画キングダム2遥かなる大地へ写真集-THE MAKING-</dc:title>
+      <dcndl:titleTranscription>エイガ キングダム ツー ハルカ ナル ダイチ エ シャシンシュウ ザ メイキング</dcndl:titleTranscription>
+      <dc:publisher>集英社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2022</dc:date>
+      <dcterms:issued>2022.7</dcterms:issued>
+      <dcndl:price>2200円</dcndl:price>
+      <dc:extent>1冊(ページ付なし)</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-08-790084-2</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">032224449</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23711513</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">34355622</dc:identifier>
+      <dc:subject>映画 日本</dc:subject>
+      <dc:subject xsi:type="dcndl:NDLC">Y88</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">778.21</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>ジャンプ・コミック出版編集部特別編集</dc:description>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000003047504"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I032224449"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1970023484963772554"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784087900842"/>
+      <dc:description> 2022</dc:description>
+    </item>
+    <item>
+      <title>映画クレヨンしんちゃん完全コミック激突!ラクガキングダムとほぼ四人の勇者</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030371501</link>
+      <description><![CDATA[<p>双葉社,2020,978-4-575-96216-1<p><ul><li>タイトル：映画クレヨンしんちゃん完全コミック激突!ラクガキングダムとほぼ四人の勇者</li><li>タイトル（読み）：エイガ クレヨン シンチャン カンゼン コミック ゲキトツ ラクガキングダム ト ホボ ヨニン ノ ユウシャ</li><li>責任表示：臼井儀人 原作,高田ミレイ 作画</li><li>シリーズ名：ACTION COMICS</li><li>NDC(10)：726.1</li></ul>]]></description>
+      <author>臼井, 儀人, 1958-2009,高田, ミレイ,臼井儀人 原作,高田ミレイ 作画</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030371501</guid>
+      <pubDate>Mon, 14 Feb 2022 20:06:12 +0900</pubDate>
+      <dc:title>映画クレヨンしんちゃん完全コミック激突!ラクガキングダムとほぼ四人の勇者</dc:title>
+      <dcndl:titleTranscription>エイガ クレヨン シンチャン カンゼン コミック ゲキトツ ラクガキングダム ト ホボ ヨニン ノ ユウシャ</dcndl:titleTranscription>
+      <dc:creator>臼井, 儀人, 1958-2009</dc:creator>
+      <dc:creator>高田, ミレイ</dc:creator>
+      <dcndl:creatorTranscription>ウスイ, ヨシト, 1958-2009</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>タカタ, ミレイ</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>ACTION COMICS</dcndl:seriesTitle>
+      <dc:publisher>双葉社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.4</dcterms:issued>
+      <dcndl:price>445円</dcndl:price>
+      <dc:extent>140p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-575-96216-1</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030371501</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23382580</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">07448107</dc:identifier>
+      <dcndl:genre>漫画</dcndl:genre>
+      <dcndl:genreTranscription>マンガ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y84</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">726.1</dc:subject>
+      <dc:description>奥付・背のタイトル: 映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030371501"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16544655"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784575962161"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030364388</link>
+      <description><![CDATA[<p>双葉社,2020,978-4-575-24271-3<p><ul><li>タイトル：映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</li><li>タイトル（読み）：エイガ クレヨン シンチャン ゲキトツ ラクガキングダム ト ホボ ヨニン ノ ユウシャ</li><li>責任表示：臼井儀人 原作,高田亮 脚本,京極尚彦 監督・脚本,[蒔田陽平] [ノベライズ]</li><li>シリーズ名：双葉社ジュニア文庫</li><li>シリーズ名（読み）：フタバシャ ジュニア ブンコ</li><li>NDC(10)：913.6</li></ul>]]></description>
+      <author>臼井, 儀人, 1958-2009,高田, 亮,京極, 尚彦, 1981-,蒔田, 陽平, 1966-,臼井儀人 原作,高田亮 脚本,京極尚彦 監督・脚本,[蒔田陽平] [ノベライズ]</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030364388</guid>
+      <pubDate>Mon, 16 May 2022 21:18:00 +0900</pubDate>
+      <dc:title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</dc:title>
+      <dcndl:titleTranscription>エイガ クレヨン シンチャン ゲキトツ ラクガキングダム ト ホボ ヨニン ノ ユウシャ</dcndl:titleTranscription>
+      <dc:creator>臼井, 儀人, 1958-2009</dc:creator>
+      <dc:creator>高田, 亮</dc:creator>
+      <dc:creator>京極, 尚彦, 1981-</dc:creator>
+      <dc:creator>蒔田, 陽平, 1966-</dc:creator>
+      <dcndl:creatorTranscription>ウスイ, ヨシト, 1958-2009</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>タカダ, リョウ</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>キョウゴク, タカヒコ, 1981-</dcndl:creatorTranscription>
+      <dcndl:creatorTranscription>マイタ, ヨウヘイ, 1966-</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>双葉社ジュニア文庫</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>フタバシャ ジュニア ブンコ</dcndl:seriesTitleTranscription>
+      <dc:publisher>双葉社</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.4</dcterms:issued>
+      <dcndl:price>700円</dcndl:price>
+      <dc:extent>238p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-4-575-24271-3</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030364388</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23388340</dc:identifier>
+      <dc:identifier xsi:type="dcndl:TOHANMARCNO">34061336</dc:identifier>
+      <dcndl:genre>児童図書</dcndl:genre>
+      <dcndl:genreTranscription>ジドウ トショ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y7</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC10">913.6</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://www.apl.pref.akita.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009920762105"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.city.saitama.jp/bookdetail?num=3003911&amp;ctg=1"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.ishikawa.lg.jp/wo/opc_srh/srh_detail/1000001318530/"/>
+      <rdfs:seeAlso rdf:resource="https://www.tosyokan.pref.shizuoka.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1006000468673"/>
+      <rdfs:seeAlso rdf:resource="https://opac.libnet.pref.okayama.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009812398862"/>
+      <rdfs:seeAlso rdf:resource="http://www.library.city.hiroshima.jp/winj/opac/switch-detail-iccap.do?bibid=1110421199"/>
+      <rdfs:seeAlso rdf:resource="https://alislibopac.bunmori.tokushima.jp/winj/opac/switch-detail-iccap.do?bibid=1110469059"/>
+      <rdfs:seeAlso rdf:resource="https://opac.library.kochi.jp/winj/opac/switch-detail-iccap.do?bibid=1120462982"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000002848102"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030364388"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B13806847"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1970590793976524672"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784575242713"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030723759</link>
+      <description><![CDATA[<p>東宝映像事業部,2020,<p><ul><li>タイトル：映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</li><li>タイトル（読み）：エイガ クレヨン シンチャン ゲキトツ ! ラクガキングダム ト ホボ ヨニン ノ ユウシャ</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030723759</guid>
+      <pubDate>Fri, 26 Feb 2021 01:01:47 +0900</pubDate>
+      <dc:title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</dc:title>
+      <dcndl:titleTranscription>エイガ クレヨン シンチャン ゲキトツ ! ラクガキングダム ト ホボ ヨニン ノ ユウシャ</dcndl:titleTranscription>
+      <dc:publisher>東宝映像事業部</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.9</dcterms:issued>
+      <dcndl:price>700円</dcndl:price>
+      <dc:extent>1冊 (ページ付なし)</dc:extent>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030723759</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23489671</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">Y93</dc:subject>
+      <dc:description>出版</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030723759"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I031200905</link>
+      <description><![CDATA[<p>シンエイ動画,2021,<p><ul><li>タイトル：映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</li><li>タイトル（読み）：エイガ クレヨン シンチャン ゲキトツ ! ラクガキングダム ト ホボ ヨニン ノ ユウシャ</li><li>責任表示：臼井儀人 原作,高田亮, 京極尚彦 脚本,京極尚彦 監督</li></ul>]]></description>
+      <author>臼井儀人 原作,高田亮, 京極尚彦 脚本,京極尚彦 監督</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I031200905</guid>
+      <pubDate>Mon, 15 Jun 2026 17:31:52 +0900</pubDate>
+      <dc:title>映画クレヨンしんちゃん激突!ラクガキングダムとほぼ四人の勇者</dc:title>
+      <dcndl:titleTranscription>エイガ クレヨン シンチャン ゲキトツ ! ラクガキングダム ト ホボ ヨニン ノ ユウシャ</dcndl:titleTranscription>
+      <dc:publisher>シンエイ動画</dc:publisher>
+      <dc:publisher>バンダイナムコアーツ</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2021</dc:date>
+      <dcterms:issued>[2021.2]</dcterms:issued>
+      <dcndl:price>4800円</dcndl:price>
+      <dc:extent>Blu-ray Disc 1枚</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">BCXA-1615</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">031200905</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23492947</dc:identifier>
+      <dcndl:genre>アニメーション</dcndl:genre>
+      <dcndl:genreTranscription>アニメーション</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">YLZ11</dc:subject>
+      <dc:description>出版</dc:description>
+      <dc:description>頒布</dc:description>
+      <dc:description>所要時間: 103分</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I031200905"/>
+      <dc:description> 2021</dc:description>
+    </item>
+    <item>
+      <title>映画ザ・ドラえもんズ ゴール!ゴール!ゴール!!・ぼくの生まれた日・ドラえもんのび太とロボット王国 2002年映画ドラえもんフェスティバル</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000007432493</link>
+      <description><![CDATA[<p>小学館,2004,<p><ul><li>タイトル：映画ザ・ドラえもんズ ゴール!ゴール!ゴール!!・ぼくの生まれた日・ドラえもんのび太とロボット王国 2002年映画ドラえもんフェスティバル</li><li>タイトル（読み）：エイガ ザ ドラエモンズ ゴール ゴール ゴール ボク ノ ウマレタ ヒ ドラエモン ノビタ ト ロボット キングダム</li><li>責任表示：藤子・F・不二雄 原作</li></ul>]]></description>
+      <author>藤子・F・不二雄 原作</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000007432493</guid>
+      <pubDate>Mon, 14 Sep 2026 17:31:10 +0900</pubDate>
+      <dc:title>映画ザ・ドラえもんズ ゴール!ゴール!ゴール!!・ぼくの生まれた日・ドラえもんのび太とロボット王国 2002年映画ドラえもんフェスティバル</dc:title>
+      <dcndl:titleTranscription>エイガ ザ ドラエモンズ ゴール ゴール ゴール ボク ノ ウマレタ ヒ ドラエモン ノビタ ト ロボット キングダム</dcndl:titleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dc:publisher>ポニーキャニオン (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2004</dc:date>
+      <dcterms:issued>2004.7</dcterms:issued>
+      <dcndl:price>4410円 (税込)</dcndl:price>
+      <dc:extent>ビデオディスク 1枚 (114分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">PCBE-51005</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000007432493</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20655827</dc:identifier>
+      <dcndl:genre>アニメーション</dcndl:genre>
+      <dcndl:genreTranscription>アニメーション</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">YLZ11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007432493"/>
+      <dc:description> 2004</dc:description>
+    </item>
+    <item>
+      <title>映画時評(51)この監督に撮りたいものを撮らせた合衆国の高度な文化的水準に、ちょっと嫉妬を覚えた : ウェス・アンダーソン監督『ムーンライズ・キングダム』</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I024239816</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：映画時評(51)この監督に撮りたいものを撮らせた合衆国の高度な文化的水準に、ちょっと嫉妬を覚えた : ウェス・アンダーソン監督『ムーンライズ・キングダム』</li><li>タイトル（読み）：エイガ ジヒョウ(51)コノ カントク ニ トリタイ モノ オ トラセタ ガッシュウコク ノ コウド ナ ブンカテキ スイジュン ニ 、 チョット シット オ オボエタ : ウェス ・ アンダーソン カントク 『 ムーンライズ ・ キングダム 』</li><li>責任表示：蓮實 重彥</li></ul>]]></description>
+      <author>蓮實 重彥,蓮實 重彥</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I024239816</guid>
+      <pubDate>Mon, 26 Sep 2022 18:44:42 +0900</pubDate>
+      <dc:title>映画時評(51)この監督に撮りたいものを撮らせた合衆国の高度な文化的水準に、ちょっと嫉妬を覚えた : ウェス・アンダーソン監督『ムーンライズ・キングダム』</dc:title>
+      <dcndl:titleTranscription>エイガ ジヒョウ(51)コノ カントク ニ トリタイ モノ オ トラセタ ガッシュウコク ノ コウド ナ ブンカテキ スイジュン ニ 、 チョット シット オ オボエタ : ウェス ・ アンダーソン カントク 『 ムーンライズ ・ キングダム 』</dcndl:titleTranscription>
+      <dc:creator>蓮實 重彥</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">024239816</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZK24</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I024239816"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1524232505220403968"/>
+      <dc:description>掲載誌：群像 3 p.344-346</dc:description>
+    </item>
+    <item>
+      <title>映画 ストリート・キングダム : 自分の音を鳴らせ。 公開記念Wインタビュー 監督 田口トモロヲ×出演 若葉竜也</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R000000004-I034627946</link>
+      <description><![CDATA[<p><p><ul><li>タイトル：映画 ストリート・キングダム : 自分の音を鳴らせ。 公開記念Wインタビュー 監督 田口トモロヲ×出演 若葉竜也</li><li>タイトル（読み）：エイガ ストリート ・ キングダム : ジブン ノ オト オ ナラセ 。 コウカイ キネン Wインタビュー カントク タグチ トモロオ × シュツエン ワカバリュウ ナリ</li><li>責任表示：田口 トモロヲ,若葉 竜也</li></ul>]]></description>
+      <author>田口 トモロヲ,若葉 竜也,田口 トモロヲ,若葉 竜也</author>
+      <category>記事</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R000000004-I034627946</guid>
+      <pubDate>Mon, 30 Mar 2026 20:40:37 +0900</pubDate>
+      <dc:title>映画 ストリート・キングダム : 自分の音を鳴らせ。 公開記念Wインタビュー 監督 田口トモロヲ×出演 若葉竜也</dc:title>
+      <dcndl:titleTranscription>エイガ ストリート ・ キングダム : ジブン ノ オト オ ナラセ 。 コウカイ キネン Wインタビュー カントク タグチ トモロオ × シュツエン ワカバリュウ ナリ</dcndl:titleTranscription>
+      <dc:creator>田口 トモロヲ</dc:creator>
+      <dc:creator>若葉 竜也</dc:creator>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:identifier xsi:type="dcndl:NDLBibID">034627946</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">ZW5</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I034627946"/>
+      <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1520870696531868928"/>
+      <dc:description>掲載誌：サンデー毎日 15(通号 5933) p.38-41</dc:description>
+    </item>
+    <item>
+      <title>映画ドラえもん・うたの大全集</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I030312238</link>
+      <description><![CDATA[<p>disc 2 (長編映画1995-2008),日本コロムビア,2020,<p><ul><li>タイトル：映画ドラえもん・うたの大全集</li><li>タイトル（読み）：エイガ ドラエモン ウタ ノ ダイゼンシュウ</li></ul>]]></description>
+      <author/>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I030312238</guid>
+      <pubDate>Tue, 31 Mar 2020 02:46:47 +0900</pubDate>
+      <dc:title>映画ドラえもん・うたの大全集</dc:title>
+      <dcndl:titleTranscription>エイガ ドラエモン ウタ ノ ダイゼンシュウ</dcndl:titleTranscription>
+      <dcndl:volume>disc 2 (長編映画1995-2008)</dcndl:volume>
+      <dc:publisher>日本コロムビア</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2020</dc:date>
+      <dcterms:issued>2020.2</dcterms:issued>
+      <dc:extent>録音ディスク 1枚 (78分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">COCX-41070</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">030312238</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23354128</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I030312238"/>
+      <dc:description> 2020</dc:description>
+    </item>
+    <item>
+      <title>映画ドラえもん のび太とロボット王国</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000004366851</link>
+      <description><![CDATA[<p>小学館,2004,<p><ul><li>タイトル：映画ドラえもん のび太とロボット王国</li><li>タイトル（読み）：エイガ ドラエ モ ン ノビタイ ト ロボット キングダム</li><li>責任表示：藤子・F・不二雄 原作</li></ul>]]></description>
+      <author>藤子・F・不二雄 原作</author>
+      <category>映像資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000004366851</guid>
+      <pubDate>Fri, 2 Oct 2026 20:51:51 +0900</pubDate>
+      <dc:title>映画ドラえもん のび太とロボット王国</dc:title>
+      <dcndl:titleTranscription>エイガ ドラエ モ ン ノビタイ ト ロボット キングダム</dcndl:titleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dc:publisher>ポニーキャニオン (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2004</dc:date>
+      <dcterms:issued>2004.2</dcterms:issued>
+      <dcndl:price>2856円 (税込)</dcndl:price>
+      <dc:extent>ビデオカセット 1巻 (82分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">PCVE-52254</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000004366851</dc:identifier>
+      <dcndl:genre>アニメーション</dcndl:genre>
+      <dcndl:genreTranscription>アニメーション</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">YLZ11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000004366851"/>
+      <dc:description> 2004</dc:description>
+    </item>
+    <item>
+      <title>えいがドラえもんのび太とロボット王国</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000003641698</link>
+      <description><![CDATA[<p>小学館,2002,4-09-114480-2<p><ul><li>タイトル：えいがドラえもんのび太とロボット王国</li><li>タイトル（読み）：エイガ ドラエモン ノビタ ト ロボット キングダム</li><li>責任表示：藤子・F・不二雄 原作</li><li>シリーズ名：小学館のテレビ絵本</li><li>シリーズ名（読み）：ショウガクカン ノ テレビ エホン</li></ul>]]></description>
+      <author>藤子, 不二雄F, 1933-1996,藤子・F・不二雄 原作</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000003641698</guid>
+      <pubDate>Mon, 25 Jul 2022 18:48:26 +0900</pubDate>
+      <dc:title>えいがドラえもんのび太とロボット王国</dc:title>
+      <dcndl:titleTranscription>エイガ ドラエモン ノビタ ト ロボット キングダム</dcndl:titleTranscription>
+      <dc:creator>藤子, 不二雄F, 1933-1996</dc:creator>
+      <dcndl:creatorTranscription>フジコ, フジオ F, 1933-1996</dcndl:creatorTranscription>
+      <dcndl:seriesTitle>小学館のテレビ絵本</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>ショウガクカン ノ テレビ エホン</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2002</dc:date>
+      <dcterms:issued>c2002</dcterms:issued>
+      <dcndl:price>400円</dcndl:price>
+      <dc:extent>17p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-09-114480-2</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-09-114480-2</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000003641698</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20286184</dc:identifier>
+      <dcndl:genre>児童図書</dcndl:genre>
+      <dcndl:genreTranscription>ジドウ トショ</dcndl:genreTranscription>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000003641698"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16239326"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784091144805"/>
+      <dc:description> 2002</dc:description>
+    </item>
+    <item>
+      <title>映画ドラえもんのび太とロボット王国</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000004050399</link>
+      <description><![CDATA[<p>下,小学館,2003,4-09-149216-9<p><ul><li>タイトル：映画ドラえもんのび太とロボット王国</li><li>タイトル（読み）：エイガ ドラエモン ノビタ ト ロボット キングダム</li><li>責任表示：藤子・F・不二雄 原作</li><li>シリーズ名：てんとう虫コミックス・アニメ版</li><li>シリーズ名（読み）：テントウムシ コミックス アニメバン</li><li>NDC(9)：726.1</li></ul>]]></description>
+      <author>藤子, 不二雄F, 1933-1996,藤子・F・不二雄 原作</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000004050399</guid>
+      <pubDate>Tue, 19 Apr 2022 00:47:16 +0900</pubDate>
+      <dc:title>映画ドラえもんのび太とロボット王国</dc:title>
+      <dcndl:titleTranscription>エイガ ドラエモン ノビタ ト ロボット キングダム</dcndl:titleTranscription>
+      <dc:creator>藤子, 不二雄F, 1933-1996</dc:creator>
+      <dcndl:creatorTranscription>フジコ, フジオ F, 1933-1996</dcndl:creatorTranscription>
+      <dcndl:volume>下</dcndl:volume>
+      <dcndl:seriesTitle>てんとう虫コミックス・アニメ版</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>テントウムシ コミックス アニメバン</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2003</dc:date>
+      <dcterms:issued>2003.2</dcterms:issued>
+      <dcndl:price>800円</dcndl:price>
+      <dc:extent>109p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-09-149216-9</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-09-149216-9</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000004050399</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20366174</dc:identifier>
+      <dcndl:genre>児童図書</dcndl:genre>
+      <dcndl:genreTranscription>ジドウ トショ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y16</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">726.1</dc:subject>
+      <dc:description>「コロコロコミック」特別編集</dc:description>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000004050399"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16229697"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784091492166"/>
+      <dc:description> 2003</dc:description>
+    </item>
+    <item>
+      <title>映画ドラえもんのび太とロボット王国</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I000004050444</link>
+      <description><![CDATA[<p>上,小学館,2003,4-09-149215-0<p><ul><li>タイトル：映画ドラえもんのび太とロボット王国</li><li>タイトル（読み）：エイガ ドラエモン ノビタ ト ロボット キングダム</li><li>責任表示：藤子・F・不二雄 原作</li><li>シリーズ名：てんとう虫コミックス・アニメ版</li><li>シリーズ名（読み）：テントウムシ コミックス アニメバン</li><li>NDC(9)：726.1</li></ul>]]></description>
+      <author>藤子, 不二雄F, 1933-1996,藤子・F・不二雄 原作</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I000004050444</guid>
+      <pubDate>Tue, 19 Apr 2022 02:37:21 +0900</pubDate>
+      <dc:title>映画ドラえもんのび太とロボット王国</dc:title>
+      <dcndl:titleTranscription>エイガ ドラエモン ノビタ ト ロボット キングダム</dcndl:titleTranscription>
+      <dc:creator>藤子, 不二雄F, 1933-1996</dc:creator>
+      <dcndl:creatorTranscription>フジコ, フジオ F, 1933-1996</dcndl:creatorTranscription>
+      <dcndl:volume>上</dcndl:volume>
+      <dcndl:seriesTitle>てんとう虫コミックス・アニメ版</dcndl:seriesTitle>
+      <dcndl:seriesTitleTranscription>テントウムシ コミックス アニメバン</dcndl:seriesTitleTranscription>
+      <dc:publisher>小学館</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2003</dc:date>
+      <dcterms:issued>2003.2</dcterms:issued>
+      <dcndl:price>800円</dcndl:price>
+      <dc:extent>108p</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-09-149215-0</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-09-149215-0</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">000004050444</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">20366172</dc:identifier>
+      <dcndl:genre>児童図書</dcndl:genre>
+      <dcndl:genreTranscription>ジドウ トショ</dcndl:genreTranscription>
+      <dc:subject xsi:type="dcndl:NDLC">Y16</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">726.1</dc:subject>
+      <dc:description>「コロコロコミック」特別編集</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.oml.city.osaka.lg.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000010524819"/>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000004050444"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bibj/?B16218528"/>
+      <rdfs:seeAlso rdf:resource="https://www.books.or.jp/book-details/9784091492159"/>
+      <dc:description> 2003</dc:description>
+    </item>
+    <item>
+      <title>英国 : Ｕｎｉｔｅｄ　Ｋｉｎｇｄｏｍ　ｏｆ　Ｇｒｅａｔ　Ｂｒｉｔａｉｎ　ａｎｄ　Ｎｏｒｔｈｅｒｎ　Ｉｒｅｌａｎｄ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I11121123583130</link>
+      <description><![CDATA[<p>ビジネスインデックス社,1987,4-938593-00-9<p><ul><li>タイトル：英国 : Ｕｎｉｔｅｄ　Ｋｉｎｇｄｏｍ　ｏｆ　Ｇｒｅａｔ　Ｂｒｉｔａｉｎ　ａｎｄ　Ｎｏｒｔｈｅｒｎ　Ｉｒｅｌａｎｄ</li><li>タイトル（読み）：エイコク : ユナイテッド　キングダム　オブ　グレート　ブリテン　アンド　ノーザーン　アイルランド</li><li>NDC(9)：293.3</li></ul>]]></description>
+      <author/>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I11121123583130</guid>
+      <pubDate>Wed, 14 Feb 2001 00:00:00 +0900</pubDate>
+      <dc:title>英国 : Ｕｎｉｔｅｄ　Ｋｉｎｇｄｏｍ　ｏｆ　Ｇｒｅａｔ　Ｂｒｉｔａｉｎ　ａｎｄ　Ｎｏｒｔｈｅｒｎ　Ｉｒｅｌａｎｄ</dc:title>
+      <dcndl:titleTranscription>エイコク : ユナイテッド　キングダム　オブ　グレート　ブリテン　アンド　ノーザーン　アイルランド</dcndl:titleTranscription>
+      <dc:publisher>ビジネスインデックス社</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">1987</dc:date>
+      <dcterms:issued>１９８７．１０</dcterms:issued>
+      <dcndl:price>１６００</dcndl:price>
+      <dc:extent>２１０ｐ ; ３０ｃｍ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">4-938593-00-9</dc:identifier>
+      <dc:identifier xsi:type="dcndl:ISBN13">4-938593-00-9</dc:identifier>
+      <dc:subject>イギリス－紀行・案内記</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">293.3</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC8">293.3</dc:subject>
+      <dc:description>Ｓｐｅｃｉａｌ　ｅｄｉｔｉｏｎ</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1001000174203"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib.pref.saitama.jp//winj/opac/switch-detail-iccap.do?bibid=1123583130"/>
+      <rdfs:seeAlso rdf:resource="https://catalog.library.metro.tokyo.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1100543421"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.nagoya.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1009410020542"/>
+      <rdfs:seeAlso rdf:resource="https://www.library.pref.osaka.jp/bib/?B10211018"/>
+      <rdfs:seeAlso rdf:resource="https://www.lib-sakai.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1000000877906"/>
+      <rdfs:seeAlso rdf:resource="https://alislibopac.bunmori.tokushima.jp/winj/opac/switch-detail-iccap.do?bibid=1100534629"/>
+      <rdfs:seeAlso rdf:resource="https://www.toshokan.city.fukuoka.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1103501753"/>
+      <rdfs:seeAlso rdf:resource="https://opac.miraionlibrary.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008810002432"/>
+      <dc:description> 1987</dc:description>
+    </item>
+    <item>
+      <title>Ｔｈｅ　ａｎｃｉｅｎｔ　ｋｉｎｇｄｏｍｓ　ｏｆ　Ｐｅｒｕ</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000351318</link>
+      <description><![CDATA[<p>Penguin Books,1997,978-0-14-023381-0<p><ul><li>タイトル：Ｔｈｅ　ａｎｃｉｅｎｔ　ｋｉｎｇｄｏｍｓ　ｏｆ　Ｐｅｒｕ</li><li>タイトル（読み）：エインシャント　キングダムズ　オブ　ペルー</li><li>責任表示：Ｎｉｇｅｌ　Ｄａｖｉｓ／著</li><li>NDC(9)：268</li></ul>]]></description>
+      <author>Davis Nigel,Ｎｉｇｅｌ　Ｄａｖｉｓ／著</author>
+      <category>図書</category>
+      <category>紙</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000001-I01211008000351318</guid>
+      <pubDate>Fri, 21 Feb 2020 03:10:33 +0900</pubDate>
+      <dc:title>Ｔｈｅ　ａｎｃｉｅｎｔ　ｋｉｎｇｄｏｍｓ　ｏｆ　Ｐｅｒｕ</dc:title>
+      <dcndl:titleTranscription>エインシャント　キングダムズ　オブ　ペルー</dcndl:titleTranscription>
+      <dc:creator>Davis Nigel</dc:creator>
+      <dcndl:creatorTranscription>デーヴィス ナイジェル</dcndl:creatorTranscription>
+      <dc:publisher>Penguin Books</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">1997</dc:date>
+      <dcterms:issued>１９９７</dcterms:issued>
+      <dcndl:price>￥１８３５</dcndl:price>
+      <dc:extent>１２，　２２０ｐ．，　［１６］ｐ．　ｏｆ　ｐｌａｔｅｓ　：　ｉｌｌ．，　ｍａｐｓ</dc:extent>
+      <dc:identifier xsi:type="dcndl:ISBN">978-0-14-023381-0</dc:identifier>
+      <dc:subject>ペルー-歴史</dc:subject>
+      <dc:subject xsi:type="dcndl:NDC9">268</dc:subject>
+      <dc:description>Ｂｉｂｌｉｏｇｒａｐｈｙ：　ｐ２０４－２０９</dc:description>
+      <rdfs:seeAlso rdf:resource="https://www.library.city.sapporo.jp/licsxp-opac/WOpacMsgNewListToTifTilDetailAction.do?tilcod=1008000351318"/>
+      <rdfs:seeAlso rdf:resource="https://opac.lib.city.yokohama.lg.jp/winj/opac/switch-detail-iccap.do?bibid=1198008455"/>
+      <dc:description> 1997</dc:description>
+    </item>
+    <item>
+      <title>エクリプティカ-リヴィジテッド : 15thアニヴァーサリー・エディション</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000002-I025729381</link>
+      <description><![CDATA[<p>マーキー・インコーポレイティド,2014,<p><ul><li>タイトル：エクリプティカ-リヴィジテッド : 15thアニヴァーサリー・エディション</li><li>タイトル（読み）：エクリプティカ リヴィジテッド</li><li>責任表示：ソナタ・アークティカ</li></ul>]]></description>
+      <author>ソナタ・アークティカ</author>
+      <category>録音資料</category>
+      <category>記録メディア</category>
+      <guid isPermaLink="true">https://ndlsearch.ndl.go.jp/books/R100000002-I025729381</guid>
+      <pubDate>Thu, 25 Apr 2019 23:00:19 +0900</pubDate>
+      <dc:title>エクリプティカ-リヴィジテッド : 15thアニヴァーサリー・エディション</dc:title>
+      <dcndl:titleTranscription>エクリプティカ リヴィジテッド</dcndl:titleTranscription>
+      <dc:publisher>マーキー・インコーポレイティド</dc:publisher>
+      <dc:publisher>ビクターエンタテインメント (発売)</dc:publisher>
+      <dcndl:publicationPlace>JP</dcndl:publicationPlace>
+      <dc:date xsi:type="dcterms:W3CDTF">2014</dc:date>
+      <dcterms:issued>2014.10</dcterms:issued>
+      <dcndl:price>2600円</dcndl:price>
+      <dc:extent>録音ディスク 1枚 (55分)</dc:extent>
+      <dc:identifier xsi:type="dcndl:RIS502">MICP-11180</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLBibID">025729381</dc:identifier>
+      <dc:identifier xsi:type="dcndl:JPNO">23199029</dc:identifier>
+      <dc:subject xsi:type="dcndl:NDLC">YMC11</dc:subject>
+      <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I025729381"/>
+      <dc:description> 2014</dc:description>
+    </item>
+  </channel>
+</rss>

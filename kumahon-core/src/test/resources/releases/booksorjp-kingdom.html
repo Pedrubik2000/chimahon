@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang ="ja">
+	<head>
+                    <!-- Global site tag (gtag.js) - Google Analytics -->
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-136753088-1"></script>
+            <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'UA-136753088-1');
+            </script>
+        		<meta charset="utf-8">
+		<meta name="csrf-token" content="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, user-scalable=yes">
+		
+		<title>検索結果 | 本の総合カタログBooks 出版書誌データベース</title>
+		<link rel="icon" type="image/png" href="/images/favicon.ico">
+		<link rel="stylesheet" href="/css/base.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/header.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/top.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/searchforbooks.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/searchforaccessiblebooks.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/calendar.css?date=20261126031330">
+		<link rel="stylesheet" href="/css/footer.css?date=20261126031330">
+		<!--追加するcssをここで読み込む　-->
+		    <link rel="stylesheet" type="text/css" href="/css/result_searchforbooks.css?date=20261126031330" />
+	<link rel="stylesheet" type="text/css" href="/css/result_list.css?date=20261126031330" />
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	</head>
+	<body>
+		<link rel="stylesheet" href="/css/loading.css?date=20261126031330">
+
+<section id="loading-wrap" aria-busy="true" aria-label="Loading domino">
+	<div class="progressbar">
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+		<div class="presentation"></div>
+	</div>
+	<p>Books</p>
+</section>
+
+<script>
+	// ページ全体が完全に読み込まれた後、ロードアニメーションを非表示にする
+	// $(window).on('load',function(){
+	// 	$("#loading-wrap").delay(800).fadeOut(600);
+	// })
+
+	// DOMの読み込みが完了した後、画像の読み込みを待たずに、ロードアニメーションを非表示にする
+	$(window).ready(function(){
+		$("#loading-wrap").delay(800).fadeOut(600);
+	})
+
+	setInterval(function(){
+		if($("#loading-wrap").css('display') =='none'){
+			$("#loading-wrap").attr('aria-busy','false');
+		}
+	},10);
+	///ロードアニメーション表示
+	function showLoading(){
+		$("#loading-wrap").show();
+	}
+	///ロードアニメーション非表示
+	function hideLoading(){
+		$("#loading-wrap").hide();
+	}
+	///ロードアニメーションフェードイン
+	function fadeInLoading(){
+		$("#loading-wrap").fadeIn();
+	}
+	///ロードアニメーションフェードアウト
+	function fadeOutLoading(){
+		$("#loading-wrap").fadeOut();
+	}
+</script>
+		<header class="page_header" id="page_header">
+    
+    
+    <h1 class="page_title" id="page_title">
+        <a href = "/" aria-label="本の総合カタログ Books 出版書誌データベース トップページへ移動する">
+            <img class="title_logo" src="/images/Logo.png" alt="本の総合カタログ Books 出版書誌データベース">
+            <div class="title_text">出版書誌データベース</div>
+        </a>
+    </h1>
+    <div class="header_link">
+        
+        <input type="hidden" id="search_type" value="books">
+        
+        <button class = "searchaccessiblebooks_link"><div class = "text-offset15">アクセシブル<br>ブックを探すへ</div></button>
+        <button class = "searchbooks_link"><div class = "text-offset15">本を探すへ</div></button>
+        <button class = "returnsearch_link"><div class = "text-offset15">検索に戻る</div></button>
+        <button class = "calendar_link"><div class = "text-offset15">月間発売日<br>カレンダーへ</div></button>
+        <button class = "howto_link"><div class = "text-offset15">サイトの説明へ</div></button>
+
+        
+    </div>
+    <div class="header_notice">
+        出版物の二次利用等をお考えの方は<a href="/mikanri">こちら</a>もご確認ください
+    </div>
+</header>
+<form id = "header_searchforbooks_form" class = "header_searchforbooks_form" role = "search" method="post" action="/search-results">
+    <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">                        <input type="hidden" name="searchforbooks_title" value="キングダム">
+                    <input type="hidden" name="searchforbooks_author" value="">
+                    <input type="hidden" name="searchforbooks_keyword" value="">
+                    <input type="hidden" name="searchforbooks_publisher" value="">
+                    <input type="hidden" name="searchforbooks_afteryear" value="">
+                    <input type="hidden" name="searchforbooks_aftermonth" value="">
+                    <input type="hidden" name="searchforbooks_afterday" value="">
+                    <input type="hidden" name="searchforbooks_beforeyear" value="">
+                    <input type="hidden" name="searchforbooks_beforemonth" value="">
+                    <input type="hidden" name="searchforbooks_beforeday" value="">
+                    <input type="hidden" name="publication_date_order" value="">
+                    <input type="hidden" name="page" value="">
+                    <input type="hidden" name="searchforbooks_freeword" value="">
+                    <input type="hidden" name="publication_date" value="">
+                    <input type="hidden" name="hidden_active_category" value="">
+                    <input type="hidden" name="accessible_search_flag" value="">
+                    <input type="hidden" name="first_books_search_flag" value="">
+                    <input type="hidden" name="calendar_search_flag" value="">
+                                    <input type="hidden" name="publishtype1" value="">
+                    <input type="hidden" name="publishtype2" value="">
+                    <input type="hidden" name="publishtype3" value="">
+                    <input type="hidden" name="publishtype4" value="">
+                    <input type="hidden" name="accessiblefunction1" value="">
+                    <input type="hidden" name="accessiblefunction2" value="">
+                    <input type="hidden" name="accessiblefunction3" value="">
+                    <input type="hidden" name="accessiblefunction4" value="">
+                    <input type="hidden" name="genre1" value="">
+                    <input type="hidden" name="genre2" value="">
+                    <input type="hidden" name="genre3" value="">
+                    <input type="hidden" name="genre4" value="">
+                    <input type="hidden" name="genre5" value="">
+                    <input type="hidden" name="genre6" value="">
+                    <input type="hidden" name="genre7" value="">
+                    <input type="hidden" name="genre8" value="">
+                    <input type="hidden" name="genre9" value="">
+                    <input type="hidden" name="genre10" value="">
+                    <input type="hidden" name="genre11" value="">
+                    <input type="hidden" name="genre12" value="">
+            </form>
+<script src="/js/header.js?date=20261126031330"></script>
+		
+		<!-- 各コンテンツはmainの中で反映される -->
+		<div id = "main">
+				<div id = "searchforbooks" class ="searchforbooks_content" >
+    <form id = "searchforbooks_form" class = "searchforbooks_form" aria-label="本を探す" role = "search" method="post" action="/search-results">
+        <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">
+        <div class="searchforbooks_subtitle">
+            <h2>本を探す</h2>
+        </div>
+        
+        <div class = "result_title">
+            <h2 class = "result_title_text">キングダムの検索結果</h2>
+            <a class = "preview_month" onclick="resultListcalendarClick( '1969-12-31' )">前日</a>
+            <a class = "next_month" onclick="resultListcalendarClick( '1970-01-02' )">翌日</a>
+        </div>
+        <div class = "result_numberofhit">
+            <div>663件/1〜20件</div>
+        </div>
+        
+        <button type="button" id="skiptolist" class="readonly" aria-label="一覧へ移動する">一覧へ</button>
+
+        <fieldset class = "titleandauthor_fieldset">
+            <legend class = "titleandauthor_legend">タイトルや著者名で検索する</legend>
+            <div class = "titleandauthor_inputbox">
+                <div class = "title_inputbox">
+                    <label for = "searchforbooks_title">タイトル</label>
+                    <input id = "searchforbooks_title" type = "text" placeholder = "タイトルを入力" name="searchforbooks_title"
+                        value = "キングダム"
+                    />
+                    <div class = "readonly">タイトルを入力してください</div>
+                </div>
+                <div class = "author_inputbox">
+                    <label for = "searchforbooks_author">著者名</label>
+                    <input id = "searchforbooks_author" type = "text" placeholder = "著者名を入力" name="searchforbooks_author"
+                        value = ""
+                    />
+                    <div class = "readonly">著者名を入力してください</div>
+                </div>
+            </div>
+            <div class = "searchforbooks_form_post_section">
+                <div class = "searchforbooks_form_postbox">
+                    <button class = "searchforbooks_search_button" aria-label = "本を検索する" type = "button"  onclick="searchButtonClick()">更新</button>
+                </div>
+            </div>
+            <fieldset class = "addconditions_fieldset">
+                <legend class = "addconditions_legend" ><button type = "button" aria-expanded = "false" aria-owns="addconditions_content">絞り込む</button></legend>
+                <div id ="addconditions_content" class = "addconditions_content" aria-hidden ="true" style = "display: none;">
+                    <div class = "keywordandpublisher_inputbox">
+                        <div class = "keyword_inputbox">
+                            <label for = "searchforbooks_keyword">キーワード　（内容、目次、ISBNコードなどから検索）</label>
+                            <input id = "searchforbooks_keyword" type = "text" placeholder = "キーワードを入力" name="searchforbooks_keyword"
+                                value = ""
+                            />
+                            <div class = "readonly">キーワードを入力してください</div>
+                        </div>
+                        <div class = "publisher_inputbox">
+                            <label for = "searchforbooks_publisher">出版社名</label>
+                            <input id = "searchforbooks_publisher" type = "text" placeholder = "出版社名を入力" name="searchforbooks_publisher"
+                                value = ""
+                            />
+                            <div class = "readonly">出版社名を入力してください</div>
+                        </div>
+                    </div>
+                    <div class = "releasedate_inputbox">
+                        <div class = "releasedate_fieldset">
+                            <div class = "releasedate_title" aria-hidden = "true">発売日</div>
+                            <div class = "readonly">発売日を範囲指定で検索する</div>
+                            <div class = "releasedate_content">
+                                <fieldset class = "afterreleasedate_fieldset">
+                                    
+                                    <div class = "year_inputbox">
+                                        <label for = "searchforbooks_afteryear">年</label>
+                                        
+                                        <input id = "searchforbooks_afteryear" type = "text" placeholder = "YYYY" maxlength="4" name="searchforbooks_afteryear"
+                                            value = ""
+                                        />
+                                    </div>
+                                    <div class = "month_inputbox">
+                                        <label for = "searchforbooks_aftermonth">月</label>
+                                        
+                                        <input id = "searchforbooks_aftermonth" type = "text" placeholder = "MM" maxlength="2" name="searchforbooks_aftermonth"
+                                            value = ""
+                                        />
+                                    </div>
+                                    <div class = "day_inputbox">
+                                        <label for = "searchforbooks_afterday">日</label>
+                                        
+                                        <input id = "searchforbooks_afterday" type = "text" placeholder = "DD" maxlength="2" name="searchforbooks_afterday"
+                                            value = ""
+                                        />
+                                    </div>
+                                </fieldset>
+                                <div aria-hidden = "true">から</div>
+                                <div class = "readonly">発売日 ここまで</div>
+                                <fieldset class = "beforereleasedate_fieldset">
+                                    
+                                    <div class = "year_inputbox">
+                                        <label for = "searchforbooks_beforeyear">年</label>
+                                        
+                                        <input id = "searchforbooks_beforeyear" type = "text" placeholder = "YYYY" maxlength="4" name="searchforbooks_beforeyear"
+                                            value = ""
+                                        />
+                                    </div>
+                                    <div class = "month_inputbox">
+                                        <label for = "searchforbooks_beforemonth">月</label>
+                                        
+                                        <input id = "searchforbooks_beforemonth" type = "text" placeholder = "MM" maxlength="2" name="searchforbooks_beforemonth"
+                                            value = ""
+                                        />
+                                    </div>
+                                    <div class = "day_inputbox">
+                                        <label for = "searchforbooks_beforeday">日</label>
+                                        
+                                        <input id = "searchforbooks_beforeday" type = "text" placeholder = "DD" maxlength="2" name="searchforbooks_beforeday"
+                                            value = ""
+                                        />
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </div>
+                        <div class ="easilyspecifyreleasedate">
+                            <div class ="easilyspecifyreleasedate_title">発売日かんたん指定</div>
+                            <div class ="easilyspecifyreleasedate_content">
+                                <button type = "button" aria-label="前年を発売日に設定する">前年<div class ="readonly">に設定する</div></button>
+                                <button type = "button" aria-label="前月を発売日に設定する">前月<div class ="readonly">に設定する</div></button>
+                                <button type = "button" aria-label="今年を発売日に設定する">今年<div class ="readonly">に設定する</div></button>
+                                <button type = "button" aria-label="今月を発売日に設定する">今月<div class ="readonly">に設定する</div></button>
+                                <button type = "button" aria-label="来月を発売日に設定する">来月<div class ="readonly">に設定する</div></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="alert-text-date" class="alert-text-date" role="alert" style="display:none;">不正な日付が入力されています</div>
+                    <div class = "publishtype">
+                        <div class = "publishtype_box">
+                            <fieldset class = "publishtype_fieldset">
+                                <legend class = "publishtype_title">
+                                    発行形態
+                                </legend>
+                                <div class = "publishtype_cancel">
+                                    <button type = "button" aria-label="発行形態を全解除するまたは全選択する">全解除</button>
+                                </div>
+                                <div class = "publishtype_checkboxs">
+                                    <input type="checkbox" id = "publishtype1_checkbox" name = "publishtype1"  >
+                                    <label for = "publishtype1_checkbox" class = "publishtype_checkbox">
+                                        書籍
+                                    </label>
+                                    <input type="checkbox" id = "publishtype2_checkbox" name = "publishtype2" >
+                                    <label for = "publishtype2_checkbox" class = "publishtype_checkbox">
+                                        雑誌
+                                    </label>
+                                    <input type="checkbox" id = "publishtype3_checkbox" name = "publishtype3" >
+                                    <label for = "publishtype3_checkbox" class = "publishtype_checkbox">
+                                        電子版
+                                    </label>
+                                    <input type="checkbox" id = "publishtype4_checkbox" name = "publishtype4" >
+                                    <label for = "publishtype4_checkbox" class = "publishtype_checkbox">
+                                        オーディオブック
+                                    </label>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div id="alert-text-publishtype" class="alert-text-publishtype" role="alert" style="display:none;">発行形態を選択してください</div>
+                    <div class = "genretype">
+                        <div class = "genretype_box">
+                            <fieldset class = "genretype_fieldset">
+                                <legend class = "genretype_title" >
+                                    ジャンル
+                                </legend>
+                                <div class = "genretype_checkboxs">
+                                    <input type="checkbox" id = "genretype1" name = "genre1"  >
+                                    <label for = "genretype1" class = "genretype_checkbox genretype1">
+                                        文芸・人文<br><div class = "number">(21)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype2" name = "genre2"  >
+                                    <label for = "genretype2" class = "genretype_checkbox genretype2">
+                                        社会・ビジネス<br><div class = "number">(2)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype3" name = "genre3"  >
+                                    <label for = "genretype3" class = "genretype_checkbox genretype3">
+                                        医学・理工・コンピュータ<br><div class = "number">(0)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype4" name = "genre4"  >
+                                    <label for = "genretype4" class = "genretype_checkbox genretype4">
+                                        芸術<br><div class = "number">(19)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype5" name = "genre5"  >
+                                    <label for = "genretype5" class = "genretype_checkbox genretype5">
+                                        趣味・実用<br><div class = "number">(47)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype6" name = "genre6"  >
+                                    <label for = "genretype6" class = "genretype_checkbox genretype6">
+                                        児童書<br><div class = "number">(26)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype7" name = "genre7"  >
+                                    <label for = "genretype7" class = "genretype_checkbox genretype7">
+                                        語学・学参<br><div class = "number">(0)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype8" name = "genre8"  >
+                                    <label for = "genretype8" class = "genretype_checkbox genretype8">
+                                        文庫・新書<br><div class = "number">(46)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype9" name = "genre9"  >
+                                    <label for = "genretype9" class = "genretype_checkbox genretype9">
+                                        コミックス・ゲーム<br><div class = "number">(287)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype10" name = "genre10"  >
+                                    <label for = "genretype10" class = "genretype_checkbox genretype10">
+                                        ムック<br><div class = "number">(9)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype11" name = "genre11"  >
+                                    <label for = "genretype11" class = "genretype_checkbox genretype11">
+                                        雑誌<br><div class = "number">(0)</div>
+                                    </label>
+                                    <input type="checkbox" id = "genretype12" name = "genre12"  >
+                                    <label for = "genretype12" class = "genretype_checkbox genretype12">
+                                        電子版<br><div class = "number">(139)</div>
+                                    </label>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                    <div id="alert-text-genre" class="alert-text-genre" role="alert" style="display:none;">ジャンルを選択してください</div>
+                    <div class = "searchforbooks_form_post_section">
+                        <div class = "searchforbooks_form_postbox" style="border-width: 1px;">
+                            <button class = "searchforbooks_search_button" aria-label = "本を検索する" type = "button" onclick="searchButtonClick()">更新</button>
+                            <button type = "button" class = "searchforbooks_search_clear_button" aria-label = "検索条件をクリアする" style="display: flex;">条件をクリア</button>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+            <div>
+                <!-- 各種フラグ管理 ここから -->
+                <input type = "hidden" name = "accessible_search_flag" value = "0" id = "accessible_search_flag"> <!-- アクセシブルブック検索フラグ -->
+                <input type = "hidden" name = "first_books_search_flag" value = "0" id = "first_books_search_flag"> <!-- 初回検索フラグ -->
+                <!-- 各種フラグ管理 ここまで -->
+            </div>
+        </fieldset>
+    </form>
+</div>
+
+<form id="result_list_calendar" method="post" action="/search-results">
+    <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">    <input type="hidden" id="hidden_active_category" name="hidden_active_category" value="" />
+    <input type="hidden" id="publication_date" name="publication_date" />
+    <input type = "hidden" name = "calendar_search_flag" value = "1" id = "calendar_search_flag">
+</form>
+<script src = "/js/searchforbooks.js?date=20261126031329"></script>
+<script src = "/js/result_searchforbooks.js?date=20261126031329"></script>
+	<div class = "result_content">
+    <div class = "result_content_box">
+        
+        
+
+        <div class = "result_nav">
+            <h3 class = "result_pagelinker">
+                
+
+                
+                
+                                                                            <button aria-label="1 現在のページです" class = "active" onclick="page(1)">1</button>
+                        
+                                                                                <button aria-label="2ページへ" class = "" onclick="page(2)">2</button>
+                        
+                                                                                <button aria-label="3ページへ" class = "" onclick="page(3)">3</button>
+                        
+                                                                                <span aria-hidden="true">・・・</span>
+                        <span class="readonly">略</span>
+                                                                                <button aria-label="34ページへ" class = "" onclick="page(34)">34</button>
+                        
+                                    
+                                                            <button aria-label="1ページ後に進む" onclick="page(2)"> > <span class ="readonly">１ページ後に進む</span></button>
+                                    
+                
+            </h3>
+            
+            <h3 class = "result_sorting">
+                                
+                                    <div role="heading" aria-level="3" aria-label="並び順は発売予定日です">発売（予定）日</div>
+                    <button id="sort_asc" class="sort_button  " aria-label="検索結果を昇順に並び替える" onclick="sorting(1)">昇順</button>
+                    <button id="sort_desc" class="sort_button active " aria-label="検索結果を降順に並び替える" onclick="sorting(0)">降順</button>
+                            </h3>
+        </div>
+        <div class ="result_list">
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088944494">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム 81   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年11月18日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088944494.jpg" alt=" キングダム 81   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-11-18</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784098641109">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> うちがキングダム ３ </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                原著：森 巡る　イラスト：砂糖野 しおん　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：小学館</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年09月30日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784098641109.jpg" alt=" うちがキングダム ３ の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-09-30</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                            <div>ためし読み</div>
+                                                                                                                                                                        
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/098641100000d0000000">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">うちがキングダム 3</h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box  " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box active "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                原著：森巡る　イラスト：砂糖野しおん　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：小学館</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年09月30日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="/images/noimage_book.jpg" alt="うちがキングダム 3の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-09-30</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784081024407">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム magazine 2026   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年08月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784081024407.jpg" alt=" キングダム magazine 2026   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-08-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088942261">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム BOXセット 4 成&amp;#34780;の変・著雍攻略戦・秦国統一編・黒羊丘の戦い   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年08月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088942261.jpg" alt=" キングダム BOXセット 4 成&amp;#34780;の変・著雍攻略戦・秦国統一編・黒羊丘の戦い   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-08-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088942674">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム 80   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年08月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088942674.jpg" alt=" キングダム 80   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-08-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784086316613">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム 魂の決戦 映画ノベライズ   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                原著：原 泰久　原著：黒岩 勉　著・文・その他：綾坂 キョウ　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年07月17日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784086316613.jpg" alt=" キングダム 魂の決戦 映画ノベライズ   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-07-17</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088942254">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム BOXセット 3 合従軍編   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年07月17日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088942254.jpg" alt=" キングダム BOXセット 3 合従軍編   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-07-17</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/08631661018596000000">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">キングダム 魂の決戦 映画ノベライズ </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box  " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box active "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原泰久　著・文・その他：黒岩勉　著・文・その他：綾坂キョウ　著・文・その他：映画「キングダム」製作委員会　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年07月17日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/08631661018596000000.jpg" alt="キングダム 魂の決戦 映画ノベライズ の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-07-17</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                <div> 読み上げ可能電子版</div>
+                                                                                    
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088942247">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム BOXセット 2 馬陽防衛戦・山陽攻略戦   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年06月18日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088942247.jpg" alt=" キングダム BOXセット 2 馬陽防衛戦・山陽攻略戦   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-06-18</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784835459851">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">マジック・キングダムで落ちぶれて</h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：コリイ・ドクトロウ　翻訳：川副智子　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：復刊ドットコム</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年05月25日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784835459851.jpg" alt="マジック・キングダムで落ちぶれての商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-05-25</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088941967">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム 79   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年05月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088941967.jpg" alt=" キングダム 79   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-05-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784088942230">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> キングダム BOXセット 1 王都奪還編・蛇甘平原の戦い   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原 泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年05月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784088942230.jpg" alt=" キングダム BOXセット 1 王都奪還編・蛇甘平原の戦い   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-05-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/08X10000000071294700">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">キングダム 79 </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box  " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box active "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：原泰久　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：集英社</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年05月19日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/08X10000000071294700.jpg" alt="キングダム 79 の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-05-19</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784815631352">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">ノーライフキングダム～不死王喰らいの少年奴隷、最強最悪の国家を創る～</h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：秋堂カオル　イラスト：kaworu　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：ＳＢクリエイティブ</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年05月15日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784815631352.jpg" alt="ノーライフキングダム～不死王喰らいの少年奴隷、最強最悪の国家を創る～の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-05-15</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784911632017">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> 宮藤官九郎脚本『ストリート・キングダム』   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：宮藤官九郎　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：POST</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年04月14日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784911632017.jpg" alt=" 宮藤官九郎脚本『ストリート・キングダム』   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-04-14</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784098638086">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> うちがキングダム ２ </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                原著：森 巡る　イラスト：砂糖野 しおん　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：小学館</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年03月30日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784098638086.jpg" alt=" うちがキングダム ２ の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-03-30</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                            <div>ためし読み</div>
+                                                                                                                                                                        
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/098638080000d0000000">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">うちがキングダム 2</h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box  " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box active "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                原著：森巡る　イラスト：砂糖野しおん　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：小学館</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年03月30日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="/images/noimage_book.jpg" alt="うちがキングダム 2の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-03-30</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/9784909856340">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title"> ストリート・キングダム 最終版   </h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box active " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box  "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：地引雄一　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：SLOGAN / indies press</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年03月27日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="https://thumbnail-s.images.books.or.jp/9784909856340.jpg" alt=" ストリート・キングダム 最終版   の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-03-27</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                        <h3 class ="result_list_item">
+                <a id ="skiptolisttarget" class ="result_list_button" href = "/book-details/091410390000d0000000">
+                    <div class ="result_list_discription">
+                        <h4 class ="result_list_discription_title">デビルフットボールキングダム 1</h4>
+                        <div class = "result_list_publishtype">
+                            <div class = "red_box">複数あり</div>
+                            <div class = "green_box  " >書籍</div>
+                            <div class = "orange_box  ">雑誌</div>
+                            <div class = "blue_box active "  >電子版</div>
+                            <div class = "purple_box  ">オーディオブック</div>
+                        </div>
+                        
+                                                    <div class ="result_list_discription_author">
+                                                                著・文・その他：倉谷友也　
+                            </div>
+                        
+                        
+                                                    <div class ="result_list_discription_publisher">出版社：小学館</div>
+                        
+                        
+                                                    <div class ="result_list_discription_publishdate">発売（予定）日：2026年03月27日</div>
+                        
+                        
+                        
+                        
+                        <div class ="result_list_thumbnail">
+                            <img src="/images/noimage_book.jpg" alt="デビルフットボールキングダム 1の商品画像">
+                        </div>
+                        
+                        <div class="publication_date" hidden>2026-03-27</div>
+                        
+                        <div class ="result_list_discription_readingversion">
+                                                                                                                                                                        
+                                                            <div style="visibility: hidden">該当なし</div>
+                                                    </div>
+                    </div>
+                </a>
+            </h3>
+                    </div>
+        <div class = "result_nav">
+            <h3 class = "result_pagelinker">
+                
+
+                
+                
+                                                            <button aria-label="1 現在のページです" class = "active" onclick="page(1)">1</button>
+                        
+                                                                                <button aria-label="2ページへ" class = "" onclick="page(2)">2</button>
+                        
+                                                                                <button aria-label="3ページへ" class = "" onclick="page(3)">3</button>
+                        
+                                                                                <span aria-hidden="true">・・・</span>
+                        <span class="readonly">略</span>
+                                                                                <button aria-label="34ページへ" class = "" onclick="page(34)">34</button>
+                        
+                                    
+                                                            <button aria-label="1ページ後に進む" onclick="page(2)"> > <span class ="readonly">１ページ後に進む</span></button>
+                                    
+                
+            </h3>
+            <h3 class = "result_sorting">
+                
+                                    <div role="heading" aria-level="3" aria-label="並び順は発売予定日です">発売（予定）日</div>
+                    <button id="sort_asc" class="sort_button  " aria-label="検索結果を昇順に並び替える" onclick="sorting(1)">昇順</button>
+                    <button id="sort_desc" class="sort_button active " aria-label="検索結果を降順に並び替える" onclick="sorting(0)">降順</button>
+                            </h3>
+        </div>
+    </div>
+</div>
+
+<form id="result_pages" class="result_pages" method="post" action="/search-results">
+    <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">                        <input type="hidden" name="searchforbooks_title" value="キングダム">
+                    <input type="hidden" name="searchforbooks_author" value="">
+                    <input type="hidden" name="searchforbooks_keyword" value="">
+                    <input type="hidden" name="searchforbooks_publisher" value="">
+                    <input type="hidden" name="searchforbooks_afteryear" value="">
+                    <input type="hidden" name="searchforbooks_aftermonth" value="">
+                    <input type="hidden" name="searchforbooks_afterday" value="">
+                    <input type="hidden" name="searchforbooks_beforeyear" value="">
+                    <input type="hidden" name="searchforbooks_beforemonth" value="">
+                    <input type="hidden" name="searchforbooks_beforeday" value="">
+                    <input type="hidden" name="publication_date_order" value="">
+                    <input type="hidden" name="page" value="">
+                    <input type="hidden" name="searchforbooks_freeword" value="">
+                    <input type="hidden" name="publication_date" value="">
+                    <input type="hidden" name="hidden_active_category" value="">
+                    <input type="hidden" name="accessible_search_flag" value="">
+                    <input type="hidden" name="first_books_search_flag" value="">
+                    <input type="hidden" name="calendar_search_flag" value="">
+                            <input type="hidden" name="publishtype1" value="">
+                    <input type="hidden" name="publishtype2" value="">
+                    <input type="hidden" name="publishtype3" value="">
+                    <input type="hidden" name="publishtype4" value="">
+                    <input type="hidden" name="accessiblefunction1" value="">
+                    <input type="hidden" name="accessiblefunction2" value="">
+                    <input type="hidden" name="accessiblefunction3" value="">
+                    <input type="hidden" name="accessiblefunction4" value="">
+                    <input type="hidden" name="genre1" value="">
+                    <input type="hidden" name="genre2" value="">
+                    <input type="hidden" name="genre3" value="">
+                    <input type="hidden" name="genre4" value="">
+                    <input type="hidden" name="genre5" value="">
+                    <input type="hidden" name="genre6" value="">
+                    <input type="hidden" name="genre7" value="">
+                    <input type="hidden" name="genre8" value="">
+                    <input type="hidden" name="genre9" value="">
+                    <input type="hidden" name="genre10" value="">
+                    <input type="hidden" name="genre11" value="">
+                    <input type="hidden" name="genre12" value="">
+                <input type="hidden" id="page" name="page">
+</form>
+
+
+<form id="sorting" class="sorting"  method="post" action="/search-results">
+    <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">                        <input type="hidden" name="searchforbooks_title" value="キングダム">
+                    <input type="hidden" name="searchforbooks_author" value="">
+                    <input type="hidden" name="searchforbooks_keyword" value="">
+                    <input type="hidden" name="searchforbooks_publisher" value="">
+                    <input type="hidden" name="searchforbooks_afteryear" value="">
+                    <input type="hidden" name="searchforbooks_aftermonth" value="">
+                    <input type="hidden" name="searchforbooks_afterday" value="">
+                    <input type="hidden" name="searchforbooks_beforeyear" value="">
+                    <input type="hidden" name="searchforbooks_beforemonth" value="">
+                    <input type="hidden" name="searchforbooks_beforeday" value="">
+                    <input type="hidden" name="publication_date_order" value="">
+                    <input type="hidden" name="page" value="">
+                    <input type="hidden" name="searchforbooks_freeword" value="">
+                    <input type="hidden" name="publication_date" value="">
+                    <input type="hidden" name="hidden_active_category" value="">
+                    <input type="hidden" name="accessible_search_flag" value="">
+                    <input type="hidden" name="first_books_search_flag" value="">
+                    <input type="hidden" name="calendar_search_flag" value="">
+                            <input type="hidden" name="publishtype1" value="">
+                    <input type="hidden" name="publishtype2" value="">
+                    <input type="hidden" name="publishtype3" value="">
+                    <input type="hidden" name="publishtype4" value="">
+                    <input type="hidden" name="accessiblefunction1" value="">
+                    <input type="hidden" name="accessiblefunction2" value="">
+                    <input type="hidden" name="accessiblefunction3" value="">
+                    <input type="hidden" name="accessiblefunction4" value="">
+                    <input type="hidden" name="genre1" value="">
+                    <input type="hidden" name="genre2" value="">
+                    <input type="hidden" name="genre3" value="">
+                    <input type="hidden" name="genre4" value="">
+                    <input type="hidden" name="genre5" value="">
+                    <input type="hidden" name="genre6" value="">
+                    <input type="hidden" name="genre7" value="">
+                    <input type="hidden" name="genre8" value="">
+                    <input type="hidden" name="genre9" value="">
+                    <input type="hidden" name="genre10" value="">
+                    <input type="hidden" name="genre11" value="">
+                    <input type="hidden" name="genre12" value="">
+                <input type="hidden" id="page" name="page" value="1">
+    <input type="hidden" id="publication_date_order" name="publication_date_order">
+</form>
+
+
+<form id="result_list_calendar" method="post" action="/search-results">
+    <input type="hidden" name="_token" value="V5KEAVgwaEjwDR8jB8qF8Z8SI87s9rITUcG1s3jD">    <input type="hidden" id="hidden_active_category" name="hidden_active_category" value="" />
+    <input type="hidden" id="publication_date" name="publication_date" />
+    <input type = "hidden" name = "calendar_search_flag" value = "1" id = "calendar_search_flag">
+</form>
+
+<script src = "/js/result_list.js?date=20261126031330"></script>
+		</div>
+
+		<!-- 共通制御 -->
+		<script src="/js/books_commons.js?date=20261126031330"></script>
+		<script src="/js/site-env.js?date=20261126031330"></script>
+        
+		<!-- フッター -->
+		<footer class = "page_footer" >
+    <div class = "footer_box">
+        <div class="footer_main_row">
+            <div class = "footer_link">
+                <h2><a href ="/how-to-use" aria-label="サイトの説明のページを開く">サイトの説明</a></h2>
+                <h2><a href ="/books-terms" aria-label="利用規約のページを開く">利用規約</a></h2>
+                <h2><a href ="/privacy-policy" aria-label="プライバシーポリシーのページを開く">プライバシーポリシー</a></h2>
+                <h2><a href ="/contact" aria-label="お問い合わせのページを開く">お問い合わせ</a></h2>
+            </div>
+            <div class = "copyright">この検索サイトは日本語のみ対応しています。　<br>©2019 一般社団法人 日本出版インフラセンター <br class = "sp_br">Japan Publishing Organization For <br class = "sp_br">Information Infrastructure Development</div>
+        </div>
+        <div class = "publisher_industry">このサイトは、国内の3000社超の出版社と、<br class = "sp_br">日本書籍出版協会・日本雑誌協会・デジタル出版者連盟・<br class = "sp_br">日本出版者協議会・版元ドットコムなど<br class = "sp_br">多くの出版団体の協力で運営されています。</div>
+    </div>
+    <div class ="return_section" style="position: fixed">
+        <div class ="return_box">
+            <button class = "return_link" aria-label = "ページのTOPへ戻る">ページ<span class = "readonly">の</span>TOPへ</button>
+        </div>
+    </div>
+</footer>
+<script src = "/js/footer.js?date=20261126031330"></script>
+	</body>
+</html>
