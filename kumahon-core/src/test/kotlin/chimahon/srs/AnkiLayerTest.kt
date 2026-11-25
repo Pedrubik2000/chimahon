@@ -61,6 +61,26 @@ class AnkiLayerTest {
         assertEquals(setOf("犬"), AnkiKnown.words(notes, cards))
     }
 
+    @Test fun thresholdIsChosenInDays() {
+        val notes = listOf(note(1, "犬"), note(2, "猫"), note(3, "鳥"), note(4, "魚"))
+        val cards = listOf(AnkiKnown.Card(1, 0.5, null), AnkiKnown.Card(2, 1.0, null), AnkiKnown.Card(3, 7.0, null), AnkiKnown.Card(4, 30.0, null))
+        assertEquals(setOf("猫", "鳥", "魚"), AnkiKnown.words(notes, cards, 1.0))
+        assertEquals(setOf("鳥", "魚"), AnkiKnown.words(notes, cards, 7.0))
+        assertEquals(setOf("魚"), AnkiKnown.words(notes, cards, 30.0))
+        assertEquals(listOf(1, 3, 7, 21, 30), AnkiKnown.DAY_CHOICES)
+    }
+
+    @Test fun wordFieldPicksMappedThenNamedThenSortThenFirst() {
+        val lapis = listOf("Expression", "Reading", "Sentence")
+        assertEquals(2, AnkiKnown.wordFieldIndex(lapis, 0, mapped = "Sentence")) // the profile's own mapping wins
+        assertEquals(0, AnkiKnown.wordFieldIndex(lapis, 1, mapped = "Gone")) // mapped field not in this type: by name
+        assertEquals(1, AnkiKnown.wordFieldIndex(listOf("Meaning", "vocabulary", "Front"), 0)) // first named field, any case
+        assertEquals(1, AnkiKnown.wordFieldIndex(listOf("Back", "Front"), null))
+        assertEquals(2, AnkiKnown.wordFieldIndex(listOf("Kanji", "Mean", "Kana"), 2)) // no name: the sort field
+        assertEquals(0, AnkiKnown.wordFieldIndex(listOf("Kanji", "Mean"), 9)) // sort field out of range: the first
+        assertEquals(0, AnkiKnown.wordFieldIndex(listOf("単語", "意味"), null))
+    }
+
     @Test fun intervalFallbackWhenNoStability() {
         val notes = listOf(note(1, "犬"), note(2, "猫"), note(3, "鳥"))
         val cards = listOf(AnkiKnown.Card(1, null, 7), AnkiKnown.Card(2, null, 6), AnkiKnown.Card(3, null, -600))

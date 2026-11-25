@@ -33,6 +33,9 @@ class AnkiDroidInventoryProvider(
     /** The installed AnkiDroid build [AnkiDroidBridge] picks (kuma3, then the debug build, then stock); asked each time, builds come and go. */
     private fun pkg() = AnkiDroidBridge(context).pkg
 
+    private fun query(uri: Uri, projection: Array<String>?, selection: String?, args: Array<String>?, order: String?) =
+        providerRetry { context.contentResolver.query(uri, projection, selection, args, order) }
+
     /** Every build's provider is `<its app id>.flashcards`, its permission `<its app id>.permission.READ_WRITE_DATABASE` (kuma3's manifest). */
     private fun uri(path: String): Uri = Uri.parse("content://${pkg()}.flashcards/$path")
 
@@ -50,7 +53,7 @@ class AnkiDroidInventoryProvider(
             )
         }
         try {
-            context.contentResolver.query(
+            query(
                 uri("models"),
                 arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES),
                 null,
@@ -118,7 +121,7 @@ class AnkiDroidInventoryProvider(
             val noteQueryMillis = SystemClock.elapsedRealtime() - noteStart
 
             val cardStart = SystemClock.elapsedRealtime()
-            val cards = readCards(configuration, deckId)
+            val cards = readCards(configuration.deckName, configuration.noteTypeName, deckId)
             val cardQueryMillis = SystemClock.elapsedRealtime() - cardStart
             val cardNoteIds = cards.asSequence().map(AnkiProviderCard::noteId).toHashSet()
 
@@ -151,8 +154,73 @@ class AnkiDroidInventoryProvider(
         }
     }
 
+    /** One note of a deck whatever its note type: its type's name and field names, its field values in the same order, the type's sort field. */
+    class DeckNote(val id: Long, val model: String, val fieldNames: List<String>, val values: List<String>, val sortIndex: Int?, val tags: String)
+
+    class DeckRead(val notes: List<DeckNote>, val cards: List<AnkiProviderCard>)
+
+    /**
+     * Every note that has a card in [deckName], of any note type, with its cards (FSRS stability when the provider has it). Used by the
+     * kuma3 / AnkiDroid known-words layer, which can't know the note types of a deck beforehand.
+     */
+    suspend fun loadDeck(deckName: String): DeckRead = withContext(Dispatchers.IO) {
+        val capability = probe(true)
+        if (capability.state != CapabilityState.AVAILABLE) {
+            throw AnkiInventoryProviderException(capability.failure ?: AnkiInventoryFailure.PROVIDER_ERROR, "AnkiDroid inventory is unavailable")
+        }
+        try {
+            val deckId = findDeckId(deckName)
+                ?: throw AnkiInventoryProviderException(AnkiInventoryFailure.MISCONFIGURED_FIELDS, "Deck \"$deckName\" does not exist")
+            val cards = readCards(deckName, null, deckId)
+            val cardNoteIds = cards.mapTo(HashSet(), AnkiProviderCard::noteId)
+            val notes = ArrayList<DeckNote>()
+            for (m in allModels()) {
+                for (n in readNotes(Model(m.id, m.fieldNames))) {
+                    if (n.id !in cardNoteIds) continue
+                    notes += DeckNote(n.id, m.name, m.fieldNames, m.fieldNames.map { f -> n.fields[f].orEmpty() }, m.sortIndex, n.tags)
+                }
+            }
+            DeckRead(notes, cards)
+        } catch (error: AnkiInventoryProviderException) {
+            throw error
+        } catch (error: SecurityException) {
+            throw AnkiInventoryProviderException(AnkiInventoryFailure.PERMISSION_DENIED, "AnkiDroid permission was revoked during refresh", error)
+        } catch (error: Exception) {
+            throw AnkiInventoryProviderException(AnkiInventoryFailure.PROVIDER_ERROR, "AnkiDroid read failed: ${error.message}", error)
+        }
+    }
+
+    private class DeckModel(val id: Long, val name: String, val fieldNames: List<String>, val sortIndex: Int?)
+
+    private fun allModels(): List<DeckModel> {
+        val cursor = try {
+            query(uri("models"), arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES, MODEL_SORT_FIELD_INDEX), null, null, null)
+        } catch (e: SecurityException) {
+            throw e
+        } catch (e: IllegalStateException) {
+            throw e
+        } catch (_: RuntimeException) { // a provider without the sort field column
+            query(uri("models"), arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES), null, null, null)
+        } ?: return emptyList()
+        return cursor.use {
+            val sortIndex = it.getColumnIndex(MODEL_SORT_FIELD_INDEX)
+            buildList {
+                while (it.moveToNext()) {
+                    add(
+                        DeckModel(
+                            it.getLong(it.getColumnIndexOrThrow(MODEL_ID)),
+                            it.getString(it.getColumnIndexOrThrow(MODEL_NAME)).orEmpty(),
+                            parseFieldNames(it.getString(it.getColumnIndexOrThrow(MODEL_FIELD_NAMES)).orEmpty()),
+                            if (sortIndex >= 0 && !it.isNull(sortIndex)) it.getInt(sortIndex) else null,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     private fun findModel(name: String): Model? {
-        val cursor = context.contentResolver.query(
+        val cursor = query(
             uri("models"),
             arrayOf(MODEL_ID, MODEL_NAME, MODEL_FIELD_NAMES),
             null,
@@ -176,7 +244,7 @@ class AnkiDroidInventoryProvider(
     }
 
     private fun findDeckId(name: String): Long? {
-        val cursor = context.contentResolver.query(
+        val cursor = query(
             uri("decks"),
             arrayOf(DECK_ID, DECK_NAME),
             null,
@@ -194,7 +262,7 @@ class AnkiDroidInventoryProvider(
     }
 
     private fun readNotes(model: Model): List<AnkiProviderNote> {
-        val cursor = context.contentResolver.query(
+        val cursor = query(
             uri("notes_v2"),
             arrayOf(NOTE_ID, NOTE_MID, NOTE_MOD, NOTE_FLDS, NOTE_TAGS),
             "$NOTE_MID = ?",
@@ -229,23 +297,26 @@ class AnkiDroidInventoryProvider(
     }
 
     private fun readCards(
-        configuration: AnkiInventoryConfiguration,
+        deckName: String,
+        noteTypeName: String?,
         deckId: Long,
     ): List<AnkiProviderCard> {
         val browserQuery = buildString {
             append("deck:\"")
-            append(configuration.deckName.escapeBrowserQuery())
-            append("\" note:\"")
-            append(configuration.noteTypeName.escapeBrowserQuery())
+            append(deckName.escapeBrowserQuery())
+            if (noteTypeName != null) append("\" note:\"")
+            if (noteTypeName != null) append(noteTypeName.escapeBrowserQuery())
             append('"')
         }
         // kuma3's provider has the FSRS stability column; stock AnkiDroid throws on an unknown column: then the same query without it.
         val cursor = try {
-            context.contentResolver.query(uri("cards"), CARD_PROJECTION + CARD_STABILITY, browserQuery, null, null)
+            query(uri("cards"), CARD_PROJECTION + CARD_STABILITY, browserQuery, null, null)
         } catch (e: SecurityException) {
             throw e
+        } catch (e: IllegalStateException) { // the provider is not ready (already retried): not a missing column
+            throw e
         } catch (_: RuntimeException) { // an unknown column comes back as UnsupportedOperationException, IllegalArgumentException or SQLiteException (across binder)
-            context.contentResolver.query(uri("cards"), CARD_PROJECTION, browserQuery, null, null)
+            query(uri("cards"), CARD_PROJECTION, browserQuery, null, null)
         } ?: throw AnkiInventoryProviderException(
             AnkiInventoryFailure.PARTIAL_RESULT,
             "AnkiDroid card query returned no cursor",
@@ -302,6 +373,7 @@ class AnkiDroidInventoryProvider(
         private const val MODEL_ID = "_id"
         private const val MODEL_NAME = "name"
         private const val MODEL_FIELD_NAMES = "field_names"
+        private const val MODEL_SORT_FIELD_INDEX = "sort_field_index"
         private const val DECK_ID = "deck_id"
         private const val DECK_NAME = "deck_name"
         private const val CARD_ID = "_id"

@@ -27,6 +27,21 @@ object AnkiKnown {
         return s.takeIf { it.length <= MAX_WORD && !SENTENCE.containsMatchIn(it) }
     }
 
+    /** The choices of "known when a card is stable for N days" (Settings chips); [KNOWN_DAYS] is the default. */
+    val DAY_CHOICES = listOf(1, 3, 7, 21, 30)
+
+    private val WORD_FIELDS = setOf("expression", "word", "vocab", "vocabulary", "front", "target", "単語", "語彙")
+
+    /**
+     * Which field of a note type holds the word: [mapped] (the Mining profile's word field, only for the profile's own note type), else the
+     * first field named Expression, Word, Vocab, Vocabulary, Front, Target, 単語 or 語彙 (any case), else the type's sort field, else the first.
+     */
+    fun wordFieldIndex(fieldNames: List<String>, sortIndex: Int?, mapped: String? = null): Int {
+        mapped?.let { m -> fieldNames.indexOf(m).takeIf { it >= 0 }?.let { return it } }
+        fieldNames.indexOfFirst { it.trim().lowercase() in WORD_FIELDS }.takeIf { it >= 0 }?.let { return it }
+        return sortIndex?.takeIf { it in fieldNames.indices } ?: 0
+    }
+
     /** One card's days: its stability, else (provider without it) its interval; a new or learning card (ivl <= 0) counts 0. */
     private fun days(c: Card): Double = c.stabilityDays ?: c.intervalDays?.toDouble()?.coerceAtLeast(0.0) ?: 0.0
 

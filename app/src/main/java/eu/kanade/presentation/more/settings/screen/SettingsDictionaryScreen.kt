@@ -1991,6 +1991,14 @@ object SettingsDictionaryScreen : SearchableSettings {
             }
         }
 
+        // A cold kuma3 can answer nothing at first (the bridge retries); a tap on the empty row asks again.
+        val reloadDecks: () -> Unit = {
+            scope.launch {
+                decks = bridge.deckNames()
+                models = bridge.modelNames()
+            }
+        }
+
         val deckEntries = remember(decks, selectedDeck) {
             buildMap {
                 decks.forEach { put(it, it) }
@@ -2087,6 +2095,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                         Preference.PreferenceItem.TextPreference(
                             title = stringResource(MR.strings.pref_anki_deck),
                             subtitle = stringResource(MR.strings.pref_anki_select_deck),
+                            onClick = reloadDecks,
                         ),
                     )
                 }
@@ -2109,6 +2118,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                         Preference.PreferenceItem.TextPreference(
                             title = stringResource(MR.strings.pref_anki_model),
                             subtitle = stringResource(MR.strings.pref_anki_select_model),
+                            onClick = reloadDecks,
                         ),
                     )
                 }

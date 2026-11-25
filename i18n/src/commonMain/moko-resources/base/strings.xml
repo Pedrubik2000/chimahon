@@ -991,6 +991,7 @@
     <string name="glass_setup_src_kumapie_sub">Known words and marks come from the sync · known = card reviewed once</string>
     <string name="jiten_layer_anki">kuma3 / AnkiDroid</string>
     <string name="glass_setup_src_anki">kuma3 / AnkiDroid</string>
+    <string name="anki_known_days">Known when a card is stable for this many days</string>
     <string name="anki_known_title">Known from kuma3 / AnkiDroid</string>
     <string name="anki_known_not_installed">kuma3 / AnkiDroid is not installed</string>
     <string name="anki_known_needs_permission">%1$s found · tap to allow reading its cards</string>

@@ -60,33 +60,44 @@ object AnkiKnownWords {
     }
 
     /** What the row shows, all read off the main thread in one go. */
-    class Snapshot(val state: State, val enabled: Boolean, val name: String, val last: Long, val count: Int)
+    class Snapshot(val state: State, val enabled: Boolean, val name: String, val last: Long, val count: Int, val days: Int)
 
     suspend fun snapshot(context: Context): Snapshot = withContext(Dispatchers.IO) {
         val srs = Cards.store(context)
-        Snapshot(state(context), enabled(context), name(context), srs.ankiTime(), srs.ankiCount())
+        Snapshot(state(context), enabled(context), name(context), srs.ankiTime(), srs.ankiCount(), days(context))
     }
 
+    /** Known when a card is stable for this many days ([AnkiKnown.DAY_CHOICES]); default [AnkiKnown.KNOWN_DAYS]. Changing it reads again (the caller). */
+    fun days(context: Context): Int = prefs(context).getInt("days", AnkiKnown.KNOWN_DAYS.toInt())
+    fun setDays(context: Context, days: Int) = prefs(context).edit().putInt("days", days).apply()
+
     /**
-     * Reads the Mined deck of every Mining profile and replaces the layer; answers the number of known words. Throws with a message
-     * for the screen when there is no deck set, the permission is missing or the provider fails. Colours reload after.
+     * Reads every deck the Mining profiles mine into, all notes that have a card there whatever their note type (the word field is the
+     * profile's mapped one for the profile's own note type, else [AnkiKnown.wordFieldIndex]), and replaces the layer; answers the number
+     * of known words. Throws with a message for the screen when no deck is set, the permission is missing or the provider fails.
      */
     suspend fun refresh(context: Context): Int = withContext(Dispatchers.IO) {
         val app = context.applicationContext
-        val configs = Injekt.get<DictionaryPreferences>().profileStore.getProfiles()
-            .mapNotNull(AnkiProfile::toInventoryConfiguration)
-            .map { it.copy(enabled = true) } // the profile's own Anki switch is about mining, not this layer
-            .distinctBy { listOf(it.deckName, it.noteTypeName, it.expressionField) }
-        if (configs.isEmpty()) error("Set the Anki deck and word field in Mining first")
+        val profiles = Injekt.get<DictionaryPreferences>().profileStore.getProfiles().filter { it.ankiDeck.isNotBlank() }
+        if (profiles.isEmpty()) error("Set the Anki deck in Mining first")
         val provider = AnkiDroidInventoryProvider(app)
+        val minDays = days(app).toDouble()
         val words = HashSet<String>()
         try {
-            for (c in configs) {
-                val inv = provider.load(c)
-                words += AnkiKnown.words(
-                    inv.notes.map { AnkiKnown.Note(it.id, it.fields[c.expressionField].orEmpty(), it.tags) },
-                    inv.cards.map { AnkiKnown.Card(it.noteId, it.stabilityDays, it.intervalDays) },
+            for (deck in profiles.map { it.ankiDeck }.distinct()) {
+                // note type -> the word field the profiles mapped for it
+                val mapped = profiles.filter { it.ankiDeck == deck }.mapNotNull { p -> p.toInventoryConfiguration()?.let { p.ankiModel to it.expressionField } }.toMap()
+                val read = provider.loadDeck(deck)
+                val notes = read.notes.map {
+                    AnkiKnown.Note(it.id, it.values.getOrElse(AnkiKnown.wordFieldIndex(it.fieldNames, it.sortIndex, mapped[it.model])) { "" }, it.tags)
+                }
+                val known = AnkiKnown.words(notes, read.cards.map { AnkiKnown.Card(it.noteId, it.stabilityDays, it.intervalDays) }, minDays)
+                android.util.Log.i(
+                    "AnkiKnownWords",
+                    "deck \"$deck\": ${read.notes.size} notes, ${read.cards.size} cards, ${known.size} known words (>= ${days(app)} days), " +
+                        "note types: ${read.notes.groupingBy { it.model }.eachCount()}",
                 )
+                words += known
             }
         } catch (e: AnkiInventoryProviderException) {
             error(e.message ?: e.failure.name)

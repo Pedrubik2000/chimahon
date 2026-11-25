@@ -72,6 +72,9 @@ class AnkiDroidBridge(private val context: Context) {
     private val DECKS_URI by lazy { Uri.withAppendedPath(BASE_URI, "decks") }
     private val MEDIA_URI by lazy { Uri.withAppendedPath(BASE_URI, "media") }
 
+    private fun query(uri: Uri, projection: Array<String>?, selection: String?, args: Array<String>?, order: String?) =
+        providerRetry { context.contentResolver.query(uri, projection, selection, args, order) }
+
     private data class ModelInfo(
         val name: String,
         val fields: List<String>,
@@ -102,7 +105,7 @@ class AnkiDroidBridge(private val context: Context) {
         if (!hasPermission()) return@withContext emptyList()
         val names = mutableListOf<String>()
         try {
-            context.contentResolver.query(
+            query(
                 DECKS_URI,
                 arrayOf(DECK_NAME),
                 null,
@@ -125,7 +128,7 @@ class AnkiDroidBridge(private val context: Context) {
         if (!hasPermission()) return@withContext emptyList()
         val names = mutableListOf<String>()
         try {
-            context.contentResolver.query(
+            query(
                 MODELS_URI,
                 arrayOf(MODEL_NAME),
                 null,
@@ -148,7 +151,7 @@ class AnkiDroidBridge(private val context: Context) {
         if (!hasPermission()) return@withContext emptyList()
         val result = mutableListOf<String>()
         try {
-            context.contentResolver.query(
+            query(
                 MODELS_URI,
                 arrayOf(MODEL_NAME, MODEL_FIELD_NAMES),
                 null,
@@ -204,7 +207,7 @@ class AnkiDroidBridge(private val context: Context) {
             val ids = mutableListOf<Long>()
             try {
                 val csum = fieldChecksum(expression)
-                context.contentResolver.query(
+                query(
                     NOTES_V2_URI,
                     arrayOf(NOTE_ID, NOTE_MID),
                     "$NOTE_CSUM=?",
@@ -269,7 +272,7 @@ class AnkiDroidBridge(private val context: Context) {
     suspend fun updateNoteFields(noteId: Long, fields: Map<String, String>) =
         withContext(Dispatchers.IO) {
             val uri = Uri.withAppendedPath(NOTES_URI, noteId.toString())
-            context.contentResolver.query(
+            query(
                 uri,
                 arrayOf(NOTE_MID, NOTE_FLDS),
                 null,
@@ -415,7 +418,7 @@ class AnkiDroidBridge(private val context: Context) {
 
     private fun findDeckIdOrNull(deckName: String): Long? {
         try {
-            context.contentResolver.query(
+            query(
                 DECKS_URI,
                 arrayOf(DECK_ID, DECK_NAME),
                 null,
@@ -439,7 +442,7 @@ class AnkiDroidBridge(private val context: Context) {
         val cv = ContentValues().apply {
             put(DECK_NAME, deckName)
         }
-        val uri = context.contentResolver.insert(DECKS_URI, cv)
+        val uri = providerRetry { context.contentResolver.insert(DECKS_URI, cv) }
             ?: throw Exception("Failed to create deck '$deckName'")
         return uri.lastPathSegment?.toLongOrNull()
             ?: throw Exception("Failed to parse deck ID for '$deckName'")
@@ -447,7 +450,7 @@ class AnkiDroidBridge(private val context: Context) {
 
     private fun findModelId(modelName: String): Long {
         try {
-            context.contentResolver.query(
+            query(
                 MODELS_URI,
                 arrayOf(MODEL_ID, MODEL_NAME),
                 null,
@@ -466,7 +469,7 @@ class AnkiDroidBridge(private val context: Context) {
 
     private fun getModelFields(modelId: Long): List<String> {
         try {
-            context.contentResolver.query(
+            query(
                 MODELS_URI,
                 arrayOf(MODEL_ID, MODEL_FIELD_NAMES),
                 null,
@@ -489,7 +492,7 @@ class AnkiDroidBridge(private val context: Context) {
     private fun readModelInfos(): List<ModelInfo> {
         val models = mutableListOf<ModelInfo>()
         try {
-            context.contentResolver.query(
+            query(
                 MODELS_URI,
                 arrayOf(MODEL_NAME, MODEL_FIELD_NAMES),
                 null,
@@ -567,7 +570,7 @@ class AnkiDroidBridge(private val context: Context) {
     private fun moveCardsToDeck(noteId: Long, targetDeckId: Long) {
         val cardsUri = Uri.withAppendedPath(NOTES_URI, "$noteId/cards")
         try {
-            context.contentResolver.query(
+            query(
                 cardsUri,
                 arrayOf("ord", "deck_id"),
                 null,
@@ -680,7 +683,7 @@ class AnkiDroidBridge(private val context: Context) {
         val cardsUri = Uri.withAppendedPath(noteUri, "cards")
         var inDeck = false
         try {
-            context.contentResolver.query(
+            query(
                 cardsUri,
                 arrayOf("deck_id"),
                 null,
@@ -755,4 +758,21 @@ class AnkiDroidBridge(private val context: Context) {
 
     private fun splitFields(str: String): List<String> =
         str.split(FIELD_SEPARATOR)
+}
+
+/**
+ * A cold kuma3 / AnkiDroid answers its first provider call with `IllegalStateException: Collection accessed before AnkiDroidApp was
+ * initialized` across binder, and the next one a moment later works: wait and ask again, up to [tries] times. Other errors pass through.
+ */
+internal fun <T> providerRetry(tries: Int = 3, waitMs: Long = 1_500, block: () -> T): T {
+    var n = 0
+    while (true) {
+        try {
+            return block()
+        } catch (e: IllegalStateException) {
+            if (++n >= tries) throw e
+            Log.w("AnkiDroidBridge", "provider not ready (${e.message}), try ${n + 1} of $tries")
+            Thread.sleep(waitMs)
+        }
+    }
 }
