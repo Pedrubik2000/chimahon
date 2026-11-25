@@ -62,6 +62,20 @@ Three ways to find what to read next, based on what you finished:
 - When a link is dead, the next source is tried, and the source's bar is corrected.
 - A volume no source could deliver is marked **Not found**, with the reason above the grid.
 - Covers of volumes you have not read can be blurred.
+- **Volumes read on AniList** can be set right on the title page: tap *On AniList: Vol. N*, then use the slider or − / +. It saves when you let go, and it can go down to fix a mistake.
+- **Select** on the title page deletes the files of volumes you have already read (up to your AniList count), to free space.
+
+## 📅 Releases
+
+<p align="center">
+  <img src="./.github/readme-images/glass/releases.jpg" alt="Releases: a timeline of new and announced volumes of the manga you are reading" width="49%" />
+  <img src="./.github/readme-images/glass/releases-bell.jpg" alt="Releases: the bell of a title with watch, auto-fetch and the Japanese search title" width="49%" />
+</p>
+
+- **Releases** on the rail is a timeline of the newest volume of every manga on your AniList *Reading* list: out in the last 90 days, or announced. If you are behind, the row says how many volumes.
+- Dates come from the Japanese publishers' catalogue ([books.or.jp](https://www.books.or.jp)), the National Diet Library and Kodansha's calendar; the sources' coverage says when a volume can be fetched. It checks every day around 09:00 on Wi-Fi, or when you tap *Check now*.
+- **Notifications**: *out today*, *on &lt;source&gt;* with a Fetch button, and date changes (quietly).
+- **Auto-fetch** (per title, on by default when you are up to date): the next volume is fetched by itself on Wi-Fi, with more than 5 GB free, at most 3 a day. After 3 failed tries it goes to *Needs attention*.
 
 ## 📱 Phones, torrents and downloads by hand
 
