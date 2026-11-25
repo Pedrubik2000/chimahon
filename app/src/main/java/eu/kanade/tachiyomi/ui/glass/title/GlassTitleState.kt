@@ -6,6 +6,8 @@ import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.track.anilist.Anilist
 import eu.kanade.tachiyomi.ui.browse.source.MangaImportUtil
 import tachiyomi.domain.chapter.model.Chapter
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 /** One local-source chapter of the title (= one volume). [number] is the volume, from "Vol. NN". */
 data class LocalVolume(val chapterId: Long, val number: Int, val read: Boolean, val lastPageRead: Long)
@@ -43,6 +45,22 @@ object GlassTitleState {
     fun volumeNumber(chapter: Chapter): Int? =
         MangaImportUtil.volumeNumber(chapter.url.substringBeforeLast('/'), chapter.url.substringAfterLast('/'))
             ?.takeIf { it >= 1 }
+
+    /** A local file counts as on the tablet unless it is an empty (0-byte) archive or epub; a directory always counts. */
+    fun counts(isDirectory: Boolean, length: Long): Boolean = isDirectory || length > 0
+
+    /**
+     * The urls ("folder/file") of [chapters] whose file is empty ([counts] false) or missing from the series folder:
+     * the folder is listed once. An empty listing, or any error, keeps everything counting.
+     */
+    fun emptyUrls(chapters: List<Chapter>): Set<String> = runCatching {
+        val dir = chapters.firstOrNull()?.url?.substringBefore('/') ?: return emptySet()
+        val files = Injekt.get<tachiyomi.source.local.io.LocalSourceFileSystem>().getFilesInMangaDirectory(dir)
+            .associateBy { it.name }
+        if (files.isEmpty()) return emptySet()
+        chapters.filter { c -> files[c.url.substringAfter('/')]?.let { !counts(it.isDirectory, it.length()) } ?: true }
+            .mapTo(mutableSetOf()) { it.url }
+    }.getOrDefault(emptySet())
 
     /** One per number (an unread copy wins), by number. */
     fun dedupe(volumes: List<LocalVolume>): List<LocalVolume> =

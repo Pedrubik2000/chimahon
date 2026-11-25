@@ -101,6 +101,13 @@ class GlassTitleStateTest {
     }
 
     @Test
+    fun `an empty archive does not count as on the tablet`() {
+        GlassTitleState.counts(isDirectory = false, length = 0) shouldBe false
+        GlassTitleState.counts(isDirectory = false, length = 10) shouldBe true
+        GlassTitleState.counts(isDirectory = true, length = 0) shouldBe true
+    }
+
+    @Test
     fun `volumes, cells and stars`() {
         GlassTitleState.volumeNumber(3.0) shouldBe 3
         GlassTitleState.volumeNumber(3.5) shouldBe null

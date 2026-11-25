@@ -146,7 +146,8 @@ object GlassDownloads {
                 val series = bound[id].orEmpty().distinct().map { m -> runCatching { chapters.getChapterByMangaId(m) }.getOrNull() }
                 if (series.isEmpty() || null in series) continue
                 val most = series.filterNotNull().maxBy { it.size }
-                put(id, most.mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it) })
+                val empty = GlassTitleState.emptyUrls(most)
+                put(id, most.filter { it.url !in empty }.mapNotNullTo(mutableSetOf()) { GlassTitleState.volumeNumber(it) })
             }
         }
     }

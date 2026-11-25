@@ -149,13 +149,23 @@ class ChapterLoader(
             source is LocalSource -> source.getFormat(chapter.chapter).let { format ->
                 when (format) {
                     is Format.Directory -> DirectoryPageLoader(format.file)
-                    is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
-                    is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
+                    is Format.Archive -> {
+                        if (format.file.length() == 0L) error(EMPTY_VOLUME)
+                        ArchivePageLoader(format.file.archiveReader(context))
+                    }
+                    is Format.Epub -> {
+                        if (format.file.length() == 0L) error(EMPTY_VOLUME)
+                        EpubPageLoader(format.file.epubReader(context))
+                    }
                 }
             }
             source is HttpSource -> HttpPageLoader(chapter, source)
             source is StubSource -> error(context.stringResource(MR.strings.source_not_installed, source.toString()))
             else -> error(context.stringResource(MR.strings.loader_not_implemented_error))
         }
+    }
+
+    private companion object {
+        const val EMPTY_VOLUME = "This volume's file is empty (0 bytes). Delete it and download it again."
     }
 }

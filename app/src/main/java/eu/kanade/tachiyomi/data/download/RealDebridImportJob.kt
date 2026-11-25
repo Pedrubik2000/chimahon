@@ -304,6 +304,7 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             // chimahon --> what the folder holds before this job: volumes already here are skipped, new names follow
             // the folder's style. A rerun (killed run) skips nothing: what it finds may be its own half-written volume.
             seriesTitle = folder
+            dropEmptyVolumes(mangaDir)
             val names = chapterNames(mangaDir)
             japanese = MangaImportUtil.japaneseStyle(names)
             if (!isRerun) present += MangaImportUtil.volumeNumbers(folder, names)
@@ -727,9 +728,17 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
     private fun chapterNames(dir: UniFile): List<String> = dir.listFiles().orEmpty()
         .filter { f ->
             val n = f.name.orEmpty()
-            !n.startsWith('.') && (f.isDirectory || n.substringAfterLast('.').lowercase() in CHAPTERS + BUNDLES)
+            !n.startsWith('.') && (f.isDirectory || (n.substringAfterLast('.').lowercase() in CHAPTERS + BUNDLES && f.length() > 0))
         }
         .mapNotNull { it.name }
+
+    /** A 0-byte volume file holds nothing (a failed copy): removed so the real copy can take its place. */
+    private fun dropEmptyVolumes(dir: UniFile) = dir.listFiles().orEmpty().filter { f ->
+        val n = f.name.orEmpty()
+        !f.isDirectory && !n.startsWith('.') && f.length() == 0L && n.substringAfterLast('.').lowercase() in CHAPTERS + BUNDLES
+    }.filter { f -> // a provider can report size 0 for a full file: delete only when no byte can be read
+        runCatching { f.openInputStream().use { it.read() == -1 } }.getOrDefault(false)
+    }.forEach { runCatching { it.delete() } }
 
     private fun volumesIn(dir: UniFile) = MangaImportUtil.volumeNumbers(dir.name.orEmpty(), chapterNames(dir))
 

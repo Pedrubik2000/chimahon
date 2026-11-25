@@ -111,8 +111,16 @@ class GlassTitleScreenModel(
             if (pair == null) {
                 flowOf<Local?>(null)
             } else {
+                // the files are only re-checked when the chapter list changes, not on every page turn
+                var seenKey = emptyList<Pair<String, Long>>()
+                var empty = emptySet<String>()
                 chapterRepository.getChapterByMangaIdAsFlow(pair.first.id).map { chapters ->
-                    val volumes = chapters.mapNotNull { c ->
+                    val key = chapters.map { it.url to it.dateUpload } // dateUpload = file lastModified: a replaced file changes it
+                    if (key != seenKey) {
+                        empty = GlassTitleState.emptyUrls(chapters)
+                        seenKey = key
+                    }
+                    val volumes = chapters.filter { it.url !in empty }.mapNotNull { c ->
                         GlassTitleState.volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
                     }
                     Local(pair.first, pair.second, chapters, GlassTitleState.dedupe(volumes))
