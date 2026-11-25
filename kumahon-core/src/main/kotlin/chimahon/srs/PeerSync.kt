@@ -154,7 +154,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             val a = post("http://$hub/pair", JSONObject().put("device", deviceName()).put("secret", secret).toString().toByteArray(), emptyMap())
             when (a.status) {
                 200 -> JSONObject(String(a.body)).optString("device", "kumapie").let { name ->
-                    prefs.put(PAIRED, "true"); prefs.put(NAME, name)
+                    prefs.put(PAIRED, "true"); prefs.put(NAME, name); openStore().forgetShared()
                     PairState.Paired(name)
                 }
                 202 -> PairState.Waiting(code(secret))
@@ -189,6 +189,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             val device = deviceName()
             val body = JSONObject().put("format", FORMAT).put("device", device).put("person", "me").put("made", System.currentTimeMillis())
                 .put("events", events).put("cards", JSONObject().put(Srs.LANG, dump)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
+                .apply { store.pendingShared()?.let { (t, w) -> put("known", JSONObject().put(Srs.LANG, JSONObject().put("time", t).put("words", JSONArray(w)))) } }
                 .toString().toByteArray(Charsets.UTF_8)
             val a = post("http://${hub()}/sync", body, mapOf("X-Device" to device, "X-Sig" to sign(secret, body)))
             if (a.status == 403) {
@@ -209,7 +210,8 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
             if (take.isNotEmpty()) store.take(take)
             // The words kumapie counts as known (an older kumapie without these keys: the list stays as it was).
             if (answer.has("events") || answer.has("known")) {
-                val known = KnownWords.of(answer, store.fsrs)
+                store.takeShared(answer.optJSONObject("known")?.optJSONObject(Srs.LANG)?.optLong("time") ?: 0, KnownWords.words(answer))
+                val known = KnownWords.of(answer, store.fsrs, store.sharedWords().takeIf { answer.has("known") })
                 store.replaceKnown(known)
                 store.replaceMarked(KnownWords.marks(answer.optJSONObject("progress"), store.myMarks()))
                 log("known words from kumapie: ${known.size}")

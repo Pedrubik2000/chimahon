@@ -22,7 +22,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import eu.kanade.tachiyomi.ui.glass.setup.JitenImportPanel
+import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
+import tachiyomi.presentation.core.i18n.stringResource
 
 /**
  * Anki mining + dictionary profiles (per-profile fields), then the sync of kumahon's own cards with kumapie.
@@ -90,6 +99,15 @@ object SettingsAnkiScreen : SearchableSettings {
                             checked = colouring,
                             onCheckedChanged = { colouring = it; KumapieColours.setEnabled(context, it) },
                         )
+                    },
+                ),
+                Preference.PreferenceItem.CustomPreference(
+                    title = "Known words",
+                    content = {
+                        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            Text(stringResource(MR.strings.jiten_known_words), style = MaterialTheme.typography.titleMedium)
+                            JitenImportPanel(withTally = true)
+                        }
                     },
                 ),
                 Preference.PreferenceItem.CustomPreference(

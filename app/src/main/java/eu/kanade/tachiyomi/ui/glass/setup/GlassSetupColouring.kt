@@ -126,7 +126,14 @@ internal fun ColouringStep(model: GlassSetupModel, phone: Boolean) {
             Text(stringResource(MR.strings.glass_setup_known_from_hint), color = Glass.secondary, fontSize = Glass.body)
         }
         Column(Modifier.fillMaxWidth().glassPanel(Glass.r16)) {
-            SoonSource("辞", Color(0xFF2B3A55), stringResource(MR.strings.glass_setup_src_jiten), stringResource(MR.strings.glass_setup_src_jiten_sub), phone)
+            Row(Modifier.fillMaxWidth().padding(horizontal = if (phone) 14.dp else 18.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Logo("辞", Color(0xFF2B3A55))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(MR.strings.glass_setup_src_jiten), fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(MR.strings.glass_setup_src_jiten_sub), color = Glass.secondary, fontSize = 13.sp)
+                    JitenImportPanel(withTally = false)
+                }
+            }
             Divider()
             KumapieSource(model, phone)
             Divider()

@@ -975,6 +975,19 @@
     <string name="glass_setup_coming_soon">Coming soon</string>
     <string name="glass_setup_src_jiten">Most common words (Jiten)</string>
     <string name="glass_setup_src_jiten_sub">Public frequency list: top 1,000 to 10,000 words count as known</string>
+    <string name="jiten_count_label">most frequent words count as known</string>
+    <string name="jiten_also_known">ALSO KNOWN</string>
+    <string name="jiten_import">Import</string>
+    <string name="jiten_downloading">Downloading from jiten.moe…</string>
+    <string name="jiten_never">Not imported yet</string>
+    <string name="jiten_last">Imported %1$s: %2$s words + %3$d sets</string>
+    <string name="jiten_failed">Import failed: %1$s</string>
+    <string name="jiten_known_words">Known words</string>
+    <string name="jiten_known_sub">words show plain on your pages</string>
+    <string name="jiten_layer_jiten">Jiten</string>
+    <string name="jiten_layer_kumapie">kumapie</string>
+    <string name="jiten_layer_marks">Your marks</string>
+    <string name="jiten_layer_total">Known on your pages</string>
     <string name="glass_setup_src_kumapie_sub">Known words and marks come from the sync · known = card reviewed once</string>
     <string name="glass_setup_src_kuma3_sub">Your Mined deck on this device</string>
     <string name="glass_setup_src_ankidroid">AnkiDroid</string>

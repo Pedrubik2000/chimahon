@@ -14,11 +14,9 @@ import org.json.JSONObject
 object KnownWords {
 
     /** The entries for [answer] (kumapie's `/sync` JSON); events are replayed with [fsrs] (its parameters as kumapie sends them). */
-    fun of(answer: JSONObject, fsrs: Fsrs6): Set<String> {
+    fun of(answer: JSONObject, fsrs: Fsrs6, imported: Set<String>? = null): Set<String> {
         val out = HashSet<String>()
-        answer.optJSONObject("known")?.optJSONObject(Srs.LANG)?.optJSONArray("words")?.let { w ->
-            for (i in 0 until w.length()) w.optString(i).takeIf { it.isNotEmpty() }?.let { out += it }
-        }
+        (imported ?: words(answer))?.let { out += it }
         out += marks(answer.optJSONObject("progress"))
         val byKey = HashMap<String, MutableList<Pair<Long, Int>>>()
         answer.optJSONArray("events")?.let { ev ->
@@ -32,6 +30,11 @@ object KnownWords {
             out += key; out += key.substringBefore('	')
         }
         return out
+    }
+
+    /** The imported words of the answer's `known.ja`; null = it carries no list. */
+    fun words(answer: JSONObject): Set<String>? = answer.optJSONObject("known")?.optJSONObject(Srs.LANG)?.optJSONArray("words")?.let { w ->
+        (0 until w.length()).mapNotNull { w.optString(it).takeIf { s -> s.isNotEmpty() } }.toSet()
     }
 
     /** `progress` is {device: {marked: {word: [known, at]}}}: the words whose newest mark says known, Japanese ones only (kumapie `markWord`). */

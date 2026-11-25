@@ -1,5 +1,6 @@
 package chimahon.srs
 
+import chimahon.lang.KnownImport
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -207,13 +208,112 @@ class Srs(val db: SqlDb, private val device: String) {
     fun markedWords(): Set<String> = db.query("SELECT word FROM marked_words") { it.string(0) }.toSet()
 
     /** Is this spelling alone in the known list (imported by Jiten, marked, or a reviewed card's key)? kumapie's `imported` check. */
-    fun isKnownSpelling(word: String): Boolean = db.query("SELECT 1 FROM known_words WHERE entry = ?", arrayOf(word)) { it.int(0) }.isNotEmpty()
+    fun isKnownSpelling(word: String): Boolean = known(word, word)
 
-    fun knownKeys(): Set<String> = db.query("SELECT entry FROM known_words") { it.string(0) }.toSet()
+    /** Every known entry: kumapie's list, the Jiten layer and the marks, minus the words marked unknown here. */
+    fun knownKeys(): Set<String> = db.query(KNOWN) { it.string(0) }.toSet()
 
-    /** Is this word (and reading) in kumapie's known list ([KnownWords.isKnown])? */
-    fun isKnown(word: String, reading: String): Boolean =
-        db.query("SELECT 1 FROM known_words WHERE entry IN (?, ?)", arrayOf(word, WordKey.japaneseKey(word, reading))) { it.int(0) }.isNotEmpty()
+    /** Is this word (and reading) known by any layer ([knownKeys])? */
+    fun isKnown(word: String, reading: String): Boolean = known(word, WordKey.japaneseKey(word, reading))
+
+    private fun known(a: String, b: String): Boolean = known(a) || (b != a && known(b))
+
+    /** One key by three EXISTS (the hot path, once per word): on a layer and not marked unknown here. */
+    private fun known(e: String): Boolean = db.query(
+        "SELECT (EXISTS(SELECT 1 FROM known_words WHERE entry = ?) OR EXISTS(SELECT 1 FROM marked_words WHERE word = ?) OR EXISTS(SELECT 1 FROM jiten_words WHERE entry = ?)) " +
+            "AND NOT EXISTS(SELECT 1 FROM my_marks WHERE word = ? AND known = 0)", arrayOf(e, e, e, e)) { it.int(0) }.first() == 1
+
+    /** The Jiten layer ([JitenKnown]): local, never sent in the sync, never touched by [replaceKnown]. Time 0 = never imported. */
+    fun jitenImport(): JitenState {
+        val choice = (meta("jiten_choice") ?: "").split('|', limit = 2)
+        return JitenState(
+            meta("jiten_time")?.toLongOrNull() ?: 0, choice[0].toIntOrNull() ?: 0,
+            choice.getOrElse(1) { "" }.split(',').filter { it.isNotBlank() }, count("jiten_words"),
+        )
+    }
+
+    /**
+     * Replaces the Jiten layer in one transaction; no words clears it (and its time and choice). The list kumapie shares (`known.ja`)
+     * is never built here (this device's copy may be stale): the import stores a DELTA, add = the new Jiten words, remove = the words an
+     * earlier import of this device added to the list (`jiten_added`) that left now and are not mined. [takeShared] applies it to the
+     * hub's newest list on the next answer. An empty delta sends nothing. Mined = a card here or a reviewed key from any device.
+     */
+    fun replaceJiten(imp: KnownImport, top: Int, sets: List<String>) = db.tx {
+        val old = column("jiten_words", "entry")
+        val cand = (column("jiten_added", "entry") intersect old) - imp.words - mined()
+        if (cand.isNotEmpty()) replaceTable("known_words", column("known_words", "entry") - cand)
+        replaceTable("delta_add", imp.words)
+        replaceTable("delta_remove", (column("delta_remove", "entry") - imp.words) + cand)
+        db.exec("DELETE FROM jiten_words")
+        for (w in imp.words) db.exec("INSERT OR IGNORE INTO jiten_words (entry) VALUES (?)", arrayOf(w))
+        if (imp.words.isEmpty()) for (k in listOf("jiten_time", "jiten_choice")) db.exec("DELETE FROM meta WHERE key = ?", arrayOf(k))
+        else {
+            insert("meta", mapOf("key" to "jiten_time", "value" to "${imp.time}"), "OR REPLACE")
+            insert("meta", mapOf("key" to "jiten_choice", "value" to "$top|${sets.joinToString(",")}"), "OR REPLACE")
+        }
+    }
+
+    /** Spellings with a card here or a reviewed key (`spelling<TAB>reading`, kumapie's events replayed) in the known list: never taken out by a Jiten slide down. */
+    private fun mined(): Set<String> =
+        cards().mapNotNull { PeerSync.keyOf(it)?.removePrefix("ja|")?.substringBefore('\t') }.toSet() +
+            column("known_words", "entry").filter { '\t' in it }.map { it.substringBefore('\t') }
+
+    private fun column(table: String, col: String): Set<String> = db.query("SELECT $col FROM $table") { it.string(0) }.toSet()
+
+    /** [table] (`known_words` or `shared_words`, both on `entry`) becomes [values]. */
+    private fun replaceTable(table: String, values: Set<String>) {
+        db.exec("DELETE FROM $table")
+        for (v in values) db.exec("INSERT OR IGNORE INTO $table (entry) VALUES (?)", arrayOf(v))
+    }
+
+    /** The list kumapie shares as `known.ja.words` (as last taken, or as the last delta left it). */
+    fun sharedWords(): Set<String> = column("shared_words", "entry")
+
+    /** The `known.ja` body to send: only while our list differs from the hub's (time, sorted words); else null. */
+    fun pendingShared(): Pair<Long, List<String>>? =
+        if (meta(SHARED_PENDING) == "1") (meta(SHARED_TIME)?.toLongOrNull() ?: 0) to sharedWords().sorted() else null
+
+    /** Paired again (maybe with another hub): forget its list and its time; a Jiten delta not applied yet waits for the new hub's first answer. */
+    fun forgetShared() = db.tx {
+        db.exec("DELETE FROM meta WHERE key IN (?, ?, ?)", arrayOf(SHARED_TIME, SHARED_PENDING, SHARED_TAKEN))
+        db.exec("DELETE FROM shared_words")
+    }
+
+    /**
+     * The hub's `known.ja` from a sync answer; [words] null = the answer carries no list: nothing happens (never wipes, never "taken").
+     * A newer list is taken whole (like kumapie's merge); a time at or past ours means the hub has our pending list; an older one keeps ours.
+     * Then the Jiten delta is applied to that list (add, minus remove, never a mined word): if that changes it, the result is pending with a
+     * time past the hub's, sent on the next sync; once the hub's list already holds it, the delta is done.
+     */
+    fun takeShared(time: Long, words: Set<String>?) = db.tx {
+        if (words == null) return@tx
+        insert("meta", mapOf("key" to SHARED_TAKEN, "value" to "1"), "OR REPLACE")
+        val mine = meta(SHARED_TIME)?.toLongOrNull() ?: 0
+        if (time > mine) {
+            replaceTable("shared_words", words)
+            insert("meta", mapOf("key" to SHARED_TIME, "value" to "$time"), "OR REPLACE")
+            db.exec("DELETE FROM meta WHERE key = ?", arrayOf(SHARED_PENDING))
+        } else if (time >= mine) db.exec("DELETE FROM meta WHERE key = ?", arrayOf(SHARED_PENDING))
+        val add = column("delta_add", "entry"); val remove = column("delta_remove", "entry")
+        if (add.isEmpty() && remove.isEmpty()) return@tx
+        val hub = sharedWords()
+        val result = (hub + add) - (remove - mined())
+        replaceTable("jiten_added", (column("jiten_added", "entry") + (add - hub)) intersect column("jiten_words", "entry"))
+        if (result == hub) { db.exec("DELETE FROM delta_add"); db.exec("DELETE FROM delta_remove"); return@tx }
+        replaceTable("shared_words", result)
+        insert("meta", mapOf("key" to SHARED_TIME, "value" to "${maxOf(System.currentTimeMillis(), (meta(SHARED_TIME)?.toLongOrNull() ?: 0) + 1)}"), "OR REPLACE")
+        insert("meta", mapOf("key" to SHARED_PENDING, "value" to "1"), "OR REPLACE")
+    }
+
+    /** What each layer holds on this device, each word once: kumapie's, then Jiten's not in it, then marks in neither; [KnownLayers.total] = their sum = [knownKeys]. */
+    fun knownLayers(): KnownLayers {
+        val k = db.query("SELECT COUNT(*) FROM known_words WHERE entry NOT IN ($UNKNOWN)") { it.int(0) }.first()
+        val j = db.query("SELECT COUNT(*) FROM jiten_words WHERE entry NOT IN ($UNKNOWN) AND entry NOT IN (SELECT entry FROM known_words)") { it.int(0) }.first()
+        val m = db.query("SELECT COUNT(*) FROM marked_words WHERE word NOT IN ($UNKNOWN) AND word NOT IN (SELECT entry FROM known_words) AND word NOT IN (SELECT entry FROM jiten_words)") { it.int(0) }.first()
+        return KnownLayers(k, j, m, k + j + m)
+    }
+
+    private fun count(table: String) = db.query("SELECT COUNT(*) FROM $table") { it.int(0) }.first()
 
     private fun insert(table: String, v: Map<String, Any?>, or: String = "") =
         db.exec("INSERT $or INTO $table (${v.keys.joinToString()}) VALUES (${v.keys.joinToString { "?" }})", v.values.toTypedArray())
@@ -227,7 +327,8 @@ class Srs(val db: SqlDb, private val device: String) {
     }
 
     fun dump(): JSONObject = JSONObject().apply {
-        for (t in listOf("meta", "cards", "revlog", "exposures")) put(t, JSONArray(db.query("SELECT * FROM $t") { json(it) }))
+        for (t in listOf("meta", "cards", "revlog", "exposures"))
+            put(t, JSONArray(db.query("SELECT * FROM $t" + if (t == "meta") " WHERE key NOT LIKE 'jiten!_%' ESCAPE '!'" else "") { json(it) })) // the Jiten layer stays on this device
     }
 
     private fun json(c: SqlRow) = JSONObject().apply {
@@ -246,6 +347,13 @@ class Srs(val db: SqlDb, private val device: String) {
 
     companion object {
         const val DAY = 86_400_000L
+
+        private const val SHARED_TIME = "jiten_shared_time"
+        private const val SHARED_TAKEN = "jiten_shared_taken"
+        private const val SHARED_PENDING = "jiten_shared_pending"
+        private const val UNKNOWN = "SELECT word FROM my_marks WHERE known = 0"
+        private const val UNION = "SELECT entry FROM known_words UNION SELECT word FROM marked_words UNION SELECT entry FROM jiten_words"
+        private const val KNOWN = "SELECT entry FROM ($UNION) WHERE entry NOT IN ($UNKNOWN)" // minus words marked unknown here
 
         /** kumahon is Japanese only; the `lang` column and the sync JSON keep the code so rows stay compatible with kumapie. */
         const val LANG = "ja"
@@ -308,6 +416,14 @@ class Srs(val db: SqlDb, private val device: String) {
             "CREATE TABLE IF NOT EXISTS known_words (entry TEXT PRIMARY KEY)",
             // The words whose newest mark (any device) says known ([KnownWords.marks]): a mark beats the word's card when colouring ([WordColourer]).
             "CREATE TABLE IF NOT EXISTS marked_words (word TEXT PRIMARY KEY)",
+            // The Jiten layer ([JitenKnown]): top N + sets, local; its time and choice are meta jiten_time / jiten_choice (left out of [dump]).
+            "CREATE TABLE IF NOT EXISTS jiten_words (entry TEXT PRIMARY KEY)",
+            // The words of kumapie's `known.ja` as this device last took or sent them: the base a Jiten import edits (meta jiten_shared_*; never in [dump]).
+            "CREATE TABLE IF NOT EXISTS shared_words (entry TEXT PRIMARY KEY)",
+            // The Jiten import as a delta for the hub's list ([replaceJiten], [takeShared]), and the words this device's imports added to that list.
+            "CREATE TABLE IF NOT EXISTS delta_add (entry TEXT PRIMARY KEY)",
+            "CREATE TABLE IF NOT EXISTS delta_remove (entry TEXT PRIMARY KEY)",
+            "CREATE TABLE IF NOT EXISTS jiten_added (entry TEXT PRIMARY KEY)",
             // Marks made in kumahon itself (known 1/0, time in seconds as kumapie's Progress.mark), sent in the sync as progress.<device>.marked.
             "CREATE TABLE IF NOT EXISTS my_marks (word TEXT PRIMARY KEY, known INTEGER NOT NULL, time INTEGER NOT NULL)",
         )
@@ -349,3 +465,9 @@ class Srs(val db: SqlDb, private val device: String) {
         }
     }
 }
+
+/** The Jiten layer as imported: [time] ms (0 = never), top N, set slugs, words stored. */
+data class JitenState(val time: Long, val top: Int, val sets: List<String>, val count: Int)
+
+/** Words per layer on this device; [total] = distinct union (marks: only those marked known). */
+data class KnownLayers(val kumapie: Int, val jiten: Int, val marks: Int, val total: Int)
