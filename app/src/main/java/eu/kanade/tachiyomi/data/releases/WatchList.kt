@@ -24,14 +24,14 @@ object WatchList {
 
     /**
      * The watch list from the AniList cache. [localMax] = highest volume on the tablet per media id.
-     * Not watched: other list statuses, novels / one-shots, no native title (nothing to search), and a FINISHED title whose
-     * volume count is known and already reached (local max or AniList progress): nothing left to wait for.
+     * Not watched: other list statuses, novels / one-shots, no native title (nothing to search). FINISHED titles stay
+     * watched (Pedro 2026-11-25: AniList's "finished" can hide a new part).
      * [stored] keeps its jpTitle (it may be an override), publisher, autoFetch and watching; only lastKnownVol and status follow AniList.
      */
     fun build(entries: List<AniListLibrary.Entry>, localMax: Map<Long, Int>, stored: List<WatchedSeries>): List<WatchedSeries> =
         buildWithSkips(entries, localMax, stored).first
 
-    /** A READING entry that [build] left out: [reason] is NOVEL, ONE_SHOT, FINISHED_COVERED or NO_NATIVE_TITLE. */
+    /** A READING entry that [build] left out: [reason] is NOVEL, ONE_SHOT or NO_NATIVE_TITLE. */
     data class Skipped(val mediaId: Long, val reason: String, val title: String)
 
     /** [build] plus why each READING entry was dropped (pure: the worker logs it). */
@@ -47,7 +47,7 @@ object WatchList {
             if (e.format == AniListLibrary.NOVEL) return@mapNotNull skip("NOVEL")
             if (e.format == "ONE_SHOT") return@mapNotNull skip("ONE_SHOT")
             val last = lastKnownVol(localMax[e.mediaId], e.progressVolumes)
-            if (e.mediaStatus == "FINISHED" && e.volumes != null && e.volumes > 0 && e.volumes <= last) return@mapNotNull skip("FINISHED_COVERED")
+            // a FINISHED title stays watched: AniList's "finished" can hide a new part (Chainsaw Man), and quiet titles are hidden by the 90-day rule anyway
             val prev = old[e.mediaId]
             val title = prev?.jpTitle?.takeIf { it.isNotBlank() } ?: e.native?.takeIf { it.isNotBlank() } ?: return@mapNotNull skip("NO_NATIVE_TITLE")
             WatchedSeries(e.mediaId, title, prev?.publisher, last, status, prev?.autoFetch, prev?.watching)

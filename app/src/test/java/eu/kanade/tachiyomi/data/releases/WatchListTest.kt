@@ -37,7 +37,7 @@ class WatchListTest {
     }
 
     @Test
-    fun `finished with a known count already reached stops being watched`() {
+    fun `finished titles stay watched (AniList finished can hide a new part, Pedro 2026-11-25)`() {
         val list = WatchList.build(
             listOf(
                 entry(1, mediaStatus = "FINISHED", volumes = 10, progressVolumes = 10), // done: progress reached it
@@ -48,7 +48,7 @@ class WatchListTest {
             ),
             mapOf(2L to 10, 3L to 8), emptyList(),
         )
-        list.map { it.anilistId } shouldBe listOf(3L, 4L, 5L)
+        list.map { it.anilistId } shouldBe listOf(1L, 2L, 3L, 4L, 5L)
     }
 
     @Test
@@ -60,8 +60,8 @@ class WatchListTest {
             ),
             emptyMap(), emptyList(),
         )
-        list.map { it.anilistId } shouldBe listOf(5L)
-        skipped.map { it.mediaId to it.reason } shouldBe listOf(1L to "NOVEL", 2L to "ONE_SHOT", 3L to "NO_NATIVE_TITLE", 4L to "FINISHED_COVERED")
+        list.map { it.anilistId } shouldBe listOf(4L, 5L)
+        skipped.map { it.mediaId to it.reason } shouldBe listOf(1L to "NOVEL", 2L to "ONE_SHOT", 3L to "NO_NATIVE_TITLE")
     }
 
     @Test
