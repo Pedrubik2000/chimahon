@@ -30,6 +30,10 @@ class JitenSplitter(private val lexicon: File, private val systemDic: File, priv
         JitenParser(lex, MorphologicalAnalyser(lex, systemDic.toPath(), userDic?.toPath()))
     }.also { parser = it }
 
+    /** Jiten's frequency rank of [word] (1 = most common; names don't count), null when it has none. */
+    @Synchronized
+    fun frequencyRank(word: String): Int? = parser().lexicon.getBestNonNameFrequencyRank(word)
+
     /**
      * The other spellings of a card's word: every form of its JMdict entry ([spelling] with [reading]; the only entry
      * written so when the reading doesn't pick one), so a ガキ共 card colours ガキども and 餓鬼ども, a 分かる card わかる

@@ -203,6 +203,14 @@ class YomitanCharacterZip(
         } else {
             addOnce(name, readings.full)
         }
+        // a dotted name (ソフィナ・ブリビア): the full name without its dots, and each piece (2+ characters) as a headword of its own;
+        // the card's own "name" line keeps the full name, which is how a reader tells a piece from the whole (FaceMatcher)
+        val dotted = NameParser.dottedParts(name)
+        fun partReading(p: String) = if (Kana.containsKanji(p)) readings.full else Kana.kataToHira(p)
+        if (dotted.isNotEmpty()) {
+            addOnce(name.replace(NameParser.SEPARATOR_REGEX, ""), readings.full)
+            for (p in dotted) addOnce(p, partReading(p))
+        }
 
         // hiragana and katakana forms
         if (hasSplit) {
@@ -248,6 +256,7 @@ class YomitanCharacterZip(
             if (readings.full.isNotEmpty()) bases.add(readings.full to readings.full)
             val kataFull = Kana.hiraToKata(readings.full)
             if (kataFull.isNotEmpty()) bases.add(kataFull to readings.full)
+            for (p in dotted) bases.add(p to partReading(p))
         }
 
         // aliases ("Romanized (日本語)" or plain), with the spoiler ones when spoilers are on

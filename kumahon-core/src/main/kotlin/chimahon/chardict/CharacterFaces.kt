@@ -54,6 +54,10 @@ object CharacterEntry {
 
     fun workKey(s: String) = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC).lowercase().filter { it.isLetterOrDigit() }
 
+    /** The character's native name line of the card (its "name" block), or null. */
+    fun nativeName(glossary: String): String? =
+        nodes(glossary).filterIsInstance<JSONObject>().firstOrNull { it.optJSONObject("data")?.optString("id") == "name" }?.optString("content")?.ifEmpty { null }
+
     /** The file of a character entry's portrait (the img inside its "portrait-container", not the voice actor's later one), or null. */
     fun portraitPath(glossary: String): String? =
         nodes(glossary).filterIsInstance<JSONObject>().firstOrNull { it.optJSONObject("data")?.optString("id") == "portrait-container" }
@@ -70,6 +74,8 @@ class FaceMatcher(
     private val dict: CharacterDict,
     private val autoKnown: (String) -> Boolean = { true },
     private val cache: (String, () -> ByteArray?) -> ByteArray? = { _, f -> f() },
+    /** Whether these pieces of the text are an ordinary word (Android: not a noun, or a frequent one); a name piece that is must get no face. */
+    private val commonWord: (List<chimahon.lang.JapaneseModel.Token>) -> Boolean = { false },
 ) {
     class Hit(val start: Int, val length: Int, val name: String, val portrait: ByteArray)
 
@@ -79,6 +85,22 @@ class FaceMatcher(
         if (found.isEmpty()) return null
         return word.removeSuffix(found.firstNotNullOfOrNull { it.second }.orEmpty()).ifBlank { null }
     }
+
+    /** [t] as written, without its name separators, and with them all turned into each separator (・ for ＝ and back). */
+    private fun variants(t: String): List<String> {
+        if (NameParser.SEPARATOR_REGEX.find(t) == null) return listOf(t)
+        return (listOf(t, t.replace(NameParser.SEPARATOR_REGEX, "")) + NameParser.SEPARATORS.map { t.replace(NameParser.SEPARATOR_REGEX, it.toString()) }).distinct()
+    }
+
+    /** [name] is only a piece of a dotted name: every card with that headword has a longer, separated native name (the whole name is not a piece). */
+    private fun isPart(natives: List<String?>, name: String): Boolean {
+        fun bare(s: String) = s.replace(NameParser.SEPARATOR_REGEX, "")
+        return natives.isNotEmpty() && natives.all { it != null && NameParser.SEPARATOR_REGEX.containsMatchIn(it) && bare(it) != bare(name) }
+    }
+
+    /** The native names of the cards with headword [name], only the [work]'s when there is one (another work's namesake is no concern here). */
+    private fun nativeNames(name: String, work: String?): List<String?> =
+        dict.glossaries(name).filter { work.isNullOrBlank() || CharacterEntry.fromWork(it.raw, work) }.map { CharacterEntry.nativeName(it.raw) }
 
     /** [name]'s portrait: with [work], only that work's characters; without, the first character with that name. */
     fun portrait(name: String, work: String?): ByteArray? = cache("$name\n${work.orEmpty()}") {
@@ -96,14 +118,21 @@ class FaceMatcher(
             if (first.surface.firstOrNull() !in 'ぁ'..'ゖ') for (n in minOf(5, ws.size - i) downTo 1) {
                 val last = ws[i + n - 1]
                 val t = text.substring(first.begin, last.begin + last.surface.length)
-                // something between the pieces, except the middle dot of ソフィナ・ブリビア (a symbol, so not among [ws])
-                if (t.replace("・", "").length != (i until i + n).sumOf { ws[it].surface.replace("・", "").length }) continue
+                // something between the pieces, except a name separator like the dot of ソフィナ・ブリビア (a symbol, so not among [ws])
+                val strip = NameParser.SEPARATOR_REGEX
+                if (t.replace(strip, "").length != (i until i + n).sumOf { ws[it].surface.replace(strip, "").length }) continue
                 // a single word: the dictionary holds only characters, so its headword is enough (Sudachi's part of speech for a name is unreliable); no 1-character or kana-only words
-                val name = (if (n > 1) characterName(t) ?: characterName(t.replace("・", ""))
-                    else listOf(t, first.base).firstNotNullOfOrNull { w -> w.takeIf { it.length > 1 && !it.all { c -> c in 'ぁ'..'ゖ' } }?.let(::characterName) }
+                val name = (if (n > 1) variants(t).firstNotNullOfOrNull(::characterName)
+                    else listOf(t, first.base).firstNotNullOfOrNull { w -> w.takeIf { it.length > 1 && !it.all { c -> c in 'ぁ'..'ゖ' } }?.let { variants(it).firstNotNullOfOrNull(::characterName) } }
                         // without the work (its title not known yet) any character's name would do: then Sudachi must also take it for a name
                         ?.takeIf { !work.isNullOrBlank() || autoKnown(it) })
                     ?: continue
+                // a piece of a dotted name (マッシュ of マッシュ・バーンデッド) is a short common-looking word: only with a known work, and never an ordinary word
+                val natives = nativeNames(name, work)
+                if (isPart(natives, name)) {
+                    if (work.isNullOrBlank() || commonWord(ws.subList(i, i + n))) continue
+                    if (natives.toSet().size > 1) continue // エイムズ of レイン・エイムズ and フィン・エイムズ: which one is not known
+                }
                 val picture = portrait(name, work) ?: continue
                 out += Hit(first.begin, t.length, name, picture)
                 hit = n

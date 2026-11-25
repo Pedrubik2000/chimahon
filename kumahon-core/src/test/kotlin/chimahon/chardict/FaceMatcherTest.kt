@@ -103,10 +103,14 @@ class FaceMatcherTest {
 
     /** MASHLE's ソフィナ・ブリビア through the real zip builder: its headwords and cards are the dictionary the matcher gets. */
     private val mashle: CharacterDict by lazy {
+        zipDict(listOf("9" to "ソフィナ・ブリビア", "8" to "マッシュ・バーンデッド", "7" to "ジャン＝ジャック", "6" to "ルーク･ガーデン", "5" to "ミナ·ローズ").map { (id, n) -> Triple(id, n, "MASHLE") })
+    }
+
+    /** The dictionary the real zip builder makes of these characters (id, native name, work), read back as the matcher reads it. */
+    private fun zipDict(chars: List<Triple<String, String, String>>): CharacterDict {
         val z = YomitanCharacterZip(DictSettings(), revision = "r")
-        z.addCharacter(Character(id = "9", name = "Sofina Bribia", nameOriginal = "ソフィナ・ブリビア", role = "side", firstNameHint = "Sofina", lastNameHint = "Bribia", imageBytes = byteArrayOf(1, 2, 3), imageExt = "jpg", imageWidth = 80, imageHeight = 100), "MASHLE")
-        // a name written with a space is split: its parts (and the honorific forms) are headwords too
-        z.addCharacter(Character(id = "8", name = "Mash Burnedead", nameOriginal = "マッシュ バーンデッド", role = "primary", firstNameHint = "Mash", lastNameHint = "Burnedead", imageBytes = byteArrayOf(1, 2, 3), imageExt = "jpg", imageWidth = 80, imageHeight = 100), "MASHLE")
+        for ((id, native, work) in chars)
+            z.addCharacter(Character(id = id, name = "N$id", nameOriginal = native, role = "primary", firstNameHint = "A", lastNameHint = "B", imageBytes = byteArrayOf(1, 2, 3), imageExt = "jpg", imageWidth = 80, imageHeight = 100), work)
         val buf = java.io.ByteArrayOutputStream().also { z.write(it) }
         val cards = HashMap<String, MutableList<Glossary>>()
         java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(buf.toByteArray())).use { zin ->
@@ -118,14 +122,33 @@ class FaceMatcherTest {
                 e = zin.nextEntry
             }
         }
-        object : CharacterDict {
+        return object : CharacterDict {
             override fun glossaries(word: String) = cards[word].orEmpty()
             override fun media(dict: String, path: String) = png
         }
     }
 
+    @Test fun `a piece shared by two characters of the work gets no face, the whole names still do`() {
+        val d = zipDict(listOf(Triple("1", "レイン・エイムズ", "MASHLE"), Triple("2", "フィン・エイムズ", "MASHLE"), Triple("3", "ドット・バレット", "MASHLE")))
+        val m = FaceMatcher(d, { false })
+        assertTrue(m.match("エイムズが来た", real("エイムズ/0 が/4 来た/5"), "MASHLE").isEmpty())
+        assertEquals("レイン・エイムズ", m.match("レイン・エイムズ", real("レイン/0 ・/3 エイムズ/4"), "MASHLE").single().name)
+        assertEquals("ドット", m.match("ドットが来た", real("ドット/0 が/3 来た/4"), "MASHLE").single().name) // one owner
+    }
+
+    @Test fun `a namesake in another work does not decide for this work`() {
+        // ローズ is a whole name in another work (so no piece there) and a piece of ミナ·ローズ here; Aime's エイムズ is shared only across works
+        val d = zipDict(listOf(Triple("1", "ミナ·ローズ", "MASHLE"), Triple("2", "ローズ", "他の作品"), Triple("3", "レイン・エイムズ", "MASHLE"), Triple("4", "フィン・エイムズ", "他の作品")))
+        val m = FaceMatcher(d, { false })
+        var asked = 0
+        val guarded = FaceMatcher(d, { false }, commonWord = { asked++; true })
+        assertTrue(guarded.match("ローズが来た", real("ローズ/0 が/3 来た/4"), "MASHLE").isEmpty()) // still a piece here: the guard runs
+        assertEquals(1, asked)
+        assertEquals(1, m.match("エイムズが来た", real("エイムズ/0 が/4 来た/5"), "MASHLE").size) // one brother in this work
+    }
+
     /** Sudachi's pieces with their real offsets; the middle dot is a symbol (not a word). */
-    private fun real(s: String): List<Token> = s.split(" ").map { it.split("/") }.map { (surf, at) -> Token(surf, surf, "", if (surf == "・") "補助記号" else "名詞", at.toInt()) }
+    private fun real(s: String): List<Token> = s.split(" ").map { it.split("/") }.map { (surf, at) -> Token(surf, surf, "", if (surf.length == 1 && surf in NameParser.SEPARATORS) "補助記号" else "名詞", at.toInt()) }
 
     private val page = "知の神杖ソフィナ・ブリビア"
     private val pageTokens = real("知/0 の/1 神/2 杖/3 ソフィナ/4 ・/8 ブリ/9 ビア/11")
@@ -138,15 +161,41 @@ class FaceMatcherTest {
         assertEquals("ソフィナ・ブリビア", hits[0].name)
     }
 
-    @Test fun `the full dotted name as one token, the given name alone, the family split in two, an honorific`() {
+    @Test fun `the full dotted name as one token, a piece alone, a piece split in two, a piece with an honorific`() {
         val m = FaceMatcher(mashle, { false })
         assertEquals(1, m.match("ソフィナ・ブリビア", real("ソフィナ・ブリビア/0"), "MASHLE").size)
-        assertEquals(1, m.match("マッシュが来た", real("マッシュ/0 が/4 来た/5"), "MASHLE").size) // given name alone
+        assertEquals("ソフィナ", m.match("ソフィナが来た", real("ソフィナ/0 が/4 来た/5"), "MASHLE").single().name)
+        assertEquals("マッシュ", m.match("マッシュが来た", real("マッシュ/0 が/4 来た/5"), "MASHLE").single().name)
         val f = m.match("バーンデッドが来た", real("バーン/0 デッド/3 が/6 来た/7"), "MASHLE") // family split by Sudachi
         assertEquals("バーンデッド", f.single().name)
         val h = m.match("マッシュくん", real("マッシュ/0 くん/4"), "MASHLE")
         assertEquals("マッシュ", h.single().name)
         assertEquals(0, h[0].start)
+    }
+
+    @Test fun `a piece needs a work and must not be an ordinary word, the whole name needs neither`() {
+        val one = real("マッシュ/0 が/4 来た/5")
+        assertTrue(FaceMatcher(mashle, { true }).match("マッシュが来た", one, null).isEmpty()) // no work
+        assertTrue(FaceMatcher(mashle, { true }).match("マッシュが来た", one, " ").isEmpty())
+        assertTrue(FaceMatcher(mashle, { false }, commonWord = { true }).match("マッシュが来た", one, "MASHLE").isEmpty()) // an ordinary word
+        val asked = ArrayList<String>()
+        FaceMatcher(mashle, { false }, commonWord = { asked += it.joinToString("") { t -> t.surface }; false }).match("バーンデッド", real("バーン/0 デッド/3"), "MASHLE")
+        assertEquals(listOf("バーンデッド"), asked) // the guard is asked about the pieces joined
+        val whole = FaceMatcher(mashle, { false }, commonWord = { true })
+        assertEquals(1, whole.match("ソフィナ・ブリビア", real("ソフィナ/0 ・/4 ブリ/5 ビア/7"), "MASHLE").size) // one hit, not two pieces
+        assertEquals(1, FaceMatcher(mashle, { true }, commonWord = { true }).match("ソフィナ・ブリビア", real("ソフィナ/0 ・/4 ブリ/5 ビア/7"), null).size)
+    }
+
+    @Test fun `other separators are the same as the middle dot`() {
+        val m = FaceMatcher(mashle, { false })
+        assertEquals("ジャン＝ジャック", m.match("ジャン＝ジャック", real("ジャン/0 ＝/3 ジャック/4"), "MASHLE").single().name)
+        assertEquals("ジャック", m.match("ジャックだ", real("ジャック/0 だ/4"), "MASHLE").single().name)
+        assertEquals("ルーク･ガーデン", m.match("ルーク･ガーデン", real("ルーク/0 ･/3 ガーデン/4"), "MASHLE").single().name)
+        assertEquals("ガーデン", m.match("ガーデンさん", real("ガーデン/0 さん/4"), "MASHLE").single().name)
+        assertEquals("ミナ·ローズ", m.match("ミナ·ローズ", real("ミナ/0 ·/2 ローズ/3"), "MASHLE").single().name)
+        // the page writes another separator than the card: still the same name
+        assertEquals(listOf(0 to 8), m.match("ジャン・ジャック", real("ジャン/0 ・/3 ジャック/4"), "MASHLE").map { it.start to it.length })
+        assertEquals(1, m.match("ジャンジャック", real("ジャンジャック/0"), "MASHLE").size) // and none at all
     }
 
     @Test fun `a one-character or hiragana headword gets no face`() {
@@ -190,7 +239,7 @@ class FaceMatcherTest {
 
     @Test fun `portraits are asked through the cache`() {
         val asked = ArrayList<String>()
-        val m = FaceMatcher(dict) { k, f -> asked += k; f() }
+        val m = FaceMatcher(dict, cache = { k, f -> asked += k; f() })
         m.portrait("壬氏", "w")
         assertEquals(listOf("壬氏\nw"), asked)
     }

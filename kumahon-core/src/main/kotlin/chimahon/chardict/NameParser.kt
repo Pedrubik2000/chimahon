@@ -17,6 +17,17 @@ data class NameReadings(val full: String, val family: String, val given: String)
  * AniList gives `first` (given) and `last` (family) in romaji: they split names written without a space.
  */
 object NameParser {
+    /** The marks that join the pieces of a foreign name (ソフィナ・ブリビア, ジャン＝ジャック): middle dots, bullet, double hyphens. */
+    const val SEPARATORS = "・･·•＝゠="
+    val SEPARATOR_REGEX = Regex("[${SEPARATORS}]")
+
+    /** The pieces of a name written with [SEPARATORS] and no space, each of 2+ characters; empty when it is not such a name. */
+    fun dottedParts(name: String): List<String> {
+        if (' ' in name) return emptyList()
+        val parts = name.split(SEPARATOR_REGEX).filter { it.isNotEmpty() }
+        return if (parts.size < 2) emptyList() else parts.filter { it.length >= 2 }
+    }
+
     private fun trimmedOrNull(s: String?): String? = s?.trim()?.takeIf { it.isNotEmpty() }
 
     private fun cps(s: String): IntArray = s.codePoints().toArray()

@@ -203,7 +203,7 @@ object KumapieColours {
         colourer(context) // creates [japanese]
         val model = japanese!!
         val words = model.words(text) ?: run { download(context); if (missOnce(text)) Log.d("KumapieColours", "ownFaces: Japanese model not ready"); return null }
-        val hits = CharacterDictionary.faces(context, text, words, work, model::autoKnownName) ?: run { if (missOnce(text)) Log.d("KumapieColours", "ownFaces: character dictionary not ready"); return null }
+        val hits = CharacterDictionary.faces(context, text, words, work, model::autoKnownName, model::commonWord) ?: run { if (missOnce(text)) Log.d("KumapieColours", "ownFaces: character dictionary not ready"); return null }
         Log.d("KumapieColours", "ownFaces: ${text.length} chars, ${words.size} tokens, ${hits.size} hits, work $work")
         if (Log.isLoggable("KumapieColours", Log.VERBOSE)) Log.d("KumapieColours", "ownFaces: \"${text.take(40)}\" [${words.joinToString(" ") { "${it.surface}/${it.base}/${it.begin}" }}], hits ${hits.map { it.name + "@" + it.start }}")
         return hits.mapNotNull { hit ->

@@ -195,6 +195,16 @@ class JapaneseModel(
         runCatching { parse(listOf(word)).first() }.getOrNull()?.singleOrNull()?.let { it.pos == "感動詞" || it.sub == "固有名詞" } ?: false
     }
 
+    /**
+     * Pieces that are an ordinary word, so a name PART (マッシュ of マッシュ・バーンデッド) must not be taken for it on a page: a piece that is not a
+     * noun (名詞), or the joined word in the top 20 000 of Jiten's frequency rank. Without Jiten's files only the part of speech decides.
+     */
+    fun commonWord(pieces: List<Token>): Boolean {
+        if (pieces.any { it.pos != "名詞" }) return true
+        val rank = runCatching { splitter()?.frequencyRank(pieces.joinToString("") { it.surface }) }.getOrNull()
+        return rank != null && rank <= COMMON_RANK
+    }
+
     private val autoName = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /** [autoKnown] for character faces: only a proper noun (固有名詞) is a name; an interjection (感動詞) is not. */
@@ -211,6 +221,7 @@ class JapaneseModel(
     }
 
     companion object {
+        private const val COMMON_RANK = 20_000
         private val SPLIT = Any()
         private val DOWNLOAD = Any()
         /** Jiten's smaller file is 20 MB: less than this is an error page or a cut download. */

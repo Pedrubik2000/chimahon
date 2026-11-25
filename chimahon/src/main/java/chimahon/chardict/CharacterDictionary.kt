@@ -94,8 +94,12 @@ object CharacterDictionary {
         if (read.isEmpty()) return false
         val nf = notFoundAt(context)
         val now = System.currentTimeMillis()
-        return ReadWorks.needsRebuild(read, builtWorks(context), nf, now) || (!present(context) && ReadWorks.pending(read, nf, now).isNotEmpty())
+        return ReadWorks.needsRebuild(read, builtWorks(context), nf, now) || (!present(context) && ReadWorks.pending(read, nf, now).isNotEmpty()) ||
+            (present(context) && prefs(context).getInt("format", 1) < FORMAT) // built by an older version of the builder: once more
     }
+
+    /** What the builder writes: 2 = the pieces of dotted names (ソフィナ・ブリビア) are headwords too. Raise it when the zip's content changes. */
+    const val FORMAT = 2
 
     /** The folder as it is on disk (files, total size, newest mtime; "none" when absent): changes when an import touched it. */
     fun fingerprint(context: Context): String {
@@ -126,7 +130,7 @@ object CharacterDictionary {
         recordNotFound(context, notFound, works)
         val now = System.currentTimeMillis()
         val e = prefs(context).edit().putString("builtWorks", JSONArray(works).toString()).putInt("characters", characters)
-            .putLong("builtAt", now).putString("error", "")
+            .putLong("builtAt", now).putString("error", "").putInt("format", FORMAT)
         if (ownStatus == null || building(context) == ownStatus) e.putString("building", "")
         e.apply()
         builtAtCache = now
@@ -174,7 +178,7 @@ object CharacterDictionary {
      * being read (null: any work's character). Pictures are kept as files in cacheDir/faces/<hash>.jpg, as kumapie does.
      */
     @Synchronized
-    fun faces(context: Context, text: String, words: List<JapaneseModel.Token>, work: String?, autoKnown: (String) -> Boolean): List<FaceMatcher.Hit>? {
+    fun faces(context: Context, text: String, words: List<JapaneseModel.Token>, work: String?, autoKnown: (String) -> Boolean, commonWord: (List<JapaneseModel.Token>) -> Boolean = { false }): List<FaceMatcher.Hit>? {
         if (importing || !present(context)) return null // not an answer: ask again later
         verify(context) // worker thread
         if (!present(context)) return null
@@ -198,6 +202,6 @@ object CharacterDictionary {
                 bytes
             }
         }
-        return FaceMatcher(dict, autoKnown, cache).match(text, words, work)
+        return FaceMatcher(dict, autoKnown, cache, commonWord).match(text, words, work)
     }
 }
