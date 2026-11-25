@@ -227,6 +227,7 @@ class MainActivity : BaseActivity() {
         val hasDebugOverlay = (isDebugBuildType || BuildConfig.BUILD_TYPE == "releaseTest")
         // SY <--
 
+        chimahon.srs.HubHost.apply(this)
         setComposeContent {
             val context = LocalContext.current
 
@@ -364,6 +365,8 @@ class MainActivity : BaseActivity() {
                         }
                     }
                 }
+
+                HubPairDialog()
 
                 // Pop source-related screens when incognito mode is turned off
                 LaunchedEffect(Unit) {

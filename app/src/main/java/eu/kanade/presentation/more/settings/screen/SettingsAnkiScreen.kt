@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import chimahon.chardict.CharacterDictionary
 import chimahon.srs.Cards
+import chimahon.srs.HubHost
 import eu.kanade.tachiyomi.data.dictionary.CharacterDictionaryJob
 import chimahon.srs.PeerSync
 import eu.kanade.presentation.more.settings.Preference
@@ -55,6 +56,8 @@ object SettingsAnkiScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         var status by remember { mutableStateOf(Cards.peer(context).status()) }
         var hub by remember { mutableStateOf(Cards.peer(context).hub()) }
+        var hubOn by remember { mutableStateOf(HubHost.enabled(context)) }
+        var hubLine by remember { mutableStateOf(HubHost.subtitle(context)) }
         var characters by remember { mutableStateOf("") }
         var faces by remember { mutableStateOf(CharacterDictionary.facesEnabled(context)) }
         var colouring by remember { mutableStateOf(KumapieColours.enabled(context)) }
@@ -65,6 +68,7 @@ object SettingsAnkiScreen : SearchableSettings {
                 characters = withContext(Dispatchers.IO) { CharacterDictionary.verify(context); CharacterDictionary.status(context) }
                 delay(5_000)
                 if (status != "Working...") status = Cards.peer(context).status()
+                hubLine = HubHost.subtitle(context)
             }
         }
         return Preference.PreferenceGroup(
@@ -129,6 +133,17 @@ object SettingsAnkiScreen : SearchableSettings {
                                 colouringServer = KumapieColours.server(context)
                                 true
                             },
+                        )
+                    },
+                ),
+                Preference.PreferenceItem.CustomPreference(
+                    title = "This device is the main server",
+                    content = {
+                        SwitchPreferenceWidget(
+                            title = "This device is the main server",
+                            subtitle = hubLine,
+                            checked = hubOn,
+                            onCheckedChanged = { hubOn = it; HubHost.setEnabled(context, it); hubLine = HubHost.subtitle(context) },
                         )
                     },
                 ),
