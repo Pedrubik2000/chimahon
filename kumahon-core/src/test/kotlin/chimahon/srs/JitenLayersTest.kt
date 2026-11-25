@@ -147,6 +147,25 @@ class JitenLayersTest {
         assertEquals(emptyList<Pair<String, List<String>>>(), s.carded())
     }
 
+    @Test fun aReviewedCardIsOneWordInTheTally() {
+        s.takeShared(0, emptySet())
+        s.replaceKnown(setOf("猫\tねこ", "猫", "犬")) // a reviewed card holds both keys; 犬 was imported
+        s.replaceJiten(KnownImport(1, setOf("猫", "鳥")), 2, emptyList())
+        assertEquals(KnownLayers(2, 1, 0, 3), s.knownLayers())
+    }
+
+    @Test fun aStaleAnswerWhileOurListIsPendingKeepsTheDelta() {
+        val hub = Hub(10, setOf("k"))
+        hub.sync(s)
+        s.replaceJiten(imp("a"), 1, emptyList())
+        hub.sync(s) // applied: {k, a} pending
+        s.takeShared(5, setOf("x")) // an older hub list: nothing taken, nothing done
+        assertEquals(setOf("k", "a"), s.sharedWords())
+        assertTrue(s.pendingShared() != null)
+        s.takeShared(Long.MAX_VALUE / 2, setOf("k", "z")) // a newer one without ours: the delta is applied to it
+        assertEquals(setOf("k", "z", "a"), s.sharedWords())
+    }
+
     @Test fun aDeltaWaitsForTheFirstAnswerWithWordsAndAnOlderAnswerDoesNotOverwrite() {
         s.replaceJiten(imp("a", "b"), 2, emptyList()) // never synced / not paired
         assertEquals(null, s.pendingShared())

@@ -240,7 +240,7 @@ class Srs(val db: SqlDb, private val device: String) {
      */
     fun replaceJiten(imp: KnownImport, top: Int, sets: List<String>) = db.tx {
         val old = column("jiten_words", "entry")
-        val cand = (column("jiten_added", "entry") intersect old) - imp.words - mined()
+        val cand = ((column("jiten_added", "entry") + column("jiten_pending", "entry")) intersect old) - imp.words - mined()
         if (cand.isNotEmpty()) replaceTable("known_words", column("known_words", "entry") - cand)
         replaceTable("delta_add", imp.words)
         replaceTable("delta_remove", (column("delta_remove", "entry") - imp.words) + cand)
@@ -309,40 +309,49 @@ class Srs(val db: SqlDb, private val device: String) {
         db.exec("DELETE FROM meta WHERE key IN (?, ?, ?)", arrayOf(SHARED_TIME, SHARED_PENDING, SHARED_TAKEN))
         db.exec("DELETE FROM shared_words")
         db.exec("DELETE FROM carded_devices")
+        db.exec("DELETE FROM jiten_pending")
     }
 
     /**
      * The hub's `known.ja` from a sync answer; [words] null = the answer carries no list: nothing happens (never wipes, never "taken").
-     * A newer list is taken whole (like kumapie's merge); a time at or past ours means the hub has our pending list; an older one keeps ours.
+     * A newer list is taken whole (like kumapie's merge); a time equal to ours means the hub took our pending list; an older one while ours is
+     * pending keeps everything as it was (the hub has not seen our list, so neither the delta in it is done nor its words claimed).
      * Then the Jiten delta is applied to that list (add, minus remove, never a mined word): if that changes it, the result is pending with a
-     * time past the hub's, sent on the next sync; once the hub's list already holds it, the delta is done.
+     * time past the hub's, sent on the next sync; once the hub's list already holds it, the delta is done. The words the delta added that
+     * were not in the hub's list wait in `jiten_pending` and join `jiten_added` only when the hub took the list that has them.
      */
     fun takeShared(time: Long, words: Set<String>?) = db.tx {
         if (words == null) return@tx
         insert("meta", mapOf("key" to SHARED_TAKEN, "value" to "1"), "OR REPLACE")
         val mine = meta(SHARED_TIME)?.toLongOrNull() ?: 0
+        val pending = meta(SHARED_PENDING) == "1"
+        if (time < mine && pending) return@tx
         if (time > mine) {
             replaceTable("shared_words", words)
             insert("meta", mapOf("key" to SHARED_TIME, "value" to "$time"), "OR REPLACE")
-            db.exec("DELETE FROM meta WHERE key = ?", arrayOf(SHARED_PENDING))
-        } else if (time >= mine) db.exec("DELETE FROM meta WHERE key = ?", arrayOf(SHARED_PENDING))
+        }
+        if (time >= mine) db.exec("DELETE FROM meta WHERE key = ?", arrayOf(SHARED_PENDING))
+        if (pending && time == mine) replaceTable("jiten_added", (column("jiten_added", "entry") + column("jiten_pending", "entry")) intersect column("jiten_words", "entry"))
+        if (pending) db.exec("DELETE FROM jiten_pending")
         val add = column("delta_add", "entry"); val remove = column("delta_remove", "entry")
         if (add.isEmpty() && remove.isEmpty()) return@tx
         val hub = sharedWords()
         val result = (hub + add) - (remove - mined())
-        replaceTable("jiten_added", (column("jiten_added", "entry") + (add - hub)) intersect column("jiten_words", "entry"))
         if (result == hub) { db.exec("DELETE FROM delta_add"); db.exec("DELETE FROM delta_remove"); return@tx }
+        replaceTable("jiten_pending", add - hub)
         replaceTable("shared_words", result)
-        insert("meta", mapOf("key" to SHARED_TIME, "value" to "${maxOf(System.currentTimeMillis(), (meta(SHARED_TIME)?.toLongOrNull() ?: 0) + 1)}"), "OR REPLACE")
+        insert("meta", mapOf("key" to "jiten_shared_time", "value" to "${maxOf(System.currentTimeMillis(), (meta(SHARED_TIME)?.toLongOrNull() ?: 0) + 1)}"), "OR REPLACE")
         insert("meta", mapOf("key" to SHARED_PENDING, "value" to "1"), "OR REPLACE")
     }
 
     /** What each layer holds on this device, each word once: kumapie's, then Jiten's not in it, then marks in neither; [KnownLayers.total] = their sum = [knownKeys]. */
     fun knownLayers(): KnownLayers {
-        val k = db.query("SELECT COUNT(*) FROM known_words WHERE entry NOT IN ($UNKNOWN)") { it.int(0) }.first()
-        val j = db.query("SELECT COUNT(*) FROM jiten_words WHERE entry NOT IN ($UNKNOWN) AND entry NOT IN (SELECT entry FROM known_words)") { it.int(0) }.first()
-        val m = db.query("SELECT COUNT(*) FROM marked_words WHERE word NOT IN ($UNKNOWN) AND word NOT IN (SELECT entry FROM known_words) AND word NOT IN (SELECT entry FROM jiten_words)") { it.int(0) }.first()
-        return KnownLayers(k, j, m, k + j + m)
+        fun bare(e: String) = e.substringBefore('\t') // a reviewed card is in the list twice (spelling<TAB>reading and spelling): one word
+        val unknown = db.query("SELECT word FROM my_marks WHERE known = 0") { it.string(0) }.toSet()
+        val k = (column("known_words", "entry") - unknown).mapTo(HashSet()) { bare(it) }
+        val j = (column("jiten_words", "entry") - unknown).mapTo(HashSet()) { bare(it) } - k
+        val m = (column("marked_words", "word") - unknown).mapTo(HashSet()) { bare(it) } - k - j
+        return KnownLayers(k.size, j.size, m.size, k.size + j.size + m.size)
     }
 
     private fun count(table: String) = db.query("SELECT COUNT(*) FROM $table") { it.int(0) }.first()
@@ -456,6 +465,8 @@ class Srs(val db: SqlDb, private val device: String) {
             "CREATE TABLE IF NOT EXISTS delta_add (entry TEXT PRIMARY KEY)",
             "CREATE TABLE IF NOT EXISTS delta_remove (entry TEXT PRIMARY KEY)",
             "CREATE TABLE IF NOT EXISTS jiten_added (entry TEXT PRIMARY KEY)",
+            // The words of the delta now pending that the hub's list did not have: they join jiten_added once the hub took that list ([takeShared]).
+            "CREATE TABLE IF NOT EXISTS jiten_pending (entry TEXT PRIMARY KEY)",
             // The hub's `carded` per other device ([takeCarded]): its newest {made, keys, forms} as JSON; never in [dump].
             "CREATE TABLE IF NOT EXISTS carded_devices (device TEXT PRIMARY KEY, made INTEGER NOT NULL, body TEXT NOT NULL)",
             // Marks made in kumahon itself (known 1/0, time in seconds as kumapie's Progress.mark), sent in the sync as progress.<device>.marked.
