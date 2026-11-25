@@ -16,6 +16,12 @@ import javax.imageio.ImageIO
 class CharacterDictionaryBuilderTest {
     private fun fixture(name: String) = CharacterDictionaryBuilderTest::class.java.getResource("/chimahon/chardict/$name")!!.readText()
 
+    @Test
+    fun anUnclosedAniListSpoilerHidesTheRest() {
+        assertEquals("A cook.", ContentBuilder.stripSpoilers("A cook. ~!He wins!~"))
+        assertEquals("A cook.", ContentBuilder.stripSpoilers("A cook. ~!He wins and\nmore"))
+    }
+
     private fun png(w: Int, h: Int): ByteArray {
         val img = BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
         for (x in 0 until w) for (y in 0 until h) img.setRGB(x, y, if (x < w / 2) 0xFFCC3333.toInt() else 0x8033CC33.toInt())
@@ -51,7 +57,7 @@ class CharacterDictionaryBuilderTest {
         val dir = tmp()
         try {
             val api = FakeAniList(listOf(fixture("characters-p1.json"), fixture("characters-p2.json")))
-            val downloads = ArrayList<String>()
+            val downloads = java.util.Collections.synchronizedList(ArrayList<String>()) // two image threads: a plain ArrayList lost an add
             val builder = CharacterDictionaryBuilder(
                 images = { url -> downloads.add(url); png(300, 400) },
                 resizer = JvmImageResizer,
@@ -113,7 +119,10 @@ class CharacterDictionaryBuilderTest {
             val builder = CharacterDictionaryBuilder(images = { null }, resizer = JvmImageResizer, anilist = AniListCharacters(api, { }, { 0 }), sleep = { })
             val r = builder.buildForTitles(listOf("Shokugeki no Soma", "Nothing Like It"), File(dir, "z.zip"))
             assertEquals(listOf("Nothing Like It"), r.unresolved)
-            assertThrows(AniListException::class.java) { builder.buildForTitles(listOf("Nothing Like It"), File(dir, "w.zip")) }
+            val none = builder.buildForTitles(listOf("Nothing Like It"), File(dir, "w.zip")) // nothing resolved: a result, not a throw
+            assertTrue(none.resolved.isEmpty())
+            assertEquals(listOf("Nothing Like It"), none.notFound)
+            assertTrue(!File(dir, "w.zip").exists())
         } finally {
             dir.deleteRecursively()
         }

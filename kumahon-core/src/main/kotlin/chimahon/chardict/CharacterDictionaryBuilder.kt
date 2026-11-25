@@ -12,6 +12,10 @@ class BuildResult(
     val unresolved: List<String>,
     val characters: Int,
     val skippedNoJapanese: Map<String, Int>,
+    /** The works that found their AniList media ([buildForTitles] only): the ones a rebuild need not retry. */
+    val resolved: List<String> = emptyList(),
+    /** The works AniList has no media for (permanent, unlike an [IOException] or a refused media, which a rebuild retries). */
+    val notFound: List<String> = emptyList(),
 )
 
 /**
@@ -40,17 +44,23 @@ class CharacterDictionaryBuilder(
     fun buildForTitles(works: List<String>, out: File, followFranchise: Boolean = true): BuildResult {
         val appTitles = LinkedHashMap<MediaRef, MutableList<String>>()
         val unresolved = ArrayList<String>()
+        val resolved = ArrayList<String>()
+        val notFound = ArrayList<String>()
         for ((n, work) in works.withIndex()) {
             if (n > 0) sleep(mediaPauseMs)
             onProgress("Looking up $work")
             var refs = try { anilist.resolve(work) } catch (e: IOException) { unresolved.add("$work: ${e.message}"); continue }
-            if (refs.isEmpty()) { unresolved.add(work); continue }
+            if (refs.isEmpty()) { unresolved.add(work); notFound.add(work); continue }
             if (followFranchise) refs = anilist.franchise(refs)
+            resolved.add(work)
             for (r in refs) appTitles.getOrPut(r) { ArrayList() }.add(work)
         }
-        if (appTitles.isEmpty()) throw AniListException("No AniList media found for: ${works.joinToString(", ")}")
+        // nothing to build (every work not found, or its lookup failed): no zip, the caller records the not-found ones
+        if (appTitles.isEmpty()) return BuildResult(emptyList(), emptyMap(), unresolved, 0, emptyMap(), emptyList(), notFound)
         val r = build(appTitles.keys.toList(), out, appTitles)
-        return BuildResult(r.media, r.failed, unresolved, r.characters, r.skippedNoJapanese)
+        // a work any of whose media AniList refused is not resolved: it stays out of builtWorks and is retried
+        val failedWorks = r.failed.keys.flatMap { appTitles[it].orEmpty() }.toSet()
+        return BuildResult(r.media, r.failed, unresolved, r.characters, r.skippedNoJapanese, resolved.filter { it !in failedWorks }, notFound)
     }
 
     /**

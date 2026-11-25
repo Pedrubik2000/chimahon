@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.util.LruCache
+import chimahon.chardict.CharacterDictionary
 import chimahon.lang.JapaneseModel
 import chimahon.lang.WordColourer
 import chimahon.srs.Cards
@@ -115,17 +116,21 @@ object KumapieColours {
     private val pictures = ConcurrentHashMap<String, android.graphics.Bitmap>()
 
     /**
-     * The characters' names in [text] with a picture in kumapie's character dictionary (its provider's `faces`), as its
-     * subtitles show them; null until kumapie answered ([ready] is called then, when there are any).
+     * The characters' names in [text] with a picture, as kumapie's subtitles show them: from kumahon's OWN character dictionary
+     * ([CharacterDictionary]) once one is built, from kumapie's provider (`faces`) only while none is. Not gated by the colouring
+     * switch, only by its own ("Show character faces"). Null until answered ([ready] is called then, when there are any).
      */
     fun faces(context: Context, text: String, ready: () -> Unit): List<Face>? {
+        if (!CharacterDictionary.facesEnabled(context)) return null
         val work = work
-        val key = "${work.orEmpty()}\n$text"
+        val stamp = CharacterDictionary.builtAt(context) // 0: none built, kumapie answers
+        val key = "$stamp\n${work.orEmpty()}\n$text"
         faceCache.get(key)?.let { return it }
         if (asking.add("faces:$key")) {
             worker.execute {
-                val faces = runCatching { askFaces(context.applicationContext, text, work) }
-                    .onFailure { Log.w("KumapieColours", "kumapie faces: $it") }.getOrNull().orEmpty()
+                val app = context.applicationContext
+                val faces = runCatching { if (stamp > 0) ownFaces(app, text, work, stamp) else askFaces(app, text, work) }
+                    .onFailure { Log.w("KumapieColours", "faces: $it") }.getOrNull().orEmpty()
                 faceCache.put(key, faces)
                 asking.remove("faces:$key")
                 if (faces.isNotEmpty()) ready()
@@ -143,11 +148,12 @@ object KumapieColours {
      * The reader opened [title]. Its Japanese title: the description's first line when that is one (the Real-Debrid
      * import puts AniList's there), the title itself when Japanese, else AniList's best match, asked once per run.
      */
-    fun reading(title: String, description: String?) {
+    fun reading(context: Context, title: String, description: String?) {
         val first = description?.lineSequence()?.firstOrNull()?.trim()
         work = listOfNotNull(first, title).firstOrNull { it.length <= 60 && '。' !in it && JAPANESE.containsMatchIn(it) }
             ?: works[title]
         Log.i("KumapieColours", "reading $title: work $work")
+        if (title.isNotBlank()) CharacterDictionary.note(context.applicationContext, work ?: title) // the character dictionary's set of works
         if (work != null || title.isBlank()) return
         worker.execute {
             runCatching { aniListNative(title) }.onFailure { Log.w("KumapieColours", "AniList: $it") }.getOrNull()
@@ -169,6 +175,19 @@ object KumapieColours {
         if (c.responseCode == 404) return null // no match
         val json = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
         return json.getJSONObject("data").optJSONObject("Media")?.optJSONObject("title")?.optString("native")?.takeIf { it.isNotBlank() }
+    }
+
+    private fun ownFaces(context: Context, text: String, work: String?, stamp: Long): List<Face> {
+        colourer(context) // creates [japanese]
+        val model = japanese!!
+        val words = model.words(text) ?: run { download(context); return emptyList() }
+        return CharacterDictionary.faces(context, text, words, work, model::autoKnown).mapNotNull { hit ->
+            val key = "$stamp\n${work.orEmpty()}\n${hit.name}"
+            val picture = pictures[key]
+                ?: android.graphics.BitmapFactory.decodeByteArray(hit.portrait, 0, hit.portrait.size)?.let(::circle)?.also { pictures[key] = it }
+                ?: return@mapNotNull null
+            Face(hit.start, picture)
+        }
     }
 
     private fun askFaces(context: Context, text: String, work: String?): List<Face> {
@@ -203,7 +222,7 @@ object KumapieColours {
     }
 
     /** Forgets every text's colours (and the colourer's view of the store): after a sync, a rating, Undo or a new card the next draw colours again. */
-    fun clear() { cache.evictAll(); colourer?.reload(); redraws.forEach { it() } }
+    fun clear() { cache.evictAll(); faceCache.evictAll(); colourer?.reload(); redraws.forEach { it() } }
 
     /**
      * kumapie's rating row (as Hoshi's popup): [bodyJson] `{action, word, reading, ease?, ms?, rated?, known?, text?}` goes to

@@ -780,6 +780,7 @@ data object DictionaryTab : Tab {
 
         @Synchronized
         fun warmUp(paths: chimahon.DictionaryPaths) {
+            if (chimahon.chardict.CharacterDictionary.importing) return
             val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
             if (paths != configuredPaths) {
                 HoshiDicts.rebuildQuery(
@@ -796,6 +797,7 @@ data object DictionaryTab : Tab {
 
         @Synchronized
         fun queryKanji(char: String): chimahon.KanjiResult? {
+            if (chimahon.chardict.CharacterDictionary.importing) return null
             val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
             return try {
                 HoshiDicts.queryKanji(activeSession, char)
@@ -806,6 +808,7 @@ data object DictionaryTab : Tab {
 
         @Synchronized
         fun lookup(query: String, paths: chimahon.DictionaryPaths, languageCode: String = ""): LookupUiResult {
+            if (chimahon.chardict.CharacterDictionary.importing) return LookupUiResult(emptyList(), cachedStyles, emptyMap(), null, null, null)
             val t0 = SystemClock.elapsedRealtime()
             val ramBefore = currentUsedRamMb()
             var sessionCreateMs = 0L

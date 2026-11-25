@@ -884,15 +884,16 @@ object AnkiCardCreator {
         val references = exportMedia.references
         if (references.isEmpty()) return@withContext fields
 
-        val session = Injekt.get<DictionaryRepository>().lookupSession
-        val replacements = linkedMapOf<String, String>()
-        for (reference in references) {
-            val replacement = if (session != null && bridge != null) {
-                storeDictionaryMedia(reference, session, bridge)
-            } else {
-                null
+        // only the bytes are read under the repository lock (close() cannot free the handle meanwhile); the AnkiDroid IPC runs outside it
+        val media: List<Pair<DictionaryMediaReference, ByteArray?>> = if (bridge == null) emptyList() else Injekt.get<DictionaryRepository>().withSession { session ->
+            references.map { ref ->
+                ref to session?.let { runCatching { HoshiDicts.getMediaFile(it, ref.dictionary, ref.path) }.getOrNull() }
             }
-            replacements[reference.placeholder] = replacement ?: TRANSPARENT_IMAGE_DATA_URI
+        }
+        val replacements = linkedMapOf<String, String>()
+        for (reference in references) replacements[reference.placeholder] = TRANSPARENT_IMAGE_DATA_URI
+        for ((reference, bytes) in media) {
+            if (bytes != null) storeDictionaryMedia(reference, bytes, bridge!!)?.let { replacements[reference.placeholder] = it }
         }
 
         fields.mapValues { (_, value) ->
@@ -904,15 +905,10 @@ object AnkiCardCreator {
 
     private suspend fun storeDictionaryMedia(
         reference: DictionaryMediaReference,
-        session: Long,
+        bytes: ByteArray,
         bridge: AnkiDroidBridge,
     ): String? = try {
-        val bytes = HoshiDicts.getMediaFile(session, reference.dictionary, reference.path)
-        if (bytes != null) {
-            bridge.storeMedia(dictionaryMediaFilename(reference.path, bytes), bytes)
-        } else {
-            null
-        }
+        bridge.storeMedia(dictionaryMediaFilename(reference.path, bytes), bytes)
     } catch (e: Exception) {
         android.util.Log.w(TAG, "Failed to store dictionary media ${reference.path}", e)
         null
@@ -1072,21 +1068,21 @@ object AnkiCardCreator {
         Marker.SENTENCE_BOLD -> cloze?.let { "${escapeHtml(it.prefix)}<b>${escapeHtml(it.body)}</b>${escapeHtml(it.suffix)}" } ?: ""
         Marker.SENTENCE_FURIGANA -> {
             val sentence = cloze?.sentence ?: ""
-            val session = Injekt.get<DictionaryRepository>().lookupSession
-            if (sentence.isNotEmpty() && session != null) {
-                buildSentenceFuriganaHtml(sentence, session)
+            val html = if (sentence.isNotEmpty()) {
+                Injekt.get<DictionaryRepository>().withSession { session -> session?.let { buildSentenceFuriganaHtml(sentence, it) } }
             } else {
-                escapeHtml(sentence)
+                null
             }
+            html ?: escapeHtml(sentence)
         }
         Marker.SENTENCE_FURIGANA_PLAIN -> {
             val sentence = cloze?.sentence ?: ""
-            val session = Injekt.get<DictionaryRepository>().lookupSession
-            if (sentence.isNotEmpty() && session != null) {
-                buildSentenceFuriganaPlain(sentence, session)
+            val plain = if (sentence.isNotEmpty()) {
+                Injekt.get<DictionaryRepository>().withSession { session -> session?.let { buildSentenceFuriganaPlain(sentence, it) } }
             } else {
-                sentence
+                null
             }
+            plain ?: sentence
         }
         Marker.CLOZE_PREFIX -> cloze?.let { escapeHtml(it.prefix) } ?: ""
         Marker.CLOZE_BODY -> cloze?.let { escapeHtml(it.body) } ?: ""

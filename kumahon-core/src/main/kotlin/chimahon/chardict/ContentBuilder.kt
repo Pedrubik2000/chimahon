@@ -12,7 +12,7 @@ class ContentBuilder(private val settings: DictSettings) {
     companion object {
         private val OPT_IS = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
         private val RE_VNDB_SPOILER = Regex("\\[spoiler].*?\\[/spoiler]", OPT_IS)
-        private val RE_ANILIST_SPOILER = Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL)
+        private val RE_ANILIST_SPOILER = Regex("~!.*?(!~|\\z)", RegexOption.DOT_MATCHES_ALL) // an unclosed ~! hides the rest
         private val RE_URL = Regex("\\[url=[^\\]]+]([^\\[]*)\\[/url]", RegexOption.IGNORE_CASE)
         private val RE_QUOTE = Regex("\\[quote](.*?)\\[/quote]", OPT_IS)
         private val RE_CODE = Regex("\\[code](.*?)\\[/code]", OPT_IS)

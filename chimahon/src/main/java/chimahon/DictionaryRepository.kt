@@ -17,7 +17,9 @@ class DictionaryRepository(
     private val koreanParserMode: () -> String = { KoreanParserMode.LEGACY },
 ) {
     private var session: Long? = null
-    val lookupSession: Long? get() = session
+    /** Runs [block] with the live session handle (null: none) under the repository lock, so [close] cannot free it meanwhile. */
+    @Synchronized
+    fun <T> withSession(block: (Long?) -> T): T = block(session)
     private var configuredPaths: DictionaryPaths = DictionaryPaths()
     private var cachedStyles: List<DictionaryStyle> = emptyList()
     /** ID of the profile that was last used to call [warmUp].  Prevents redundant engine rebuilds. */
@@ -32,6 +34,7 @@ class DictionaryRepository(
      */
     @Synchronized
     fun warmUp(paths: DictionaryPaths, profileId: String = "") {
+        if (chimahon.chardict.CharacterDictionary.importing) return // its files are being replaced: no session may map them
         val activeSession = session ?: HoshiDicts.createLookupObject().also { session = it }
 
         val pathsChanged = paths != configuredPaths
@@ -53,6 +56,7 @@ class DictionaryRepository(
 
     @Synchronized
     fun lookup(query: String, paths: DictionaryPaths, languageCode: String = ""): LookupResult2 {
+        if (chimahon.chardict.CharacterDictionary.importing) return LookupResult2(emptyList(), cachedStyles, emptyMap(), null)
         val t0 = SystemClock.elapsedRealtime()
 
         warmUp(paths)

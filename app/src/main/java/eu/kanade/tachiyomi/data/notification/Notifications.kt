@@ -132,6 +132,7 @@ object Notifications {
     const val ID_DICT_UPDATE_COMPLETE = -602
     const val ID_DICT_UPDATE_NO_UPDATES = -603
     const val ID_DICT_UPDATE_RESULT = -604
+    const val ID_CHARACTER_DICT_PROGRESS = -605
 
     private val deprecatedChannels = listOf(
         "downloader_channel",

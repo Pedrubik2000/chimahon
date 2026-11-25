@@ -9,7 +9,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import chimahon.chardict.CharacterDictionary
 import chimahon.srs.Cards
+import eu.kanade.tachiyomi.data.dictionary.CharacterDictionaryJob
 import chimahon.srs.PeerSync
 import eu.kanade.presentation.more.settings.Preference
 import chimahon.ocr.KumapieColours
@@ -43,11 +45,14 @@ object SettingsAnkiScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         var status by remember { mutableStateOf(Cards.peer(context).status()) }
         var hub by remember { mutableStateOf(Cards.peer(context).hub()) }
+        var characters by remember { mutableStateOf("") }
+        var faces by remember { mutableStateOf(CharacterDictionary.facesEnabled(context)) }
         var colouring by remember { mutableStateOf(KumapieColours.enabled(context)) }
         var colouringServer by remember { mutableStateOf(KumapieColours.server(context)) }
         // Background syncs (Review, retries) change the line while this page is open: read it again every few seconds.
         LaunchedEffect(Unit) {
             while (true) {
+                characters = withContext(Dispatchers.IO) { CharacterDictionary.verify(context); CharacterDictionary.status(context) }
                 delay(5_000)
                 if (status != "Working...") status = Cards.peer(context).status()
             }
@@ -55,6 +60,27 @@ object SettingsAnkiScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = "kumapie",
             preferenceItems = persistentListOf(
+                Preference.PreferenceItem.CustomPreference(
+                    title = "Show character faces",
+                    content = {
+                        SwitchPreferenceWidget(
+                            title = "Show character faces",
+                            subtitle = "A character's picture before their name on the page, from kumahon's own character dictionary",
+                            checked = faces,
+                            onCheckedChanged = { faces = it; CharacterDictionary.setFacesEnabled(context, it); KumapieColours.clear() },
+                        )
+                    },
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = "Character dictionary: rebuild now",
+                    subtitle = characters,
+                    onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            CharacterDictionaryJob.rebuildNow(context)
+                            characters = CharacterDictionary.status(context)
+                        }
+                    },
+                ),
                 Preference.PreferenceItem.CustomPreference(
                     title = "Colour words",
                     content = {
