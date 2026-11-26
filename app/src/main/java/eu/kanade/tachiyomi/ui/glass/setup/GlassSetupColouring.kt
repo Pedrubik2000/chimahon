@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
@@ -238,6 +239,7 @@ private fun Bubble(
     cols: List<Col>,
 ) {
     val fs = (size * s).sp
+    val cell = with(androidx.compose.ui.platform.LocalDensity.current) { fs.toDp() } * 1.1f
     Box(
         Modifier.offset(x, y).size(w, h).clip(Ellipse).background(Color.White).border(BorderStroke((2.5f * s).dp, PageInk), Ellipse),
         contentAlignment = Alignment.Center,
@@ -247,13 +249,16 @@ private fun Bubble(
             cols.asReversed().forEach { c ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     c.chars.forEach { (ch, colour) ->
-                        Text(
-                            ch.toString(),
-                            color = if (colour == 0) PageInk else Color(colour),
-                            fontSize = fs,
-                            lineHeight = fs * 1.05f,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        // one fixed cell per character: the font's own line height would spread them
+                        Box(Modifier.height(cell), contentAlignment = Alignment.Center) {
+                            Text(
+                                ch.toString(),
+                                Modifier.wrapContentHeight(unbounded = true),
+                                color = if (colour == 0) PageInk else Color(colour),
+                                fontSize = fs,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
             }
