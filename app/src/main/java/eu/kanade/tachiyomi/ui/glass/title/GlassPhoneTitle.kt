@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import eu.kanade.presentation.glass.StatusColours
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,6 +79,8 @@ internal fun GlassPhoneTitle(
     failed: List<RealDebridQueue.Row>,
     here: Set<Int>,
     active: Set<Int>,
+    colours: StatusColours,
+    unavailable: Set<Int>,
     topRow: @Composable () -> Unit,
     onHome: Boolean,
     onAddHome: () -> Unit,
@@ -91,11 +97,10 @@ internal fun GlassPhoneTitle(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // the content needs ~210dp (back row 44 + 2-line title 76 + meta 24 + pills 54): never less, on a ~360dp window
         val heroHeight = maxOf(maxHeight * 0.45f, 280.dp)
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Box(Modifier.fillMaxWidth().height(heroHeight).background(Glass.panel)) {
+        // lazy: a volume row composes (and loads its cover) only when it scrolls near the screen
+        val pad = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
+            item { Box(Modifier.fillMaxWidth().height(heroHeight).background(Glass.panel)) {
                 AsyncImage(
                     model = entry?.let { it.coverLarge ?: it.cover },
                     contentDescription = null,
@@ -154,56 +159,59 @@ internal fun GlassPhoneTitle(
                         }
                     }
                 }
+            } }
+
+            item {
+                Row(pad, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(MR.strings.glass_n_volumes, count),
+                        fontSize = Glass.heading,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (fetchable.isNotEmpty()) {
+                        Pill(
+                            stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
+                            onClick = { onFetch(fetchable) },
+                            icon = "download",
+                            small = true,
+                        )
+                    }
+                }
             }
 
-            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(MR.strings.glass_n_volumes, count),
-                            fontSize = Glass.heading,
-                            fontWeight = FontWeight.SemiBold,
+            items(cells.chunked(COLUMNS), key = { it.first().number }) { row ->
+                Row(
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    row.forEach { cell ->
+                        PhoneCell(
+                            cell = cell,
+                            image = volumeImage(localCovers[cell.number], covers[cell.number], seriesCover),
+                            standIn = localCovers[cell.number] == null && covers[cell.number] == null,
+                            hidden = hideUnread && cell.state != VolState.READ &&
+                                cell.local?.let { it.read || it.lastPageRead > 0 } != true,
+                            current = cell.number == current,
+                            unavailable = cell.number in unavailable && cell.state == VolState.NONE,
+                            colours = colours,
+                            onOpen = onOpen,
+                            onFetch = { onFetch(listOf(cell.number)) },
+                            onCancel = { onCancel(cell.number) },
+                            onSetRead = onSetRead,
                             modifier = Modifier.weight(1f),
                         )
-                        if (fetchable.isNotEmpty()) {
-                            Pill(
-                                stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
-                                onClick = { onFetch(fetchable) },
-                                icon = "download",
-                                small = true,
-                            )
-                        }
                     }
+                    repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                 }
+            }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    cells.chunked(COLUMNS).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { cell ->
-                                PhoneCell(
-                                    cell = cell,
-                                    image = volumeImage(localCovers[cell.number], covers[cell.number], seriesCover),
-                                    standIn = localCovers[cell.number] == null && covers[cell.number] == null,
-                                    hidden = hideUnread && cell.state != VolState.READ &&
-                                        cell.local?.let { it.read || it.lastPageRead > 0 } != true,
-                                    current = cell.number == current,
-                                    onOpen = onOpen,
-                                    onFetch = { onFetch(listOf(cell.number)) },
-                                    onCancel = { onCancel(cell.number) },
-                                    onSetRead = onSetRead,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
-                        }
-                    }
-                }
+            item { StatusLegend(pad, cover = seriesCover, colours = colours, unavailable = unavailable.isNotEmpty()) }
 
-                StatusLegend(cover = seriesCover)
+            items(failed) { Box(pad) { FailedRow(it, here, active, onFetch) } }
 
-                failed.forEach { FailedRow(it, here, active, onFetch) }
-
-                if (missing.isNotEmpty()) {
+            if (missing.isNotEmpty()) item {
+                Box(pad) {
                     Column(
                         Modifier.fillMaxWidth().glassPanel().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -227,10 +235,10 @@ internal fun GlassPhoneTitle(
                         }
                     }
                 }
-
-                sourceList()
-                aniList()
             }
+
+            item { Box(pad) { sourceList() } }
+            item { Box(pad) { aniList() } }
         }
     }
 }
@@ -243,6 +251,8 @@ private fun PhoneCell(
     standIn: Boolean,
     hidden: Boolean,
     current: Boolean,
+    unavailable: Boolean,
+    colours: StatusColours,
     onOpen: (LocalVolume) -> Unit,
     onFetch: () -> Unit,
     onCancel: () -> Unit,
@@ -260,12 +270,16 @@ private fun PhoneCell(
             standIn = standIn,
             blurred = hidden,
             current = current,
+            onDevice = cell.state == VolState.READ && local != null,
+            unavailable = unavailable,
+            colours = colours,
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = {
                         when {
                             local != null -> onOpen(local)
+                            unavailable -> Unit // no source has it: nothing to fetch
                             cell.state == VolState.NONE || cell.state == VolState.READ || cell.state == VolState.FAILED -> onFetch() // READ here = read on AniList, not on the phone
                             else -> menu = true
                         }

@@ -213,9 +213,52 @@ class GlassTitleStateTest {
         val cells = GlassTitleState.cells(5, listOf(vol(2), vol(3, page = 7), vol(5)), emptyMap(), readUpTo = 3)
         GlassTitleState.selectRead(cells, 3, 3) shouldBe setOf(2)
         GlassTitleState.selectable(cells, 3) shouldBe setOf(2, 5)
-        GlassTitleState.readHere(cells[1], 3) shouldBe true // vol 2
-        GlassTitleState.readHere(cells[4], 3) shouldBe false // vol 5 unread
-        GlassTitleState.readHere(cells[3], 3) shouldBe false // vol 4 not here
+        // read AND on the device = READ with its file (the tile shows check + phone); not here = READ without; unread here = HERE
+        cells[1].state shouldBe VolState.READ // vol 2, within AniList's 3, file here
+        cells[1].local?.number shouldBe 2
+        cells[2].state shouldBe VolState.READ // vol 3 half-read but within the count: read
+        cells[4].state shouldBe VolState.HERE // vol 5 unread
+        cells[3].state shouldBe VolState.NONE // vol 4 not here, not read
+        cells[0].state shouldBe VolState.READ // vol 1 not here, within the count: read, no file
+        cells[0].local shouldBe null
+    }
+
+    @Test
+    fun `read row beyond AniList's count is READ too, deleted read volume is a plain check`() {
+        val cells = GlassTitleState.cells(4, listOf(vol(4, read = true)), emptyMap(), readUpTo = 2)
+        cells[3].state shouldBe VolState.READ
+        cells[3].local?.number shouldBe 4
+        cells[1].state shouldBe VolState.READ // vol 2: AniList only, file deleted
+        cells[1].local shouldBe null
+        GlassTitleState.readNotHere(cells) shouldBe listOf(1, 2)
+    }
+
+    @Test
+    fun `boxes only when the source is found with volumes`() {
+        GlassTitleState.showBoxes(x3dl) shouldBe true
+        GlassTitleState.showBoxes(null) shouldBe false // checking
+        GlassTitleState.showBoxes(rawxt) shouldBe false // not on source
+        GlassTitleState.showBoxes(Coverage(4, "Nyaa", Coverage.State.NEEDS_VISIT)) shouldBe false
+        GlassTitleState.showBoxes(Coverage(5, "Err", Coverage.State.ERROR, message = "x")) shouldBe false
+        GlassTitleState.showBoxes(Coverage(6, "NoNum", Coverage.State.FOUND)) shouldBe false // found, no volume numbers
+    }
+
+    @Test
+    fun `summary line for a source with a gap, and the volumes no source has`() {
+        GlassTitleState.missingLine((1..24).toSet(), 25) shouldBe "24 of 25 · vol. 25 missing"
+        GlassTitleState.missingLine((1..25).toSet(), 25) shouldBe null // the screen says "All 25"
+        val sources = listOf(1L, 2L, 3L)
+        val cov = mapOf(1L to x3dl, 2L to excnn, 3L to rawxt)
+        GlassTitleState.unavailable(cov, sources, 13) shouldBe setOf(13)
+        GlassTitleState.unavailable(cov - 3L, sources, 13) shouldBe emptySet() // one still loading: unknown
+        GlassTitleState.unavailable(cov + (3L to Coverage(3, "Rawxt", Coverage.State.NEEDS_VISIT)), sources, 13) shouldBe emptySet()
+    }
+
+    @Test
+    fun `source rows split by weight`() {
+        val items = GlassTitleState.sourceBoxes(List(30) { BoxState.HAVE })
+        splitRows(items, 1).size shouldBe 1
+        splitRows(items, 3).map { it.size } shouldBe listOf(10, 10, 10)
     }
 
     @Test

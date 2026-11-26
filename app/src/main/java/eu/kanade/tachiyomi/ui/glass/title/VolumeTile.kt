@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -76,16 +78,31 @@ internal fun VolumeTile(
     standIn: Boolean = false,
     blurred: Boolean = false,
     current: Boolean = false,
+    /** READ and the file is on the device: a second small phone badge bottom-left. */
+    onDevice: Boolean = false,
+    /** NONE and no source has it: dashed like "not asked for", but a cross instead of the plus, fainter. */
+    unavailable: Boolean = false,
+    colours: StatusColours = StatusPalette.current(),
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
-    val style = StatusPalette.current().of(state)
+    val style = colours.of(state)
+    val here = colours.of(VolState.HERE)
     val mini = number == null
     val shape = RoundedCornerShape(if (mini) 4.dp else Glass.r8)
     val ring = current
     val border = if (ring) Glass.ice else style.border
     val width = if (ring) 2.dp else if (mini) style.borderWidth.coerceAtMost(1.5.dp) else style.borderWidth
+    val dim = if (unavailable) style.dim * 0.55f else style.dim
+    val glyph = if (unavailable) "close" else style.glyph
+    val describe = number?.let {
+        val label = stringResource(
+            if (unavailable) MR.strings.glass_legend_unavailable else STATES.first { s -> s.first == state }.second,
+        )
+        if (onDevice) "Vol $it, $label, ${stringResource(MR.strings.glass_legend_here)}" else "Vol $it, $label"
+    }
     Box(
         modifier
+            .then(if (describe != null) Modifier.semantics(mergeDescendants = true) { contentDescription = describe } else Modifier)
             .aspectRatio(2f / 3f)
             .clip(shape)
             .background(Glass.panel)
@@ -97,11 +114,11 @@ internal fun VolumeTile(
                 model = image,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                alpha = style.dim * (if (standIn) 0.6f else 1f),
+                alpha = dim * (if (standIn) 0.6f else 1f),
                 modifier = Modifier.fillMaxSize().then(if (blurred) Modifier.blur(18.dp) else Modifier),
             )
         } else if (image == null) {
-            Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.10f * style.dim)))
+            Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.10f * dim)))
         }
         if (number != null) {
             Text(
@@ -118,7 +135,8 @@ internal fun VolumeTile(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
-        style.glyph?.let { glyph ->
+        // badge icons are decorative: the tile's semantics carry "Vol N, state"
+        glyph?.let { glyph ->
             val badge = if (mini) 14.dp else 22.dp
             Box(
                 Modifier
@@ -130,6 +148,20 @@ internal fun VolumeTile(
                 contentAlignment = Alignment.Center,
             ) {
                 GlassIcon(glyph, size = if (mini) 9.dp else 14.dp, tint = style.ink)
+            }
+        }
+        if (onDevice && here.glyph != null) {
+            val badge = if (mini) 8.dp else 16.dp
+            Box(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(if (mini) 1.dp else 4.dp)
+                    .size(badge)
+                    .clip(CircleShape)
+                    .background(here.badgeFill ?: Glass.scrim),
+                contentAlignment = Alignment.Center,
+            ) {
+                GlassIcon(here.glyph, size = if (mini) 5.dp else 10.dp, tint = here.ink)
             }
         }
         if (state == VolState.DOWNLOADING) {
@@ -176,24 +208,47 @@ internal fun Modifier.dashedBorder(color: Color?, width: Dp, dashed: Boolean, sh
  * then the two kinds of source box. [cover] = the image the mini covers show (null = a plain panel).
  */
 @Composable
-internal fun StatusLegend(modifier: Modifier = Modifier, cover: Any? = null) {
-    val colours = StatusPalette.current()
+internal fun StatusLegend(
+    modifier: Modifier = Modifier,
+    cover: Any? = null,
+    colours: StatusColours = StatusPalette.current(),
+    /** false = no SOURCE BOXES section (the Downloads page has no source boxes). */
+    sourceBoxes: Boolean = true,
+    /** true = also the "not on any source" tile (the phone title page draws it). */
+    unavailable: Boolean = false,
+) {
     Column(modifier.fillMaxWidth().glassPanel(Glass.r12).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Caption(stringResource(MR.strings.glass_legend_volumes))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             STATES.forEach { (state, label) ->
                 LegendItem(stringResource(label)) {
-                    VolumeTile(state, null, cover, Modifier.width(26.dp), fraction = 0.6f)
+                    VolumeTile(state, null, cover, Modifier.width(26.dp), fraction = 0.6f, colours = colours)
+                }
+            }
+            LegendItem(stringResource(MR.strings.glass_legend_read_here)) {
+                VolumeTile(VolState.READ, null, cover, Modifier.width(26.dp), onDevice = true, colours = colours)
+            }
+            if (unavailable) {
+                LegendItem(stringResource(MR.strings.glass_legend_unavailable)) {
+                    VolumeTile(VolState.NONE, null, cover, Modifier.width(26.dp), unavailable = true, colours = colours)
                 }
             }
         }
-        Caption(stringResource(MR.strings.glass_legend_boxes))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            LegendItem(stringResource(MR.strings.glass_legend_box_have)) {
-                SourceBoxCell(7, BoxState.HAVE, colours, Modifier.width(28.dp))
-            }
-            LegendItem(stringResource(MR.strings.glass_legend_box_gap)) {
-                SourceBoxCell(null, BoxState.NONE, colours, Modifier.width(96.dp), gapRange = "20–24")
+        if (sourceBoxes) {
+            Caption(stringResource(MR.strings.glass_legend_boxes))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LegendItem(stringResource(MR.strings.glass_legend_box_have)) {
+                    SourceBoxCell(7, BoxState.HAVE, colours, Modifier.width(28.dp))
+                }
+                LegendItem(stringResource(MR.strings.glass_legend_here)) {
+                    SourceBoxCell(7, BoxState.HERE, colours, Modifier.width(28.dp))
+                }
+                LegendItem(stringResource(MR.strings.glass_dl_queued)) {
+                    SourceBoxCell(7, BoxState.QUEUED, colours, Modifier.width(28.dp))
+                }
+                LegendItem(stringResource(MR.strings.glass_legend_box_gap)) {
+                    SourceBoxCell(null, BoxState.NONE, colours, Modifier.width(96.dp), gapRange = "20–24")
+                }
             }
         }
     }

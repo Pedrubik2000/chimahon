@@ -211,7 +211,19 @@ class GlassTitleScreenModel(
                 .distinctUntilChangedBy { (mangaId, chapters) -> mangaId to chapters.mapValues { it.value.id } }
                 .collectLatest { (mangaId, chapters) ->
                     _localCovers.update { covers -> covers.filterKeys { it in chapters } }
-                    LocalVolumeCovers.load(mangaId, chapters) { n, file -> _localCovers.update { it + (n to file) } }
+                    // covers land in one update per 300 ms, not one recomposition per file
+                    val pending = java.util.concurrent.ConcurrentHashMap<Int, File>()
+                    fun flush() {
+                        val batch = pending.toMap()
+                        batch.keys.forEach { pending.remove(it) }
+                        if (batch.isNotEmpty()) _localCovers.update { it + batch }
+                    }
+                    kotlinx.coroutines.coroutineScope {
+                        val flusher = launch { while (true) { kotlinx.coroutines.delay(300); flush() } }
+                        LocalVolumeCovers.load(mangaId, chapters) { n, file -> pending[n] = file }
+                        flusher.cancel()
+                        flush()
+                    }
                 }
         }
     }

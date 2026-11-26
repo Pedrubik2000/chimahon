@@ -87,6 +87,8 @@ import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.GlassRail
 import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.Pill
+import eu.kanade.presentation.glass.StatusColours
+import eu.kanade.presentation.glass.StatusPalette
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.glassDevice
@@ -251,6 +253,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             }
         }
 
+        val colours = StatusPalette.current() // read once per screen, passed down
         val sourceList: @Composable () -> Unit = {
             if (entry != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -276,6 +279,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                             coverage = c,
                             count = count,
                             boxes = GlassTitleState.boxes(c, count, here, active),
+                            colours = colours,
                             selected = s.id == chosen,
                             onSelect = { model.chosen.value = s.id },
                             onVisit = {
@@ -374,6 +378,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         cell.local?.let { it.read || it.lastPageRead > 0 } != true,
                     cover = covers[cell.number],
                     seriesCover = entry?.let { it.coverLarge ?: it.cover },
+                    colours = colours,
                     current = cell.number == current,
                     onOpen = openVolume,
                     onFetch = { request(listOf(cell.number)) },
@@ -390,7 +395,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     },
                 )
             }
-            fullSpan { StatusLegend(Modifier.padding(top = 4.dp), cover = entry?.let { it.coverLarge ?: it.cover }) }
+            fullSpan { StatusLegend(Modifier.padding(top = 4.dp), cover = entry?.let { it.coverLarge ?: it.cover }, colours = colours) }
             if (selecting) fullSpan {
                 val missingRead = GlassTitleState.readNotHere(cells)
                 val note = listOfNotNull(
@@ -437,6 +442,8 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 failed = failed,
                 here = here,
                 active = active.keys,
+                colours = colours,
+                unavailable = GlassTitleState.unavailable(coverage, sources.map { it.id }, count),
                 topRow = {
                     TopRow(
                         onBack = { navigator.pop() },
@@ -695,12 +702,13 @@ private fun SourceCard(
     coverage: Coverage?,
     count: Int,
     boxes: List<BoxState>,
+    colours: StatusColours,
     selected: Boolean,
     onSelect: () -> Unit,
     onVisit: () -> Unit,
 ) {
     val shape = RoundedCornerShape(Glass.r12)
-    val found = coverage != null && coverage.state == Coverage.State.FOUND && coverage.volumes.isNotEmpty()
+    val found = GlassTitleState.showBoxes(coverage)
     Column(
         Modifier
             .fillMaxWidth()
@@ -726,7 +734,12 @@ private fun SourceCard(
             }
         }
         if (count > 0) {
-            SourceBoxes(boxes)
+            if (found) {
+                SourceBoxes(boxes, colours)
+            } else {
+                // checking / not on the source / needs a visit / error / no volume numbers: no boxes, no label
+                Box(Modifier.fillMaxWidth().height(22.dp).clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = 0.08f)))
+            }
         }
         Text(stateText(coverage, count), color = Glass.secondary, fontSize = Glass.caption)
         coverage?.takeIf { it.state == Coverage.State.FOUND }?.postTitle?.let {
@@ -748,17 +761,10 @@ private fun stateTextOf(c: Coverage, count: Int): String = when (c.state) {
     Coverage.State.ERROR -> stringResource(MR.strings.glass_title_error, c.message.orEmpty())
     Coverage.State.FOUND -> {
         val has = c.volumes.keys
-        val missing = (1..count).filter { it !in has }
-        when {
-            has.isEmpty() -> stringResource(MR.strings.glass_title_no_numbers)
-            missing.isEmpty() -> stringResource(MR.strings.glass_title_all, count)
-            missing.all { it > has.max() } -> stringResource(MR.strings.glass_title_range, CoverageMatch.ranges(has))
-            else -> stringResource(
-                MR.strings.glass_title_partial,
-                has.count { it in 1..count },
-                count,
-                CoverageMatch.ranges(missing),
-            )
+        if (has.isEmpty()) {
+            stringResource(MR.strings.glass_title_no_numbers)
+        } else {
+            GlassTitleState.missingLine(has, count) ?: stringResource(MR.strings.glass_title_all, count)
         }
     }
 }
@@ -1019,6 +1025,7 @@ private fun VolumeCellView(
     hidden: Boolean,
     cover: String?,
     seriesCover: String?,
+    colours: StatusColours,
     current: Boolean,
     onOpen: (LocalVolume) -> Unit,
     onFetch: () -> Unit,
@@ -1040,6 +1047,8 @@ private fun VolumeCellView(
             fraction = cell.fraction,
             standIn = localCover == null && cover == null,
             blurred = hidden,
+            onDevice = cell.state == VolState.READ && local != null,
+            colours = colours,
             current = current || select?.picked == true,
             modifier = Modifier
                 .fillMaxWidth()

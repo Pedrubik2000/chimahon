@@ -81,7 +81,11 @@ import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
+import eu.kanade.presentation.glass.StatusColours
+import eu.kanade.presentation.glass.StatusPalette
 import eu.kanade.tachiyomi.ui.glass.title.StatusLegend
+import eu.kanade.tachiyomi.ui.glass.title.VolState
+import eu.kanade.tachiyomi.ui.glass.title.dashedBorder
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -103,6 +107,7 @@ import java.io.File
 /** Canvas `Downloads-12B.dc.html`: Real-Debrid jobs by title, the OCR and source queues, sources and storage. */
 @Composable
 fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
+    val colours = StatusPalette.current() // read once, the bars and the legend agree
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val queue = remember { Injekt.get<RealDebridQueue>() }
@@ -207,6 +212,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                 TitleCard(
                     group = g,
                     title = titleOf(g.mediaId),
+                    colours = colours,
                     here = here[g.mediaId].orEmpty(),
                     sourceNames = sourceNames,
                     expanded = k in expanded,
@@ -276,6 +282,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
 private fun TitleCard(
     group: TitleGroup,
     title: GlassTitle?,
+    colours: StatusColours,
     here: Set<Int>,
     sourceNames: Map<Long, String>,
     expanded: Boolean,
@@ -355,6 +362,7 @@ private fun TitleCard(
                     )
                     VolumeBar(
                         GlassDownloads.cells(count, title?.volumesRead ?: 0, here, group.rows, group.failedVolumes.toSet()),
+                        colours,
                         height = if (expanded) 12.dp else 10.dp,
                     )
                 }
@@ -498,29 +506,41 @@ private fun rowLine(row: RealDebridQueue.Row, context: Context): String = when (
     }
 }
 
-/** One box per volume in the canvas key colours; failed = hatched. */
+/** One box per volume in the status colours (the tiles' border colour, dashed when the tile's is); failed = hatched. */
 @Composable
-private fun VolumeBar(cells: List<Cell>, height: androidx.compose.ui.unit.Dp) {
+private fun VolumeBar(cells: List<Cell>, colours: StatusColours, height: androidx.compose.ui.unit.Dp) {
+    val shape = RoundedCornerShape(2.dp)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         cells.forEach { c ->
+            val style = colours.of(volState(c))
+            val tone = style.border ?: Color.White
             Box(
                 Modifier
                     .weight(1f)
                     .height(height)
-                    .clip(RoundedCornerShape(2.dp))
-                    .then(if (c == Cell.FAILED) Modifier.hatched() else Modifier.background(cellColor(c))),
+                    .clip(shape)
+                    .then(
+                        when (c) {
+                            Cell.FAILED -> Modifier.hatched(tone)
+                            Cell.READ -> Modifier.background(Color.White.copy(alpha = 0.3f))
+                            Cell.HERE, Cell.DOWNLOADING -> Modifier.background(tone)
+                            Cell.QUEUED -> Modifier.background(tone.copy(alpha = 0.5f))
+                            Cell.NONE -> Modifier.background(Color.White.copy(alpha = 0.1f))
+                                .dashedBorder(style.border, 1.dp, style.dashed, shape)
+                        },
+                    ),
             )
         }
     }
 }
 
-private fun cellColor(c: Cell): Color = when (c) {
-    Cell.READ -> Color.White.copy(alpha = 0.3f)
-    Cell.HERE -> Glass.have
-    Cell.DOWNLOADING -> Glass.ice
-    Cell.QUEUED -> Glass.ice.copy(alpha = 0.5f)
-    Cell.NONE -> Color.White.copy(alpha = 0.1f)
-    Cell.FAILED -> Color.White.copy(alpha = 0.85f)
+private fun volState(c: Cell): VolState = when (c) {
+    Cell.READ -> VolState.READ
+    Cell.HERE -> VolState.HERE
+    Cell.DOWNLOADING -> VolState.DOWNLOADING
+    Cell.QUEUED -> VolState.QUEUED
+    Cell.NONE -> VolState.NONE
+    Cell.FAILED -> VolState.FAILED
 }
 
 /** A failed volume: 10% white under 45° lines in [line]; the bar's segments and the title page's cells (18% white). */
@@ -628,7 +648,7 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
             )
         }
 
-        StatusLegend(Modifier.padding(top = 12.dp))
+        StatusLegend(Modifier.padding(top = 12.dp), sourceBoxes = false)
     }
 }
 

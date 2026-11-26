@@ -916,6 +916,8 @@
     <string name="glass_dl_key_none">Not asked for</string>
     <string name="glass_dl_key_failed">Failed</string>
     <string name="glass_legend_here">On device</string>
+    <string name="glass_legend_read_here">Read, on device</string>
+    <string name="glass_legend_unavailable">Not on any source</string>
     <string name="glass_legend_volumes">VOLUMES</string>
     <string name="glass_legend_boxes">SOURCE BOXES</string>
     <string name="glass_legend_box_have">Available (number shown)</string>
@@ -957,7 +959,7 @@
     <string name="glass_settings_developer">Developer</string>
     <!-- Glass first-run setup (build plan phase 10, canvas Setup-2) -->
     <string name="glass_setup_run_again">Run setup again</string>
-    <string name="glass_setup_run_again_sub">AniList, Real-Debrid, storage, notifications, dictionary, word colouring</string>
+    <string name="glass_setup_run_again_sub">AniList, Real-Debrid, storage, notifications, dictionary, word colouring, known words</string>
     <string name="glass_setup_steps">Setup steps</string>
     <string name="glass_setup_anilist">AniList</string>
     <string name="glass_setup_storage">Storage</string>
@@ -965,6 +967,13 @@
     <string name="glass_setup_notifications">Notifications</string>
     <string name="glass_setup_dictionary">Dictionary</string>
     <string name="glass_setup_colouring">Word colouring</string>
+    <string name="glass_setup_known">Known words</string>
+    <string name="glass_setup_known_why">Known words show plain. Pick where kumahon learns them: one or more.</string>
+    <string name="glass_setup_known_preview">Known words stay plain, the rest are coloured</string>
+    <string name="glass_setup_next_known">Next step: where kumahon learns which words you know.</string>
+    <string name="glass_setup_known_row">Sources set</string>
+    <string name="glass_setup_known_paired_row">kumapie paired</string>
+    <string name="glass_setup_known_skip_row">Skipped · change in Settings</string>
     <string name="glass_setup_colouring_why">Colour the words on the page by what you know, so new words stand out while you read.</string>
     <string name="glass_setup_colouring_switch">Colour words on manga pages</string>
     <string name="glass_setup_colouring_switch_sub">Off: plain pages. You can turn it on later in Settings.</string>
@@ -1037,7 +1046,7 @@
     <string name="glass_setup_storage_why">Each series is a folder here. Nothing else is stored anywhere else.</string>
     <string name="glass_setup_notifications_why">Tells you when a download is done or a volume was not found.</string>
     <string name="glass_setup_dictionary_why">Tap a word on a page to look it up.</string>
-    <string name="glass_setup_step">STEP %1$d OF 6</string>
+    <string name="glass_setup_step">STEP %1$d OF 7</string>
     <string name="glass_setup_summary">SUMMARY</string>
     <string name="glass_setup_ready">Ready to read</string>
     <string name="glass_setup_ready_why">You can change any of this later in Settings.</string>
@@ -1145,8 +1154,6 @@
     <string name="glass_title_sources">SOURCES · VOLUMES 1–%1$d</string>
     <string name="glass_title_sources_none">SOURCES</string>
     <string name="glass_title_all">All %1$d</string>
-    <string name="glass_title_range">Vol. %1$s</string>
-    <string name="glass_title_partial">%1$d of %2$d · vol. %3$s missing</string>
     <string name="glass_title_no_numbers">found, but its files carry no volume numbers</string>
     <string name="glass_title_not_on_source">not on this source</string>
     <string name="glass_title_needs_visit">needs a visit</string>

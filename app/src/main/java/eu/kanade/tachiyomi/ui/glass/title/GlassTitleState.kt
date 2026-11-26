@@ -101,9 +101,9 @@ object GlassTitleState {
         return cells.filter { it.local != null && it.number !in locked }.mapTo(linkedSetOf()) { it.number }
     }
 
-    /** Read (the row, or AniList's [readUpTo]) with its file still on the tablet: the cell shows "✓●". */
-    fun readHere(cell: VolumeCell, readUpTo: Int): Boolean =
-        cell.local != null && (cell.local.read || cell.number <= readUpTo)
+    /** A source card draws its numbered boxes only when the source is found AND lists volumes. */
+    fun showBoxes(coverage: Coverage?): Boolean =
+        coverage != null && coverage.state == Coverage.State.FOUND && coverage.volumes.isNotEmpty()
 
     /**
      * "Select read": the selectable volumes up to AniList's [readUpTo] (their read mark survives the file: the cell
@@ -210,7 +210,8 @@ object GlassTitleState {
             val l = byNumber[v]
             val a = active[v]
             when {
-                l != null -> VolumeCell(v, if (l.read) VolState.READ else VolState.HERE, l, null)
+                // read (the row, or within AniList's count) AND the file is here: READ with [local] set = check + on-device mark
+                l != null -> VolumeCell(v, if (l.read || v <= readUpTo) VolState.READ else VolState.HERE, l, null)
                 a != null -> VolumeCell(v, if (a.running) VolState.DOWNLOADING else VolState.QUEUED, null, a.fraction)
                 v in failed -> VolumeCell(v, VolState.FAILED, null, null)
                 v <= readUpTo -> VolumeCell(v, VolState.READ, null, null)
@@ -241,6 +242,17 @@ object GlassTitleState {
             packs += Pack(sourceId, holds)
         }
         return packs
+    }
+
+    /**
+     * Volumes 1..[count] that NO source has: only once every source in [sourceIds] answered FOUND or NOT_FOUND (a source
+     * still loading, needing a visit or in error might have it); else empty.
+     */
+    fun unavailable(coverage: Map<Long, Coverage>, sourceIds: List<Long>, count: Int): Set<Int> {
+        val answered = sourceIds.map { coverage[it]?.state }
+        if (answered.isEmpty() || answered.any { it != Coverage.State.FOUND && it != Coverage.State.NOT_FOUND }) return emptySet()
+        val has = sourceIds.flatMap { coverage[it]?.volumes?.keys.orEmpty() }.toSet()
+        return (1..count).filter { it !in has }.toSet()
     }
 
     /** Volumes not on the tablet and not queued. */
