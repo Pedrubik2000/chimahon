@@ -38,6 +38,9 @@ object ReviewLogic {
     fun pickSentence(shown: String?, cardSentenceRaw: String): String =
         shown?.takeIf { it.isNotBlank() } ?: cardSentence(cardSentenceRaw)
 
+    /** A reloaded queue starts with the card already on screen: keep its face (no reset to front, no replay). */
+    fun keepFace(shownId: Long?, newCurrent: Long?): Boolean = shownId != null && shownId == newCurrent
+
     /** Cache file name of a sentence's voice: sha1 of the text, so the same sentence is made once. */
     fun ttsCacheName(text: String): String =
         java.security.MessageDigest.getInstance("SHA-1").digest(text.trim().toByteArray(Charsets.UTF_8))

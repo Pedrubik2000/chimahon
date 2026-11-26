@@ -101,6 +101,14 @@ class ReviewLogicTest {
     }
 
     @Test
+    fun `reload keeps the face only for the same card`() {
+        ReviewLogic.keepFace(5, 5) shouldBe true
+        ReviewLogic.keepFace(5, 6) shouldBe false
+        ReviewLogic.keepFace(null, 6) shouldBe false
+        ReviewLogic.keepFace(null, null) shouldBe false
+    }
+
+    @Test
     fun `audio reading prefers the Reading field`() {
         ReviewLogic.audioReading("""{"Reading":"なすりつける"}""", ReviewLogic.Word("擦り付ける", "x")) shouldBe "なすりつける"
         ReviewLogic.audioReading("not json", ReviewLogic.Word("魔法", "まほう")) shouldBe "まほう"

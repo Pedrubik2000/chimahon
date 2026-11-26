@@ -24,6 +24,22 @@ object SentenceTts {
     fun hasJapanese(text: String): Boolean =
         text.any { it.code in 0x3040..0x30FF || it.code in 0x4E00..0x9FFF }
 
+    /** True when the engine starts and has a Japanese voice. Blocking (up to 5 s): call off the main thread. */
+    fun available(context: Context): Boolean {
+        var tts: TextToSpeech? = null
+        return try {
+            val ready = CountDownLatch(1)
+            var status = TextToSpeech.ERROR
+            tts = TextToSpeech(context.applicationContext, { status = it; ready.countDown() }, "com.google.android.tts")
+            ready.await(INIT_TIMEOUT_S, TimeUnit.SECONDS) && status == TextToSpeech.SUCCESS &&
+                tts.isLanguageAvailable(Locale.JAPANESE) >= TextToSpeech.LANG_AVAILABLE
+        } catch (e: Exception) {
+            false
+        } finally {
+            runCatching { tts?.shutdown() }
+        }
+    }
+
     /** Blocking, up to ~20 s worst case: call off the main thread. Null on any failure (one INFO line). */
     fun say(context: Context, text: String): ByteArray? {
         val sentence = text.trim()

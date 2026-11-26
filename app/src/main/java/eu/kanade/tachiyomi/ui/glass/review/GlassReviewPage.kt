@@ -29,6 +29,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -47,6 +48,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -66,6 +70,7 @@ import eu.kanade.presentation.glass.glassPanel
  */
 @Composable
 fun GlassReviewPage(model: GlassReviewModel) {
+    DisposableEffect(model) { model.pageVisible(true); onDispose { model.pageVisible(false) } }
     LaunchedEffect(Unit) { model.start() }
     Box(Modifier.fillMaxSize()) {
         when {
@@ -193,7 +198,8 @@ private fun ReviewAudioButton(label: String, state: String, active: Boolean, mak
                 fontSize = Glass.caption,
                 lineHeight = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 3,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -210,7 +216,7 @@ internal fun ReviewWordButton(model: GlassReviewModel, modifier: Modifier) {
         when {
             making -> "Making voice…"
             active -> "Playing"
-            dim -> "No recording · tap for the phone voice"
+            dim -> if (model.phoneVoice) "No recording · tap for the phone voice" else "No recording"
             else -> "Tap to hear"
         },
         active, making, dim, modifier, model::playWord,
@@ -414,7 +420,7 @@ private fun ColumnScope.ReviewCardBody(model: GlassReviewModel, wordRaw: String,
             }
             if (model.sound != "off") {
                 Text(
-                    if (model.wordNoRecording) "No recording · tap for the phone voice" else "Tap the word or the sentence to hear it again",
+                    if (model.wordNoRecording) (if (model.phoneVoice) "No recording · tap for the phone voice" else "No recording") else "Tap the word or the sentence to hear it again",
                     color = Glass.secondary,
                     fontSize = Glass.caption,
                     modifier = Modifier.padding(top = 4.dp),
@@ -510,7 +516,8 @@ internal fun ReviewSoundIcon(model: GlassReviewModel) {
             .clip(CircleShape)
             .background(if (on) Color.White else Glass.panel)
             .border(1.dp, if (on) Color.White else Glass.line, CircleShape)
-            .clickable(onClick = model::cycleSound),
+            .semantics { contentDescription = "Sound: ${model.sound}" }
+            .clickable(role = Role.Button, onClick = model::cycleSound),
         contentAlignment = Alignment.Center,
     ) {
         GlassIcon("speaker", size = 20.dp, tint = if (on) Color.Black else if (off) Glass.secondary else Color.White)

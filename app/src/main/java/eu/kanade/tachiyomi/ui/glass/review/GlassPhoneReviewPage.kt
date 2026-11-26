@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +26,7 @@ import eu.kanade.presentation.glass.Pill
 /** Review, phone (mockup option C): progress, counts and Undo on top, the card, a 2x2 answer grid above the bar. */
 @Composable
 fun GlassPhoneReviewPage(model: GlassReviewModel) {
+    DisposableEffect(model) { model.pageVisible(true); onDispose { model.pageVisible(false) } }
     LaunchedEffect(Unit) { model.start() }
     Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
         when {
@@ -53,14 +56,14 @@ fun GlassPhoneReviewPage(model: GlassReviewModel) {
                 }
                 ReviewCardStack(model, phone = true, Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = 12.dp))
                 if (!model.shown) {
-                    ReviewSentenceButton(model, Modifier.fillMaxWidth().height(56.dp))
+                    ReviewSentenceButton(model, Modifier.fillMaxWidth().heightIn(min = 64.dp))
                     Spacer(Modifier.height(8.dp))
                     ReviewShowButton(model::show, Modifier.fillMaxWidth().height(72.dp), compact = true)
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ReviewWordButton(model, Modifier.weight(1f).height(56.dp))
-                            ReviewSentenceButton(model, Modifier.weight(1f).height(56.dp))
+                            ReviewWordButton(model, Modifier.weight(1f).heightIn(min = 64.dp))
+                            ReviewSentenceButton(model, Modifier.weight(1f).heightIn(min = 64.dp))
                         }
                         listOf(listOf(1, 2), listOf(3, 4)).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
