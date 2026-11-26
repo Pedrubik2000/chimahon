@@ -57,7 +57,8 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/title-notfound.jpg" alt="Title page: volumes no source could deliver are marked Not found" width="49%" />
 </p>
 
-- Every **source** shows which volumes it holds, as a bar. Sources so far: X3DL, Excnn, Rawxt, Manga Zone, BsZip, A-Z Manga and Nyaa through Real-Debrid, and Manga Zip for downloads by hand.
+- Every volume cover carries one **state badge** (on the device, read, not found and so on), with one legend. Settings has a *Colour set* choice: Default, Green-red or Ice-amber.
+- Every **source** shows which volumes it holds, as a box per volume range; a gap is named (a narrow one shows its range, a wide one "20-24 missing"). Sources so far: X3DL, Excnn, Rawxt, Manga Zone, BsZip, A-Z Manga and Nyaa through Real-Debrid, and Manga Zip for downloads by hand.
 - Tap a volume and the app says **what will be added** before anything is fetched. A bigger pack or a torrent is never started without asking.
 - When a link is dead, the next source is tried, and the source's bar is corrected.
 - A volume no source could deliver is marked **Not found**, with the reason above the grid.
@@ -108,19 +109,21 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/settings-dictionaries.jpg" alt="Settings: the usual dictionaries to download" width="49%" />
 </p>
 
-- **First-run setup**, one step per screen: AniList, a Real-Debrid key (optional, checked on the spot), the storage folder, notifications and a dictionary. Phones get the same steps in one column.
+- **First-run setup**, one step per screen: AniList, a Real-Debrid key (optional, checked on the spot), the storage folder, notifications, a dictionary, then *Word colouring* and *Known words* as two separate steps. Phones get the same steps in one column.
 - **Usual dictionaries** in one tap: Jitendex, JMnedict and KANJIDIC, kept up to date, next to any Yomitan dictionary you import yourself.
 
 ## 🃏 Review
 
 - Tap **+** on a word you look up and it becomes a flashcard inside the app, with the sentence it came from. Anki is not needed (if Anki is set up, the card goes there too).
 - **Review** on the rail shows how many cards are due. Cards are scheduled with FSRS-6; Undo takes back the last answer.
+- The **lookup popup** has a thumb bar at the bottom: pitch accent, the rating buttons (Again, Hard, Good, Easy), *Mark known* and *Mine*.
+- **Audio** on the Review screen: tap the word or the sentence, or use the big *Word* and *Sentence* buttons. *Sound* is auto, tap or off. Sentences (and words without a recording) are read by the phone's Japanese voice (Android text-to-speech). Word recordings come from your Yomitan *Local Audio* android.db and a built-in JapanesePod101 source; the app tells you when it lost access to android.db. None of this needs kumapie.
 
 ## 🎨 Word colours and faces
 
 - **Word colours** on the page (Settings › Mining › *Colour words*): red new, green due, blue mined, known words plain. kumahon splits the text itself (a one-time 80 MB dictionary download, Wi-Fi only).
 - **Known words** come in layers: the most frequent words (1k to 50k, from Jiten's frequency list), words you mark known, and, if you use [kumapie](https://github.com/Pedrubik2000/kumapie-tv), the words and cards it knows; optionally the words of your Anki Mined deck in kuma3 or AnkiDroid on the same device (known when a card is stable for 1 to 30 days, your choice). The page menu counts the new, due and mined words on the pages you see.
-- **Sync with kumapie** (optional): pair with kumapie on the same network and reviews, known words and mined words go both ways.
+- **Sync with kumapie** (optional): pair with kumapie on the same network and only your reviews (rating events) and which words have a card go both ways. Mined cards (text, audio, images) stay in the app that made them. It syncs after each rating or mining, every 15 minutes and on start.
 - **Character faces**: a character's picture before their name, from a character dictionary kumahon builds from AniList for the works you read (no spoilers).
 
 ## 📥 Download
@@ -131,7 +134,7 @@ You need an Android tablet or phone (Android 8.0 or higher) and an AniList accou
 
 ## 📖 What it keeps from Chimahon
 
-The manga side of the original is still here: tap a word on a page to look it up (OCR), Yomitan dictionaries with pitch accent, and Anki card mining. See the [original README](https://github.com/sohilsayed/chimahon#readme) for those.
+The manga side of the original is still here: tap a word on a page to look it up (OCR), Yomitan dictionaries with pitch accent, and Anki card mining. The two-finger tap that toggles OCR is off by default (reader settings turn it on). See the [original README](https://github.com/sohilsayed/chimahon#readme) for those.
 
 The original's novel reader, mokuro support and anime player are still in the code, but this fork does not work on them or test them. Light novels on your AniList list are hidden in the new screens. For novels or mokuro, use the original Chimahon.
 
