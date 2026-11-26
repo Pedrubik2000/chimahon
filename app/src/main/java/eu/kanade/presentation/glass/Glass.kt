@@ -1,6 +1,5 @@
 package eu.kanade.presentation.glass
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +41,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 
 /** kumapie's "Glass" look for chimahon (canvas rules in plans/chimahon_ui_plan.md). Panels are solid, no blur. */
@@ -125,6 +122,7 @@ fun dueBadge(n: Int): String? = if (n <= 0) null else if (n > 99) "99+" else "$n
 /** Root of every glass screen: the page colour behind the system bars, white sans-serif text whatever the app theme's font is. */
 @Composable
 fun GlassPage(content: @Composable BoxScope.() -> Unit) {
+    TrackGlassPage()
     GlassMaterialTheme {
         CompositionLocalProvider(
             LocalContentColor provides Color.White,
@@ -141,17 +139,14 @@ fun GlassPage(content: @Composable BoxScope.() -> Unit) {
     }
 }
 
-/** Light clock/icons on the dark page; the previous look returns when the glass screen leaves (classic screens keep their own). */
+/** Glass pages on screen: MainActivity draws light status bar icons while any is (the previous look returns when the glass screen leaves, so classic screens keep their own). */
+val glassPagesOnScreen = mutableIntStateOf(0)
+
 @Composable
-private fun LightStatusBarIcons() {
-    val view = LocalView.current
-    if (view.isInEditMode) return
-    DisposableEffect(view) {
-        val window = (view.context as? Activity)?.window
-        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
-        val was = controller?.isAppearanceLightStatusBars
-        controller?.isAppearanceLightStatusBars = false
-        onDispose { if (was != null) controller.isAppearanceLightStatusBars = was }
+private fun TrackGlassPage() {
+    DisposableEffect(Unit) {
+        glassPagesOnScreen.intValue++
+        onDispose { glassPagesOnScreen.intValue-- }
     }
 }
 

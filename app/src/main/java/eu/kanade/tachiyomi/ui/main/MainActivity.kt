@@ -66,6 +66,7 @@ import eu.kanade.presentation.components.IndexingBannerBackgroundColor
 import eu.kanade.presentation.components.RestoringBannerBackgroundColor
 import eu.kanade.presentation.components.SyncingBannerBackgroundColor
 import eu.kanade.presentation.components.UpdatingBannerBackgroundColor
+import eu.kanade.presentation.glass.glassPagesOnScreen
 import eu.kanade.presentation.more.settings.screen.ConfigureExhDialog
 import eu.kanade.presentation.more.settings.screen.about.AboutScreen.Companion.getReleaseNotes
 import eu.kanade.presentation.more.settings.screen.about.WhatsNewDialog
@@ -261,12 +262,14 @@ class MainActivity : BaseActivity() {
                 incognito -> IncognitoModeBannerBackgroundColor
                 else -> MaterialTheme.colorScheme.surface
             }
-            LaunchedEffect(isSystemInDarkTheme, statusBarBackgroundColor) {
+            // chimahon: dark glass pages need light status bar icons (a banner keeps its own colour)
+            val glassUp = glassPagesOnScreen.intValue > 0 && statusBarBackgroundColor == MaterialTheme.colorScheme.surface
+            LaunchedEffect(isSystemInDarkTheme, statusBarBackgroundColor, glassUp) {
                 // Draw edge-to-edge and set system bars color to transparent
                 val lightStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.BLACK)
                 val darkStyle = SystemBarStyle.dark(Color.TRANSPARENT)
                 enableEdgeToEdge(
-                    statusBarStyle = if (statusBarBackgroundColor.luminance() > 0.5) lightStyle else darkStyle,
+                    statusBarStyle = if (!glassUp && statusBarBackgroundColor.luminance() > 0.5) lightStyle else darkStyle,
                     navigationBarStyle = if (isSystemInDarkTheme) darkStyle else lightStyle,
                 )
             }
