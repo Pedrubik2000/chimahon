@@ -11,6 +11,7 @@ import chimahon.lang.WordColourer
 import chimahon.srs.Cards
 import chimahon.srs.PeerSync
 import chimahon.srs.Srs
+import chimahon.srs.SyncTrigger
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
@@ -299,12 +300,14 @@ object KumapieColours {
             // the page's form too (となり for 隣), as kumapie marks both: the colours of the page follow
             if (withMarked) body.optString("text").takeIf { it.isNotBlank() && it != word }?.let { srs.mark(it, known) }
             clear()
-            Cards.later { Cards.sync(context) }
+            if (withMarked) SyncTrigger.request(context, "mark") else Cards.later { Cards.sync(context) } // Glass: coalesced with the ratings; classic as ever
             return JSONObject().put("marked", known).toString()
         }
         val card = Cards.find(context, body.optString("word"), body.optString("reading"))
             // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
-            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) (if (withMarked) """{"state":"k","marked":true}""" else """{"state":"k"}""") else "null"
+            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) (if (withMarked) """{"state":"k","marked":true}""" else """{"state":"k"}""")
+            else if (action == "state" && withMarked) """{"marked":false}""" // the provider's shape for a new word: the Mark known button shows
+            else "null"
         val out = JSONObject()
         when (action) {
             "state" -> { out.put("state", Srs.state(card.due)); if (withMarked) out.put("marked", srs.isKnown(body.optString("word"), body.optString("reading"))) }

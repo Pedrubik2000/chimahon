@@ -138,14 +138,14 @@ internal fun GlassLookupCard(
         if (answered != null || !once.begin()) return // one rating per word per popup open: a double tap is ignored
         scope.launch {
             val ms = SystemClock.elapsedRealtime() - shownAt
-            val token = withContext(Dispatchers.IO) { PopupRating.ratePopupCard(context, expression, reading, ease, ms) }
+            val token = withContext(Dispatchers.IO) { runCatching { PopupRating.ratePopupCard(context, expression, reading, ease, ms) }.onFailure { android.util.Log.w("GlassLookupCard", "rating failed: $it") }.getOrNull() }
             if (token != null) { answered = PopupLogic.RATINGS[ease - 1] to token; note = null; tick++ } else { once.fail(); note = "The rating was not saved." }
         }
     }
     fun undo() {
         val (_, token) = answered ?: return
         scope.launch {
-            val undone = withContext(Dispatchers.IO) { PopupRating.undoPopupCard(context, token) }
+            val undone = withContext(Dispatchers.IO) { runCatching { PopupRating.undoPopupCard(context, token) }.onFailure { android.util.Log.w("GlassLookupCard", "undo failed: $it") }.getOrDefault(false) }
             if (undone) { answered = null; once.reset(); tick++ } else note = "Undo did not work."
         }
     }

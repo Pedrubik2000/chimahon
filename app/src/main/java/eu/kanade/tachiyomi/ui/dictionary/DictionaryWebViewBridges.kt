@@ -122,6 +122,12 @@ internal class KumapieJsBridge(
     private fun answer(bodyJson: String): String {
         val body = org.json.JSONObject(bodyJson)
         if (!body.optBoolean("own")) return chimahon.ocr.KumapieColours.call(context, bodyJson)
+        // a card the sync deleted, a store error: the page gets "didn't take it" (null), never a crash of the reader
+        return runCatching { ownAnswer(body, bodyJson) }
+            .onFailure { android.util.Log.w("KumapieBridge", "own call failed: $it") }.getOrDefault("null")
+    }
+
+    private fun ownAnswer(body: org.json.JSONObject, bodyJson: String): String {
         val own = { chimahon.ocr.KumapieColours.callOwn(context, bodyJson) }
         return when (body.optString("action")) {
             "rate" -> {

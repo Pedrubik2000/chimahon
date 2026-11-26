@@ -752,7 +752,9 @@ fun OcrLookupPopup(
                 val below = screenHeightPx - (anchorY + maxOf(anchorHeight, 1f)) - gapPx - paddingPx
                 val above = anchorY - gapPx - paddingPx
                 val atBottom = if (below >= want) true else if (above >= want) false else below >= above
-                h = minOf(want, maxOf(if (atBottom) below else above, minOf(want, 120f)))
+                // never under the card's fixed parts (header + bottom bar, ~220 dp): with less room than that on the bigger side it overlaps the word
+                val floor = minOf(want, with(density) { 220.dp.toPx() })
+                h = minOf(want, maxOf(if (atBottom) below else above, floor))
                 bestX = (screenWidthPx - w) / 2f
                 bestY = if (atBottom) screenHeightPx - h - paddingPx else paddingPx
             }
@@ -1231,6 +1233,7 @@ fun OcrLookupPopup(
                   Box(Modifier.fillMaxSize()) {
                     DictionaryEntryWebView(
                         glassPopup = glassCard,
+                        ownStore = glass,
                         results = results,
                         styles = styles,
                         mediaDataUris = mediaDataUris,

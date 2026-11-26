@@ -10,17 +10,23 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 object PopupRate {
     fun rate(srs: Srs, cardId: Long, ease: Int, answerMs: Long, afterWrite: () -> Unit): Long? {
-        if (ease !in 1..4 || srs.card(cardId) == null) return null
-        val id = Srs.newId()
-        srs.rate(cardId, ease, answerMs = answerMs.takeIf { it > 0 }, revlogId = id)
+        if (ease !in 1..4) return null
+        // check and write in one transaction: the sync worker's take() (same db, same lock) cannot delete the card in between
+        val id = srs.db.tx {
+            if (srs.card(cardId) == null) return@tx null
+            Srs.newId().also { srs.rate(cardId, ease, answerMs = answerMs.takeIf { it > 0 }, revlogId = it) }
+        } ?: return null
         afterWrite()
         return id
     }
 
     /** Takes back THIS popup's rating ([revlogId], [rate]'s answer); false = not undone (something newer is on the card, or it is gone). */
     fun undo(srs: Srs, cardId: Long, revlogId: Long, afterWrite: () -> Unit): Boolean {
-        if (srs.card(cardId)?.lastReview == null || srs.lastRevlogId(cardId) != revlogId) return false
-        srs.undo(cardId)
+        // the check and the undo in one transaction: a sync taking another device's rating cannot slip in between
+        val done = srs.db.tx {
+            if (srs.card(cardId)?.lastReview == null || srs.lastRevlogId(cardId) != revlogId) false else { srs.undo(cardId); true }
+        }
+        if (!done) return false
         afterWrite()
         return true
     }

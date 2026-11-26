@@ -15,6 +15,7 @@
   let _selectedDictionaries = {}; // entryIndex -> dictName
   let _wordAudioEnabled = true;
   let _glassPopup = false;
+  let _ownStore = false; // also true in a nested popup of a Glass lookup
   let _autoplayGuard = false;
   let _listenersInstalled = false;
   let _lastAnkiDupAction = -1; // -1 = unknown/not set
@@ -2699,7 +2700,7 @@
 
   function kumapieRequest(body) {
     if (typeof KumapieBridge === 'undefined') return Promise.resolve(null);
-    if (_glassPopup) body = { ...body, own: true }; // popup D: kumahon's own store answers and writes (one writer), never kumapie's provider
+    if (_ownStore) body = { ...body, own: true }; // popup D: kumahon's own store answers and writes (one writer), never kumapie's provider
     return new Promise((resolve) => {
       const id = 'k' + (kumapieNextId++);
       kumapieWaiting[id] = resolve;
@@ -2928,7 +2929,7 @@
     const defsStart = body.childNodes.length;
     appendDefinitionsSection(body, glossaries, mediaMap, groupTerms, collapseConfig);
     // First entry only; the box goes in front of the definitions (and the top picture) when kumapie says yes.
-    if (!result.index) appendAiSense(body, expression, reading, () => body.childNodes[defsStart] || null);
+    if (!result.index && !_ownStore) appendAiSense(body, expression, reading, () => body.childNodes[defsStart] || null);
 
     return article;
   }
@@ -2997,6 +2998,7 @@
       _wordAudioEnabled = payload.wordAudioEnabled !== false;
       // Popup option D: Glass colours, and the first entry's headword / pitch / rating row are the Compose card's.
       _glassPopup = payload.glassPopup === true;
+      _ownStore = payload.ownStore === true;
       root.dataset.glassPopup = _glassPopup ? 'true' : 'false';
       const glassVars = {
         '--bg': '#14171D', '--fg': '#ffffff', '--secondary': 'rgba(255,255,255,0.62)', '--border': 'rgba(255,255,255,0.18)',

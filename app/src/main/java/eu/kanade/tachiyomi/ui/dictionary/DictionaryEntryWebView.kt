@@ -58,6 +58,8 @@ fun DictionaryEntryWebView(
     groupPitches: Boolean = false,
     /** Popup option D: the page draws in Glass colours and leaves the headword, pitch and rating row of the first entry to the Compose card. */
     glassPopup: Boolean = false,
+    /** Rating and marks go to kumahon's own store, never kumapie's provider (Glass lookup, also its nested popups). */
+    ownStore: Boolean = glassPopup,
     modifier: Modifier = Modifier,
     webViewProvider: ((android.content.Context) -> WebView)? = null,
     onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? = null,
@@ -109,7 +111,7 @@ fun DictionaryEntryWebView(
         showPitchDiagram, showPitchNumber, showPitchText,
         activeProfile, tabs, recursiveNavMode, wordAudioEnabled,
         effectiveWordAudioAutoplay, showNavigationButtons, groupPitches,
-        renderRecursiveChrome, entryJsons, glassPopup,
+        renderRecursiveChrome, entryJsons, glassPopup, ownStore,
     ) {
         DictionaryRenderSignature(
             results = results, styles = styles, placeholder = placeholder, isDark = isDark,
@@ -121,7 +123,7 @@ fun DictionaryEntryWebView(
             recursiveNavMode = recursiveNavMode, renderRecursiveChrome = renderRecursiveChrome,
             wordAudioEnabled = wordAudioEnabled,
             wordAudioAutoplay = effectiveWordAudioAutoplay,
-            showNavigationButtons = showNavigationButtons, groupPitches = groupPitches, glassPopup = glassPopup,
+            showNavigationButtons = showNavigationButtons, groupPitches = groupPitches, glassPopup = glassPopup, ownStore = ownStore,
         )
     }
 
@@ -142,6 +144,7 @@ fun DictionaryEntryWebView(
                 showNavigationButtons = showNavigationButtons,
                 groupPitches = groupPitches,
                 glassPopup = glassPopup,
+                ownStore = ownStore,
             )
             val entries = entryJsons ?: buildResultEntryJsonStrings(results, activeProfile, context, groupPitches)
             config.toString() to entries
