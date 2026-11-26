@@ -129,7 +129,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     /** What is sounding now; the Making* ones are the wait for the voice / the recording. */
     enum class Voice { None, MakingSentence, Sentence, MakingWord, Word }
 
-    private val prefs by lazy { app.getSharedPreferences("glass_review", Context.MODE_PRIVATE) } // first use on IO
+    private val prefs by lazy { app.getSharedPreferences("glass_review", Context.MODE_PRIVATE) } // first use usually on IO
 
     /** "auto" (front: the sentence reads itself, Show: the word), "tap" (only on tap), "off" (taps on text do nothing special). Auto until the saved choice is read. */
     var sound by mutableStateOf("auto")
@@ -144,6 +144,8 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
             val saved = withContext(Dispatchers.IO) { ReviewLogic.normalSound(prefs.getString("sound", null)) }
             if (!soundTouched) sound = saved
             soundLoaded = true
+            // the first card may have been shown before the choice was known: give it its autoplay now
+            if (autoplay() && card != null && !shown && voice == Voice.None) playSentence(currentSentence())
         }
     }
 
@@ -151,11 +153,15 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     var phoneVoice by mutableStateOf(false)
         private set
     private var phoneVoiceCache: Boolean? = null
+    private var phoneVoiceRetryAt = 0L // after a too-slow engine start: answer false until then, not 5 s per play
     private val phoneLock = Any()
 
     /** Blocking on the first call (one TTS init), cached after. IO thread. */
     private fun phoneVoiceAvailable(): Boolean =
-        synchronized(phoneLock) { phoneVoiceCache ?: SentenceTts.available(app)?.also { phoneVoiceCache = it } ?: false } // null = engine too slow to start: ask again next time
+        synchronized(phoneLock) {
+            phoneVoiceCache ?: if (System.currentTimeMillis() < phoneVoiceRetryAt) false
+            else SentenceTts.available(app)?.also { phoneVoiceCache = it } ?: false.also { phoneVoiceRetryAt = System.currentTimeMillis() + 60_000 }
+        }
     var voice by mutableStateOf(Voice.None)
         private set
 
