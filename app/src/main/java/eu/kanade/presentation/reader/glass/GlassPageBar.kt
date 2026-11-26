@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -72,7 +74,7 @@ import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -125,14 +127,14 @@ private fun chapterPages(viewer: Viewer?): List<ReaderPage>? {
     return (current as? ReaderPage)?.chapter?.pages
 }
 
-/** A small decode (about 340 px tall) of a page for the drag preview; null when the page has no stream yet. */
+/** A small decode (about 520 px tall) of a page for the drag preview; null when the page has no stream yet. */
 private suspend fun decodeThumb(open: (() -> InputStream)?): ImageBitmap? = withContext(Dispatchers.IO) {
     if (open == null) return@withContext null
     runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         open().use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
-        while (bounds.outHeight / (sample * 2) >= 340) sample *= 2
+        while (bounds.outHeight / (sample * 2) >= 520) sample *= 2
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
         open().use { BitmapFactory.decodeStream(it, null, opts) }?.asImageBitmap()
     }.getOrNull()
@@ -338,13 +340,29 @@ private fun PageTrack(
     var widthPx by remember { mutableIntStateOf(0) }
     // Previews by page number; a few pages at most, cleared when it grows. Missing = number bubble only.
     val thumbs = remember { mutableStateMapOf<Int, ImageBitmap?>() }
-    LaunchedEffect(page, dragging) {
-        if (!dragging || thumbs.containsKey(page)) return@LaunchedEffect
-        delay(60) // not for every page the finger flies over
-        val open = chapterPages(viewer)?.getOrNull(page - 1)?.stream
-        val bmp = decodeThumb(open)
-        if (thumbs.size > 16) thumbs.clear()
-        thumbs[page] = bmp
+    var shown by remember { mutableStateOf<ImageBitmap?>(null) } // last decoded page, until the one under the finger is ready
+    var busy by remember { mutableStateOf(false) }
+    var tried by remember { mutableIntStateOf(0) } // a page with no stream yet is tried once per visit, not in a loop
+    val scope = rememberCoroutineScope()
+    // One decode at a time that is NOT cancelled when the finger moves on (a decode outlasts a page step);
+    // when it ends, this runs again for the page under the finger now.
+    LaunchedEffect(page, dragging, busy) {
+        if (!dragging) { shown = null; tried = 0 }
+        thumbs[page]?.let { shown = it }
+        if (!dragging || busy || thumbs.containsKey(page) || page == tried) return@LaunchedEffect
+        busy = true
+        val p = page
+        tried = p
+        scope.launch {
+            try {
+                val bmp = decodeThumb(chapterPages(viewer)?.getOrNull(p - 1)?.stream)
+                if (thumbs.size > 16) thumbs.clear()
+                // A page that is not loaded yet stays uncached so the next drag over it tries again.
+                if (bmp != null) thumbs[p] = bmp
+            } finally {
+                busy = false
+            }
+        }
     }
     Box(
         modifier
@@ -392,7 +410,7 @@ private fun PageTrack(
             Popup(popupPositionProvider = above) {
                 Column(
                     Modifier
-                        .width(168.dp)
+                        .widthIn(min = 120.dp)
                         .clip(RoundedCornerShape(Glass.r12))
                         .background(Glass.panel)
                         .border(1.dp, Glass.line, RoundedCornerShape(Glass.r12))
@@ -400,8 +418,11 @@ private fun PageTrack(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    thumbs[page]?.let {
-                        Image(it, null, Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(Glass.r8)), contentScale = ContentScale.Fit)
+                    (thumbs[page] ?: shown)?.let {
+                        // Mockup: a big page above the finger (~260dp tall); a spread gets wider, not smaller.
+                        val ratio = it.width.toFloat() / it.height.coerceAtLeast(1)
+                        val h = minOf(260.dp, 400.dp / ratio)
+                        Image(it, null, Modifier.size(h * ratio, h).clip(RoundedCornerShape(Glass.r8)), contentScale = ContentScale.Fit)
                     }
                     Text("p. $page", color = Color.White, fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
                     chapterTitle?.let { Text(it, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis) }
