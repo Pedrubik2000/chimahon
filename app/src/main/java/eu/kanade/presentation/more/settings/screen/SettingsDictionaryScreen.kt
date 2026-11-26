@@ -2620,6 +2620,7 @@ object SettingsDictionaryScreen : SearchableSettings {
         val scope = rememberCoroutineScope()
         val prefs = remember { Injekt.get<DictionaryPreferences>() }
         val json = remember { Injekt.get<kotlinx.serialization.json.Json>() }
+        remember { chimahon.audio.WordAudioSource.seedDefault(prefs, json) }
 
         val enabled by prefs.wordAudioEnabled().collectAsState()
         val autoplay by prefs.wordAudioAutoplay().collectAsState()
@@ -2664,7 +2665,13 @@ object SettingsDictionaryScreen : SearchableSettings {
                                 Switch(checked = localEnabled, onCheckedChange = { prefs.wordAudioLocalEnabled().set(it) })
                             }
                             if (localEnabled) {
-                                val displayStr = if (localUri.isNotBlank()) {
+                                // A reinstall drops the saved grant: the file must be picked again.
+                                val accessLost = remember(localUri, isImportingDb) {
+                                    chimahon.audio.WordAudioService.isGrantLost(context, localUri)
+                                }
+                                val displayStr = if (accessLost) {
+                                    "Access to android.db was lost — pick it again"
+                                } else if (localUri.isNotBlank()) {
                                     "URI: ${localUri.take(60)}${if (localUri.length > 60) "..." else ""}"
                                 } else if (localPath.isNotBlank()) {
                                     "Path: $localPath"
@@ -2674,7 +2681,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                                 Text(
                                     text = displayStr,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = if (localUri.isNotBlank() || localPath.isNotBlank()) {
+                                    color = if (!accessLost && (localUri.isNotBlank() || localPath.isNotBlank())) {
                                         MaterialTheme.colorScheme.onSurface
                                     } else {
                                         MaterialTheme.colorScheme.error

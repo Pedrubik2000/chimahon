@@ -311,4 +311,7 @@ class DictionaryPreferences(
     override fun wordAudioLocalUri() = preferenceStore.getString("pref_word_audio_local_uri", "")
 
     override fun wordAudioLocalEnabled() = preferenceStore.getBoolean("pref_word_audio_local_enabled", false)
+
+    /** The default online source (JapanesePod101) was added once; removing it later sticks. */
+    override fun wordAudioDefaultSeeded() = preferenceStore.getBoolean("pref_word_audio_default_seeded", false)
 }

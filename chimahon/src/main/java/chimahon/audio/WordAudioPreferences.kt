@@ -9,4 +9,5 @@ interface WordAudioPreferences {
     fun wordAudioLocalPath(): Preference<String>
     fun wordAudioLocalUri(): Preference<String>
     fun wordAudioLocalEnabled(): Preference<Boolean>
+    fun wordAudioDefaultSeeded(): Preference<Boolean>
 }

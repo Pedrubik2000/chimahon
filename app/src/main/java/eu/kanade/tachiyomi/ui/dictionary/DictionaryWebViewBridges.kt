@@ -171,10 +171,23 @@ internal class WordAudioBridge(
     private var mediaPlayer: android.media.MediaPlayer? = null
     private var currentAudioFd: ParcelFileDescriptor? = null
 
+    private companion object {
+        // once per app session
+        @Volatile var accessHintShown = false
+    }
+
     @JavascriptInterface
     fun fetchAudio(term: String, reading: String, callbackId: String) {
         scope.launch {
             val results = wordAudioService.findWordAudio(term, reading)
+            if (results.isEmpty() && wordAudioService.localAccessLost && !accessHintShown) {
+                accessHintShown = true
+                android.widget.Toast.makeText(
+                    context,
+                    "Access to android.db was lost — pick it again in Settings > Dictionary",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
             val jsonArray = org.json.JSONArray().apply {
                 results.forEach { result ->
                     put(

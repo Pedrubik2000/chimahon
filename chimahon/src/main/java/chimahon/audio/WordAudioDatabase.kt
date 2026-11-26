@@ -17,6 +17,9 @@ class WordAudioDatabase(private val context: Context) {
     var lastError: String? = null
     var fallbackUsed: Boolean = false
 
+    /** The saved SAF grant is gone (reinstall): retrying is pointless, the user has to pick the file again. */
+    var accessLost: Boolean = false
+
     private val defaultSources = listOf(
         "nhk16", "daijisen", "shinmeikai8", "jpod", "jpod_alternate",
         "taas", "ozk5", "forvo", "forvo_ext", "forvo_ext2",
@@ -89,6 +92,7 @@ class WordAudioDatabase(private val context: Context) {
         close()
         lastError = null
         fallbackUsed = false
+        accessLost = false
 
         // ── Attempt 1: ContentResolver fd + statSize ──────────────
         try {
@@ -123,6 +127,11 @@ class WordAudioDatabase(private val context: Context) {
                     pfd.close()
                 }
             }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "No access to $uri any more, it must be picked again", e)
+            accessLost = true
+            lastError = "Access lost"
+            return false
         } catch (e: Exception) {
             Log.e(TAG, "Attempt 1/2 failed", e)
         }

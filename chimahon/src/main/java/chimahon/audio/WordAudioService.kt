@@ -34,8 +34,29 @@ class WordAudioService(
     private var cachedSources: List<WordAudioSource>? = null
     private var cachedSourcesRaw: String = ""
 
+    /** The saved local database lost its SAF grant (reinstall): word audio needs it picked again. */
+    @Volatile
+    var localAccessLost: Boolean = false
+        private set
+
     companion object {
         private const val TAG = "WordAudioService"
+
+        // JapanesePod101 answers 200 with this "audio not available" clip instead of 404 (Yomichan rejects it too).
+        private const val NOT_AVAILABLE_SHA256 = "ae6398b5a27bc8c0a771df6c907ade794be15518174773c58c7c7ddd17098906"
+
+        fun isNotAvailableClip(bytes: ByteArray): Boolean =
+            java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+                .joinToString("") { "%02x".format(it) } == NOT_AVAILABLE_SHA256
+
+        /** True when [uriStr] is a saved Uri whose persisted read grant is gone. */
+        fun isGrantLost(context: Context, uriStr: String): Boolean =
+            uriStr.isNotBlank() &&
+                context.contentResolver.persistedUriPermissions.none { it.uri.toString() == uriStr && it.isReadPermission }
+    }
+
+    init {
+        WordAudioSource.seedDefault(preferences, json)
     }
 
     /**
@@ -116,12 +137,17 @@ class WordAudioService(
         // New path: SAF Uri
         val uriStr = preferences.wordAudioLocalUri().get()
         if (uriStr.isNotBlank()) {
+            if (isGrantLost(context, uriStr)) {
+                localAccessLost = true
+                return emptyList()
+            }
             // SAF providers can invalidate or replace a descriptor while the
             // process is alive. Re-probe the schema before using a cached
             // native handle so we can reopen and use the stable-copy fallback.
             if (!localDatabase.isOpenFor(uriStr) || !localDatabase.testConnection()) {
                 localDatabase.close()
                 if (!localDatabase.updateUri(android.net.Uri.parse(uriStr)) || !localDatabase.testConnection()) {
+                    localAccessLost = localDatabase.accessLost
                     return emptyList()
                 }
                 if (localDatabase.fallbackUsed) {
@@ -133,6 +159,7 @@ class WordAudioService(
                     preferences.wordAudioLocalUri().set("")
                 }
             }
+            localAccessLost = false
             return localDatabase.findEntries(term, reading)
         }
 
@@ -157,12 +184,14 @@ class WordAudioService(
             network.client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return emptyList()
 
-                val body = response.body?.string() ?: return emptyList()
+                val bytes = response.body?.bytes() ?: return emptyList()
+                if (isNotAvailableClip(bytes)) return emptyList()
 
-                if (body.trim().startsWith("{")) {
-                    parseYomitanJson(body, source)
+                if (bytes.decodeToString(endIndex = minOf(bytes.size, 64)).trim().startsWith("{")) {
+                    parseYomitanJson(bytes.decodeToString(), source)
                 } else {
-                    listOf(WordAudioResult(name = source.name, url = url, source = source))
+                    // The final url (JPod101 redirects to its CDN), so playing and mining fetch the same file.
+                    listOf(WordAudioResult(name = source.name, url = response.request.url.toString(), source = source))
                 }
             }
         } catch (e: Exception) {
@@ -201,7 +230,7 @@ class WordAudioService(
             .build()
         try {
             network.client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) response.body?.bytes() else null
+                if (response.isSuccessful) response.body?.bytes()?.takeUnless { isNotAvailableClip(it) } else null
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching remote audio data", e)
