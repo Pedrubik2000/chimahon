@@ -51,6 +51,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassWideButton
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.Meter
@@ -140,7 +141,7 @@ class GlassManualScreen(
                         when (step) {
                             Step.PICK -> {
                                 if (option != null) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_manual_get_from, option.sourceName),
                                         { model.opened = false; model.step = Step.STEPS },
                                         Modifier.fillMaxWidth(),
@@ -149,7 +150,7 @@ class GlassManualScreen(
                                     )
                                 }
                                 if (model.hasTorrent) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_torrent_instead),
                                         { navigator.replace(GlassTorrentScreen(mediaId, volumes, here)) },
                                         Modifier.fillMaxWidth(),
@@ -158,7 +159,7 @@ class GlassManualScreen(
                             }
                             Step.STEPS -> {
                                 if (option != null && !many) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(if (model.opened) MR.strings.glass_manual_open_again else MR.strings.glass_manual_open_browser),
                                         { model.opened = true; context.openInBrowser(option.files.first().link, forceDefaultBrowser = true) },
                                         Modifier.fillMaxWidth(),
@@ -166,7 +167,7 @@ class GlassManualScreen(
                                         icon = "external",
                                     )
                                 }
-                                WideButton(
+                                GlassWideButton(
                                     stringResource(if (many) MR.strings.glass_manual_pick_files else MR.strings.glass_manual_pick_file),
                                     { launcher.launch(arrayOf("*/*")) },
                                     Modifier.fillMaxWidth(),
@@ -175,25 +176,25 @@ class GlassManualScreen(
                                 )
                             }
                             Step.FOUND -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                WideButton(
+                                GlassWideButton(
                                     stringResource(MR.strings.glass_manual_not_this),
                                     { model.picks = emptyList(); model.step = Step.STEPS },
                                     Modifier.weight(1f),
                                 )
-                                WideButton(stringResource(MR.strings.glass_manual_import), model::import, Modifier.weight(2f), primary = true)
+                                GlassWideButton(stringResource(MR.strings.glass_manual_import), model::import, Modifier.weight(2f), primary = true)
                             }
                             Step.DONE -> {
                                 val row = model.row
                                 val failed = row?.state == RealDebridQueue.State.FAILED || model.error != null
                                 if (failed) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_manual_pick_another),
                                         { model.releaseGrants(); model.reset(); model.step = Step.STEPS },
                                         Modifier.fillMaxWidth(),
                                     )
                                 }
                                 if (failed || row?.state == RealDebridQueue.State.DONE) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_manual_back_title),
                                         { navigator.pop() },
                                         Modifier.fillMaxWidth(),
@@ -695,41 +696,6 @@ private fun DoneBody(model: ManualModel, context: Context, askDelete: () -> Unit
             }
             if (model.deleted != true) Pill(stringResource(MR.strings.glass_manual_delete), onClick = askDelete, small = true)
         }
-    }
-}
-
-// kit copies from GlassPhoneDiscoverPage (private there)
-
-/** A 48dp button that fills the width it is given, text centred; white = primary. */
-@Composable
-internal fun WideButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    primary: Boolean = false,
-    icon: String? = null,
-) {
-    val ink = if (primary) Color.Black else Color.White
-    Row(
-        modifier
-            .height(Glass.button)
-            .clip(CircleShape)
-            .background(if (primary) Color.White else Glass.panel)
-            .then(if (primary) Modifier else Modifier.border(1.dp, Glass.line, CircleShape))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-    ) {
-        icon?.let { GlassIcon(it, size = 18.dp, tint = ink) }
-        Text(
-            text,
-            color = ink,
-            fontSize = Glass.label,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.reader.appbars.ExhUtils
 import eu.kanade.presentation.reader.appbars.NavBarType
@@ -273,7 +274,7 @@ private fun GlassReaderHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RoundButton("chevLeft", stringResource(MR.strings.action_bar_up_description), navigateUp)
+        GlassRoundButton("chevLeft", navigateUp, description = stringResource(MR.strings.action_bar_up_description))
         Column(Modifier.weight(1f).clickable(onClick = onClickTitle)) {
             Text(
                 mangaTitle.orEmpty(),
@@ -290,7 +291,7 @@ private fun GlassReaderHeader(
         ocrProgress?.let {
             Row(
                 Modifier
-                    .height(32.dp)
+                    .height(Glass.chip)
                     .border(1.dp, Glass.line, CircleShape)
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -306,7 +307,7 @@ private fun GlassReaderHeader(
             Box {
                 Box(
                     Modifier
-                        .height(44.dp)
+                        .height(Glass.button)
                         .then(
                             if (ocrEnabled) {
                                 Modifier.clip(CircleShape).background(Color.White)
@@ -343,10 +344,10 @@ private fun GlassReaderHeader(
                 }
             }
         }
-        RoundButton(
+        GlassRoundButton(
             "bookmark",
-            stringResource(if (bookmarked) MR.strings.action_remove_bookmark else MR.strings.action_bookmark),
             onToggleBookmarked,
+            description = stringResource(if (bookmarked) MR.strings.action_remove_bookmark else MR.strings.action_bookmark),
             tint = if (bookmarked) Glass.ice else Color.White,
         )
     }
@@ -357,16 +358,6 @@ private fun ReaderOcrSource.label() = when (this) {
     ReaderOcrSource.MOKURO -> KMR.strings.ocr_source_mokuro
     ReaderOcrSource.GOOGLE_LENS -> KMR.strings.ocr_source_google_lens
     ReaderOcrSource.LOCAL -> KMR.strings.ocr_source_local
-}
-
-@Composable
-private fun RoundButton(icon: String, description: String, onClick: () -> Unit, tint: Color = Color.White) {
-    Box(
-        Modifier.size(Glass.button).clip(CircleShape).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        GlassIcon(icon, size = 22.dp, tint = tint, contentDescription = description)
-    }
 }
 
 private class Tool(val label: String, val onClick: () -> Unit, val glass: String? = null, val tint: Color = Color.White)

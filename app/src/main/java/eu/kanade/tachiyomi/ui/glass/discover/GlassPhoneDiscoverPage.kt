@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassWideButton
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassPhoneBarRoom
@@ -117,7 +118,7 @@ private fun PhoneHeader(model: GlassDiscoverModel) {
             Spacer(Modifier.weight(1f))
             Text(stringResource(MR.strings.glass_phone_from_anilist), color = Glass.secondary, fontSize = Glass.caption)
         }
-        Row(Modifier.fillMaxWidth().height(50.dp).border(1.dp, Glass.line, CircleShape).padding(4.dp)) {
+        Row(Modifier.fillMaxWidth().height(Glass.button).border(1.dp, Glass.line, CircleShape).padding(4.dp)) {
             listOf(
                 DiscoverTab.PICK to MR.strings.glass_discover_pick,
                 DiscoverTab.DUEL to MR.strings.glass_discover_duel,
@@ -143,39 +144,6 @@ private fun PhoneHeader(model: GlassDiscoverModel) {
                 }
             }
         }
-    }
-}
-
-/** A 48dp button that fills the width it is given, text centred; white = primary. */
-@Composable
-private fun WideButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    primary: Boolean = false,
-    icon: String? = null,
-) {
-    val ink = if (primary) Color.Black else Color.White
-    Row(
-        modifier
-            .height(Glass.button)
-            .clip(CircleShape)
-            .background(if (primary) Color.White else Glass.panel)
-            .then(if (primary) Modifier else Modifier.border(1.dp, Glass.line, CircleShape))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-    ) {
-        icon?.let { GlassIcon(it, size = 18.dp, tint = ink) }
-        Text(
-            text,
-            color = ink,
-            fontSize = Glass.body,
-            fontWeight = if (primary) FontWeight.Bold else FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -231,8 +199,8 @@ private fun PhonePick(model: GlassDiscoverModel, open: (Entry) -> Unit, navigato
             }
             PickDeck(pick, nv.why(pick, recommendedBy).take(3), onHome, onOpen = { open(e) }, onRight = add, onLeft = nope)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                WideButton(stringResource(MR.strings.glass_discover_not_for_me), nope, Modifier.weight(1f), icon = "close")
-                WideButton(
+                GlassWideButton(stringResource(MR.strings.glass_discover_not_for_me), nope, Modifier.weight(1f), icon = "close")
+                GlassWideButton(
                     stringResource(MR.strings.glass_discover_skip),
                     onClick = {
                         said = null
@@ -241,9 +209,9 @@ private fun PhonePick(model: GlassDiscoverModel, open: (Entry) -> Unit, navigato
                     Modifier.weight(1f),
                 )
                 if (onHome) {
-                    WideButton(stringResource(MR.strings.glass_discover_on_home), {}, Modifier.weight(1f), icon = "check")
+                    GlassWideButton(stringResource(MR.strings.glass_discover_on_home), {}, Modifier.weight(1f), icon = "check")
                 } else {
-                    WideButton(stringResource(MR.strings.glass_discover_add_home), add, Modifier.weight(1f), primary = true)
+                    GlassWideButton(stringResource(MR.strings.glass_discover_add_home), add, Modifier.weight(1f), primary = true)
                 }
             }
             Text(
@@ -367,7 +335,7 @@ private fun PickDeck(
 private fun SwipeHint(text: String, before: String? = null, after: String? = null) {
     Row(
         Modifier
-            .height(32.dp)
+            .height(Glass.chip)
             .clip(CircleShape)
             .background(Glass.scrim)
             .padding(start = if (before != null) 6.dp else 12.dp, end = if (after != null) 6.dp else 12.dp),
@@ -442,16 +410,16 @@ private fun PhoneDuel(model: GlassDiscoverModel, open: (Entry) -> Unit, navigato
                     )
                     Text(metaLine(e), color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        WideButton(stringResource(MR.strings.glass_discover_open), { open(e) }, Modifier.weight(1f), primary = true)
+                        GlassWideButton(stringResource(MR.strings.glass_discover_open), { open(e) }, Modifier.weight(1f), primary = true)
                         if (e.status !in ON_HOME) {
-                            WideButton(
+                            GlassWideButton(
                                 stringResource(MR.strings.glass_discover_add_home),
                                 { model.addHome(e) },
                                 Modifier.weight(1f),
                                 icon = if (e.mediaId in model.adding) null else "plus",
                             )
                         }
-                        WideButton(stringResource(MR.strings.glass_discover_again), model::startDuel, Modifier.weight(1f))
+                        GlassWideButton(stringResource(MR.strings.glass_discover_again), model::startDuel, Modifier.weight(1f))
                     }
                 }
             }
@@ -646,7 +614,7 @@ private fun PhoneBrowse(model: GlassDiscoverModel, open: (Entry) -> Unit) {
                         lineHeight = 16.sp,
                     )
                 }
-                WideButton(
+                GlassWideButton(
                     stringResource(MR.strings.glass_phone_show_results),
                     { sheet = null },
                     Modifier.fillMaxWidth().padding(top = 4.dp),

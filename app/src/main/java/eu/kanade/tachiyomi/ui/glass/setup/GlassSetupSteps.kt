@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.glassPanel
@@ -412,7 +413,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
 
 /**
  * The setup's pill: white primary or outlined; disabled = the 18% fill with 62% text (canvas Continue / Open Home).
- * Unlike [eu.kanade.presentation.glass.Pill] it can put the icon after the text (Continue, Sign in).
+ * A [Pill] with the setup's argument order (icon before the text = [leading], after = [trailing]).
  */
 @Composable
 internal fun SetupButton(
@@ -424,37 +425,7 @@ internal fun SetupButton(
     trailing: String? = null,
     small: Boolean = false,
 ) {
-    val ink = when {
-        !enabled -> Glass.secondary
-        primary -> Color.Black
-        else -> Color.White
-    }
-    Row(
-        Modifier
-            .height(if (small) 36.dp else Glass.button)
-            .clip(CircleShape)
-            .then(
-                when {
-                    !enabled -> Modifier.background(Glass.line)
-                    primary -> Modifier.background(Color.White)
-                    else -> Modifier.border(1.dp, Glass.line, CircleShape)
-                },
-            )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(start = if (leading != null) 18.dp else 24.dp, end = if (trailing != null) 14.dp else 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        leading?.let { GlassIcon(it, size = 18.dp, tint = ink) }
-        Text(
-            text,
-            color = ink,
-            fontSize = if (small) Glass.body else Glass.label,
-            fontWeight = if (primary && !small) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 1,
-        )
-        trailing?.let { GlassIcon(it, size = 20.dp, tint = ink) }
-    }
+    Pill(text, onClick, primary = primary, icon = leading, small = small, enabled = enabled, trailingIcon = trailing)
 }
 
 /** 72dp panel with a check: the "done" state of every step. */

@@ -57,6 +57,7 @@ import coil3.compose.AsyncImage
 import com.hippo.unifile.UniFile
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.GlassPhoneBarRoom
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Meter
@@ -360,11 +361,11 @@ private fun TitleCard(
             if (failed.isNotEmpty() && group.mediaId != null) {
                 Pill(stringResource(MR.strings.glass_dl_try_again), onClick = onTryAgain, primary = true, small = true)
             }
-            RoundButton(
+            GlassRoundButton(
                 icon = if (expanded) "chevUp" else "chevDown",
-                label = stringResource(if (expanded) MR.strings.glass_dl_collapse else MR.strings.glass_dl_expand),
-                outlined = false,
                 onClick = onToggle,
+                description = stringResource(if (expanded) MR.strings.glass_dl_collapse else MR.strings.glass_dl_expand),
+                tint = Glass.secondary,
             )
         }
         if (expanded) {
@@ -425,7 +426,7 @@ private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolea
             )
         }
         if (row.state == State.RUNNING || row.state == State.QUEUED) {
-            RoundButton("close", stringResource(MR.strings.glass_dl_cancel), outlined = true) { onCancel(row) }
+            GlassRoundButton("close", { onCancel(row) }, description = stringResource(MR.strings.glass_dl_cancel), outlined = true, iconSize = 16.dp)
         } else {
             Spacer(Modifier.size(Glass.button))
         }
@@ -529,20 +530,6 @@ internal fun Modifier.hatched(line: Color = Glass.have) = drawBehind {
     while (x < size.width) {
         drawLine(line, Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = 2.dp.toPx())
         x += step
-    }
-}
-
-@Composable
-private fun RoundButton(icon: String, label: String, outlined: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(Glass.button)
-            .clip(CircleShape)
-            .then(if (outlined) Modifier.border(1.dp, Glass.line, CircleShape) else Modifier)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        GlassIcon(icon, size = if (outlined) 16.dp else 22.dp, tint = if (outlined) Color.White else Glass.secondary, contentDescription = label)
     }
 }
 

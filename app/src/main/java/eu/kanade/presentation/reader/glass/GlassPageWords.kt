@@ -292,7 +292,7 @@ fun GlassPageWords(
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             Modifier
-                .height(44.dp)
+                .height(Glass.button)
                 .clip(CircleShape)
                 .background(Glass.panel.copy(alpha = 0.94f))
                 .border(1.dp, Glass.line, CircleShape)
@@ -440,7 +440,7 @@ fun GlassPageWords(
                                 } else if (w.status == "d") {
                                     Box(
                                         Modifier
-                                            .height(44.dp)
+                                            .height(Glass.button)
                                             .clip(CircleShape)
                                             .border(1.dp, Glass.line, CircleShape)
                                             .clickable { onReview(w) }
@@ -482,7 +482,7 @@ private fun Count(colour: Color, text: String) {
 @Composable
 private fun CircleAction(icon: String, description: String, active: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(CircleShape)
+        Modifier.size(Glass.button).clip(CircleShape)
             .background(if (active) Color.White else Color.Transparent)
             .border(1.dp, Glass.line, CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

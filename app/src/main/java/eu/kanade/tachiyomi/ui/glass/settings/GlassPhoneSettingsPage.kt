@@ -118,7 +118,7 @@ fun GlassPhoneSettingsPage(navigator: Navigator) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(Glass.ice),
+                Modifier.size(Glass.button).clip(CircleShape).background(Glass.ice),
                 contentAlignment = Alignment.Center,
             ) { GlassIcon("person", size = 24.dp, tint = Color.Black) }
             SectionText(stringResource(accounts.name), stringResource(accounts.summary), Modifier.weight(1f))

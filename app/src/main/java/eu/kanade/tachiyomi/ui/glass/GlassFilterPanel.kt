@@ -147,43 +147,18 @@ enum class TagState { OFF, IN, OUT }
 /** TAGS chip (Browse and Library). off: outline + plus + count; included: white; left out: struck through with a minus. */
 @Composable
 fun TagChip(name: String, state: TagState, count: Int?, onClick: () -> Unit) {
-    val on = state == TagState.IN
-    val ink = if (on) Color.Black else Color.White
-    Row(
-        Modifier
-            .height(36.dp)
-            .clip(CircleShape)
-            .then(
-                if (on) {
-                    Modifier.background(Color.White)
-                } else {
-                    Modifier.border(1.dp, if (state == TagState.OUT) Color.White.copy(alpha = 0.7f) else Glass.line, CircleShape)
-                },
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        GlassIcon(
-            when (state) {
-                TagState.OFF -> "plus"
-                TagState.IN -> "check"
-                TagState.OUT -> "minus"
-            },
-            size = 14.dp,
-            tint = ink,
-        )
-        Text(
-            name,
-            color = ink,
-            fontSize = Glass.body,
-            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-            textDecoration = if (state == TagState.OUT) TextDecoration.LineThrough else null,
-            maxLines = 1,
-        )
-        count?.let { Text(it.toString(), color = if (on) Color.Black.copy(alpha = 0.62f) else Glass.secondary, fontSize = Glass.body) }
-    }
+    GlassChip(
+        name,
+        selected = state == TagState.IN,
+        onClick = onClick,
+        count = count?.toString(),
+        leading = when (state) {
+            TagState.OFF -> "plus"
+            TagState.IN -> "check"
+            TagState.OUT -> "minus"
+        },
+        strike = state == TagState.OUT,
+    )
 }
 
 @Composable

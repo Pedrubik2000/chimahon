@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -297,7 +298,7 @@ fun GlassRailButton(
     }
 }
 
-/** White = primary; otherwise dark glass with the 18% line. [small] = the 40dp Back/secondary size. */
+/** White = primary; otherwise dark glass with the 18% line. [small] = the 40dp Back/secondary size; [centered] = content centred in the width it is given; a disabled one is the 18% fill with 62% text. */
 @Composable
 fun Pill(
     text: String,
@@ -306,16 +307,38 @@ fun Pill(
     primary: Boolean = false,
     icon: String? = null,
     small: Boolean = false,
+    enabled: Boolean = true,
+    trailingIcon: String? = null,
+    centered: Boolean = false,
 ) {
-    val ink = if (primary) Color.Black else Color.White
+    val ink = when {
+        !enabled -> Glass.secondary
+        primary -> Color.Black
+        else -> Color.White
+    }
     Row(
         modifier
             .height(if (small) Glass.chip else Glass.button)
-            .then(if (primary) Modifier.clip(CircleShape).background(Color.White) else Modifier.outlined(CircleShape))
-            .clickable(onClick = onClick)
-            .padding(start = if (icon != null && small) 10.dp else if (small) 16.dp else 22.dp, end = if (small) 16.dp else 24.dp),
+            .then(
+                when {
+                    !enabled -> Modifier.clip(CircleShape).background(Glass.line)
+                    primary -> Modifier.clip(CircleShape).background(Color.White)
+                    else -> Modifier.outlined(CircleShape)
+                },
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .then(
+                if (centered) {
+                    Modifier.padding(horizontal = 16.dp)
+                } else {
+                    Modifier.padding(
+                        start = if (icon != null && small) 10.dp else if (small) 16.dp else 22.dp,
+                        end = if (trailingIcon != null) 14.dp else if (small) 16.dp else 24.dp,
+                    )
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (small) 4.dp else 8.dp, if (centered) Alignment.CenterHorizontally else Alignment.Start),
     ) {
         icon?.let { GlassIcon(it, size = if (small) 20.dp else 18.dp, tint = ink) }
         Text(
@@ -326,7 +349,58 @@ fun Pill(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        trailingIcon?.let { GlassIcon(it, size = 20.dp, tint = ink) }
     }
+}
+
+/** The 48dp round icon button: [on] = white fill, [outlined] = 18% line, neither = bare icon. A disabled one dims to 18%. */
+@Composable
+fun GlassRoundButton(
+    icon: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    on: Boolean = false,
+    outlined: Boolean = false,
+    enabled: Boolean = true,
+    tint: Color? = null,
+    iconSize: Dp = 22.dp,
+) {
+    Box(
+        modifier
+            .size(Glass.button)
+            .clip(CircleShape)
+            .then(
+                when {
+                    on -> Modifier.background(Color.White)
+                    outlined -> Modifier.border(1.dp, Glass.line, CircleShape)
+                    else -> Modifier
+                },
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        GlassIcon(
+            icon,
+            size = iconSize,
+            tint = tint ?: if (on) Color.Black else if (enabled) Color.White else Color.White.copy(alpha = 0.18f),
+            contentDescription = description,
+        )
+    }
+}
+
+/** A dark scrim pill on a cover corner (score, volume count); [content] is its text. */
+@Composable
+fun GlassBadge(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(
+        modifier
+            .padding(6.dp)
+            .heightIn(min = 24.dp)
+            .clip(CircleShape)
+            .background(Glass.scrim)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center,
+    ) { content() }
 }
 
 /** A chip; selected = white. [detail] is the ice number after the text (AniList tag rank). */
@@ -341,6 +415,9 @@ fun GlassChip(
     count: String? = null,
     /** trailing icon ("chevDown" for menus) */
     icon: String? = null,
+    /** leading icon ("plus" on a tag chip) */
+    leading: String? = null,
+    strike: Boolean = false,
 ) {
     val ink = if (selected) Color.Black else Color.White
     Row(
@@ -352,11 +429,13 @@ fun GlassChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        leading?.let { GlassIcon(it, size = 14.dp, tint = ink) }
         Text(
             text,
             color = ink,
             fontSize = Glass.body,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            textDecoration = if (strike) TextDecoration.LineThrough else null,
             maxLines = 1,
         )
         detail?.let { Text(it, color = Glass.ice, fontSize = Glass.caption) }
@@ -475,3 +554,13 @@ fun GlassToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: 
         )
     }
 }
+
+/** A [Pill] that fills the width it is given, content centred (the stacked and side-by-side action rows). */
+@Composable
+fun GlassWideButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    primary: Boolean = false,
+    icon: String? = null,
+) = Pill(text, onClick, modifier, primary = primary, icon = icon, centered = true)

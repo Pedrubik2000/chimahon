@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.glassPanel
@@ -325,23 +326,14 @@ internal fun SourceOrder() {
                     overflow = TextOverflow.Ellipsis,
                 )
                 GlassToggle(on, onCheckedChange = { prefs.realDebridSourcesOff().set(GlassDownloads.toggle(off, s.id, it)) })
-                MoveButton("chevUp", stringResource(MR.strings.glass_settings_move_up, s.name), enabled = i > 0) {
+                GlassRoundButton("chevUp", {
                     prefs.realDebridSourceOrder().set(GlassDownloads.move(ids, s.id, -1))
-                }
-                MoveButton("chevDown", stringResource(MR.strings.glass_settings_move_down, s.name), enabled = i < ids.lastIndex) {
+                }, description = stringResource(MR.strings.glass_settings_move_up, s.name), enabled = i > 0, iconSize = 20.dp)
+                GlassRoundButton("chevDown", {
                     prefs.realDebridSourceOrder().set(GlassDownloads.move(ids, s.id, 1))
-                }
+                }, description = stringResource(MR.strings.glass_settings_move_down, s.name), enabled = i < ids.lastIndex, iconSize = 20.dp)
             }
         }
     }
 }
 
-@Composable
-private fun MoveButton(icon: String, label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier.size(Glass.button).clip(CircleShape).clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        GlassIcon(icon, size = 20.dp, tint = if (enabled) Color.White else Color.White.copy(alpha = 0.18f), contentDescription = label)
-    }
-}

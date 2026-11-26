@@ -40,6 +40,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassWideButton
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassPage
 import eu.kanade.presentation.glass.Meter
@@ -110,7 +111,7 @@ class GlassTorrentScreen(
                     ) {
                         when (step) {
                             TorrentStep.PICK -> if (option != null) {
-                                WideButton(
+                                GlassWideButton(
                                     stringResource(MR.strings.glass_torrent_get),
                                     { model.look(option) },
                                     Modifier.fillMaxWidth(),
@@ -119,7 +120,7 @@ class GlassTorrentScreen(
                                 )
                             }
                             TorrentStep.NOTICE -> if (option != null && model.canStart) {
-                                WideButton(
+                                GlassWideButton(
                                     stringResource(MR.strings.glass_torrent_start),
                                     { model.start(option) },
                                     Modifier.fillMaxWidth(),
@@ -128,21 +129,21 @@ class GlassTorrentScreen(
                             }
                             TorrentStep.RUN -> {
                                 if (failed) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_torrent_pick_another),
                                         { model.reset(); model.step = TorrentStep.PICK },
                                         Modifier.fillMaxWidth(),
                                     )
                                 }
                                 if (finished) {
-                                    WideButton(
+                                    GlassWideButton(
                                         stringResource(MR.strings.glass_manual_back_title),
                                         { navigator.pop() },
                                         Modifier.fillMaxWidth(),
                                         primary = !failed,
                                     )
                                 } else if (model.workId != null) {
-                                    WideButton(stringResource(MR.strings.glass_torrent_cancel), model::cancel, Modifier.fillMaxWidth())
+                                    GlassWideButton(stringResource(MR.strings.glass_torrent_cancel), model::cancel, Modifier.fillMaxWidth())
                                 }
                             }
                         }

@@ -53,6 +53,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.CoverCard
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassBadge
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Pill
@@ -665,10 +666,10 @@ internal fun BrowseCell(e: Entry, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
             )
             e.averageScore?.let {
-                Badge(Modifier.align(Alignment.TopStart)) { Score(it, size = 12) }
+                GlassBadge(Modifier.align(Alignment.TopStart)) { Score(it, size = 12) }
             }
             e.volumes?.let {
-                Badge(Modifier.align(Alignment.BottomStart)) {
+                GlassBadge(Modifier.align(Alignment.BottomStart)) {
                     Text(stringResource(MR.strings.glass_discover_vols, it), fontSize = Glass.caption, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -680,15 +681,3 @@ internal fun BrowseCell(e: Entry, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun Badge(modifier: Modifier, content: @Composable () -> Unit) {
-    Box(
-        modifier
-            .padding(6.dp)
-            .heightIn(min = 24.dp)
-            .clip(CircleShape)
-            .background(Glass.scrim)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-        contentAlignment = Alignment.Center,
-    ) { content() }
-}

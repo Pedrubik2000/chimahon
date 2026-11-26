@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassPhoneBarRoom
@@ -102,7 +103,7 @@ fun GlassPhoneLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     modifier = Modifier.weight(1f),
                 )
                 Box {
-                    RoundButton("list", false) { sortMenu = true }
+                    GlassRoundButton("list", { sortMenu = true }, outlined = true, iconSize = 20.dp)
                     DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }, modifier = Modifier.background(Glass.panel)) {
                         GlassSort.entries.forEach { s ->
                             DropdownMenuItem(
@@ -122,10 +123,10 @@ fun GlassPhoneLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                     }
                 }
                 Box(Modifier.padding(start = 8.dp)) {
-                    RoundButton("search", searching) {
+                    GlassRoundButton("search", {
                         searching = !searching
                         if (!searching) model.query = ""
-                    }
+                    }, on = searching, outlined = true, iconSize = 20.dp)
                 }
             }
         }
@@ -213,21 +214,6 @@ fun GlassPhoneLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                 )
             }
         }
-    }
-}
-
-/** 48dp round button of the heading; white when [on]. */
-@Composable
-private fun RoundButton(icon: String, on: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(Glass.button)
-            .clip(CircleShape)
-            .then(if (on) Modifier.background(Color.White) else Modifier.border(1.dp, Glass.line, CircleShape))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        GlassIcon(icon, size = 20.dp, tint = if (on) Color.Black else Color.White)
     }
 }
 
