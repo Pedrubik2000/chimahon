@@ -77,6 +77,8 @@ import eu.kanade.tachiyomi.ui.dictionary.getDictionaryColorScheme
 import eu.kanade.tachiyomi.ui.dictionary.getDictionaryPaths
 import eu.kanade.tachiyomi.ui.dictionary.orderLookupResultsForDisplay
 import eu.kanade.tachiyomi.ui.dictionary.stopDictionaryAudio
+import eu.kanade.tachiyomi.ui.glass.popup.GlassAnchorOutline
+import eu.kanade.tachiyomi.ui.glass.popup.GlassLookupCard
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -229,6 +231,8 @@ fun OcrLookupPopup(
     }
 
     val density = LocalDensity.current
+    // Popup option D (Thumb bar): the Glass card; nested lookups (recursive children) keep the plain glass frame.
+    val glassCard = glass && !isRecursiveChild
 
     val dictionaryPreferences = remember { Injekt.get<DictionaryPreferences>() }
     val popupWidthPref by dictionaryPreferences.popupWidth().collectAsState()
@@ -260,6 +264,7 @@ fun OcrLookupPopup(
     val wordAudioEnabled by dictionaryPreferences.wordAudioEnabled().collectAsState()
     val wordAudioAutoplay by dictionaryPreferences.wordAudioAutoplay().collectAsState()
     val groupPitches by dictionaryPreferences.groupPitches().collectAsState()
+    val showNavigationButtons by dictionaryPreferences.showNavigationButtons().collectAsState()
 
     val systemIsDark = isSystemInDarkTheme()
     val themeMode by dictionaryPreferences.themeMode().collectAsState()
@@ -485,6 +490,12 @@ fun OcrLookupPopup(
     val (maxWidthDp, maxHeightDp) = with(density) {
         val sw = screenWidthPx.toDp()
         val sh = screenHeightPx.toDp()
+        if (glassCard) {
+            return@with Pair(
+                if (sw < 600.dp) sw - 20.dp else minOf(520.dp, sw * 0.92f),
+                if (sw < 600.dp) sh * 0.58f else minOf(680.dp, sh * 0.88f),
+            )
+        }
         val childMaxWidth = (sw - 12.dp).coerceAtLeast(120.dp)
         val childMaxHeight = maxOf(
             anchorY - with(density) { 12.dp.toPx() },
@@ -508,7 +519,7 @@ fun OcrLookupPopup(
     val popupHeightPx = with(density) { maxHeightDp.toPx() }
 
     val paddingPx = with(density) { 8.dp.toPx() }
-    val gapPx = with(density) { 8.dp.toPx() }
+    val gapPx = with(density) { (if (glassCard) 20.dp else 8.dp).toPx() }
 
     val screenshotFieldMapped = remember(ankiFieldMap) {
         try {
@@ -724,14 +735,22 @@ fun OcrLookupPopup(
     val layoutResult = remember(
         anchorX, anchorY, anchorWidth, anchorHeight,
         screenWidthPx, screenHeightPx, popupWidthPx, popupHeightPx, isVertical, popupModePref,
-        isRecursiveChild, glass,
+        isRecursiveChild, glass, glassCard,
     ) {
         val w: Float
         val h: Float
         val bestX: Float
         val bestY: Float
 
-        when (if (isRecursiveChild || glass) "floating" else popupModePref) {
+        val phoneCard = glassCard && screenWidthPx < with(density) { 600.dp.toPx() }
+        when (if (phoneCard) "phone_card" else if (isRecursiveChild || glass) "floating" else popupModePref) {
+            "phone_card" -> {
+                // the card at the bottom (at the top when the word is down there), the word stays visible above it
+                w = minOf(popupWidthPx, screenWidthPx)
+                h = minOf(popupHeightPx, screenHeightPx)
+                bestX = (screenWidthPx - w) / 2f
+                bestY = if (anchorY + maxOf(anchorHeight, 1f) + gapPx <= screenHeightPx - h - paddingPx) screenHeightPx - h - paddingPx else paddingPx
+            }
             "full_width" -> {
                 w = screenWidthPx
                 h = minOf(popupHeightPx, screenHeightPx)
@@ -1203,12 +1222,10 @@ fun OcrLookupPopup(
                 if (recursiveNavMode == "popup" && dismissOnOutsideTap) {
                     PopupCloseChrome()
                 }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                ) {
+                val entriesBody: @Composable () -> Unit = {
+                  Box(Modifier.fillMaxSize()) {
                     DictionaryEntryWebView(
+                        glassPopup = glassCard,
                         results = results,
                         styles = styles,
                         mediaDataUris = mediaDataUris,
@@ -1266,6 +1283,25 @@ fun OcrLookupPopup(
                             modifier = Modifier.padding(16.dp).align(Alignment.Center),
                         )
                     }
+                  }
+                }
+                if (glassCard) {
+                    GlassLookupCard(
+                        result = results.firstOrNull(),
+                        fallbackTitle = currentFrame?.query ?: lookupString,
+                        existingExpressions = existingExpressions,
+                        webView = webView,
+                        showPitchDiagram = showPitchDiagram,
+                        showPitchNumber = showPitchNumber,
+                        showPitchText = showPitchText,
+                        audioEnabled = wordAudioEnabled,
+                        arrowsEnabled = showNavigationButtons,
+                        ankiEnabled = ankiEnabled,
+                        phone = screenWidthPx < with(density) { 600.dp.toPx() },
+                        content = entriesBody,
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f)) { entriesBody() }
                 }
             }
         }
@@ -1316,6 +1352,9 @@ fun OcrLookupPopup(
                 )
             }
             PopupContent()
+        }
+        if (glassCard && visible && contentReady && anchorWidth > 0f && anchorHeight > 0f) {
+            GlassAnchorOutline(anchorX, anchorY, anchorWidth, anchorHeight, layoutResult.x, layoutResult.y, layoutResult.widthPx, layoutResult.heightPx)
         }
     }
 

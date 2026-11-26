@@ -279,6 +279,10 @@ object KumapieColours {
 
     private val OWN_ACTIONS = setOf("state", "rate", "undo", "mark")
 
+    /** [rate] / [undo] on kumahon's own store only (never kumapie), in [own]'s JSON; the rating's context is the open popup's sentence and place. Blocking. */
+    fun callOwn(context: Context, bodyJson: String): String = runCatching { own(context, JSONObject(bodyJson)) }
+        .onFailure { Log.w("KumapieColours", "own call failed: $it") }.getOrDefault("null")
+
     /** kumapie's provider can be reached (its app is installed); false = kumahon's own store answers ratings. */
     fun present(context: Context): Boolean = authority(context) != null
 
@@ -298,10 +302,10 @@ object KumapieColours {
         }
         val card = Cards.find(context, body.optString("word"), body.optString("reading"))
             // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
-            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) """{"state":"k"}""" else "null"
+            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) """{"state":"k","marked":true}""" else "null"
         val out = JSONObject()
         when (action) {
-            "state" -> out.put("state", Srs.state(card.due))
+            "state" -> { out.put("state", Srs.state(card.due)); out.put("marked", srs.isKnown(body.optString("word"), body.optString("reading"))) }
             "rate" -> {
                 srs.rate(card.id, body.optInt("ease"), answerMs = body.optLong("ms").takeIf { it > 0 })
                 out.put("state", Srs.state(srs.card(card.id)?.due))

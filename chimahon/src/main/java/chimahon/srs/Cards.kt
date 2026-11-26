@@ -39,6 +39,18 @@ object Cards {
         return store(context).cards().sortedBy { it.id }.firstOrNull { keyOf(it) == want }
     }
 
+    /** A card of this store and the interval label of each answer (Again, Hard, Good, Easy) it would get now: the step [Srs.rate] takes, without writing. */
+    class Preview(val card: Srs.Card, val labels: List<String>)
+
+    /** [find]'s card with its four answer intervals from the real FSRS state; null when kumahon's own store has no card of the word. Blocking (SQLite). */
+    fun preview(context: Context, word: String, reading: String, now: Long = System.currentTimeMillis()): Preview? {
+        val card = find(context, word, reading) ?: return null
+        val fsrs = store(context).fsrs
+        val before = card.stability?.let { Fsrs6.State(it, card.difficulty!!) }
+        val days = card.lastReview?.let { Srs.elapsedDays(it, now) } ?: 0
+        return Preview(card, (1..4).map { eu.kanade.tachiyomi.ui.glass.review.ReviewLogic.intervalLabel(fsrs.interval(fsrs.next(before, days, it).stability)) })
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Runs [block] in the background (never delays the caller); an exception is logged, never thrown. */

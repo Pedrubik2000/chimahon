@@ -40,6 +40,7 @@ internal data class DictionaryRenderSignature(
     val wordAudioAutoplay: Boolean,
     val showNavigationButtons: Boolean,
     val groupPitches: Boolean,
+    val glassPopup: Boolean = false,
 )
 
 private fun buildResultEntryJson(result: LookupResult, index: Int, priorityMap: Map<String, Int>, groupPitches: Boolean): JsonObject {
@@ -189,6 +190,7 @@ internal fun buildConfigPayload(
     wordAudioEnabled: Boolean = true,
     showNavigationButtons: Boolean = true,
     groupPitches: Boolean = false,
+    glassPopup: Boolean = false,
 ): JsonObject = buildJsonObject {
     val orderedTitles = activeProfile.dictionaryOrder.map { getDictionaryTitle(context, it) }
     val displayModesByTitle = activeProfile.dictionaryDisplayModes.mapKeys { (dirName, _) -> getDictionaryTitle(context, dirName) }
@@ -216,6 +218,7 @@ internal fun buildConfigPayload(
     put("recursiveNavMode", recursiveNavMode)
     put("renderRecursiveChrome", renderRecursiveChrome)
     put("showNavigationButtons", showNavigationButtons)
+    put("glassPopup", glassPopup)
     putJsonArray("tabs") {
         for (tab in tabs) {
             add(

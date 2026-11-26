@@ -56,6 +56,8 @@ fun DictionaryEntryWebView(
     entryJsons: List<String>? = null,
     customCss: String = "",
     groupPitches: Boolean = false,
+    /** Popup option D: the page draws in Glass colours and leaves the headword, pitch and rating row of the first entry to the Compose card. */
+    glassPopup: Boolean = false,
     modifier: Modifier = Modifier,
     webViewProvider: ((android.content.Context) -> WebView)? = null,
     onAnkiLookup: ((Int, Int?, String?, String?, Boolean) -> Unit)? = null,
@@ -107,7 +109,7 @@ fun DictionaryEntryWebView(
         showPitchDiagram, showPitchNumber, showPitchText,
         activeProfile, tabs, recursiveNavMode, wordAudioEnabled,
         effectiveWordAudioAutoplay, showNavigationButtons, groupPitches,
-        renderRecursiveChrome, entryJsons,
+        renderRecursiveChrome, entryJsons, glassPopup,
     ) {
         DictionaryRenderSignature(
             results = results, styles = styles, placeholder = placeholder, isDark = isDark,
@@ -119,7 +121,7 @@ fun DictionaryEntryWebView(
             recursiveNavMode = recursiveNavMode, renderRecursiveChrome = renderRecursiveChrome,
             wordAudioEnabled = wordAudioEnabled,
             wordAudioAutoplay = effectiveWordAudioAutoplay,
-            showNavigationButtons = showNavigationButtons, groupPitches = groupPitches,
+            showNavigationButtons = showNavigationButtons, groupPitches = groupPitches, glassPopup = glassPopup,
         )
     }
 
@@ -139,6 +141,7 @@ fun DictionaryEntryWebView(
                 wordAudioEnabled = wordAudioEnabled,
                 showNavigationButtons = showNavigationButtons,
                 groupPitches = groupPitches,
+                glassPopup = glassPopup,
             )
             val entries = entryJsons ?: buildResultEntryJsonStrings(results, activeProfile, context, groupPitches)
             config.toString() to entries
@@ -159,7 +162,7 @@ fun DictionaryEntryWebView(
         )
     }
 
-    Box(modifier = modifier.background(bgColor)) {
+    Box(modifier = modifier.background(if (glassPopup) eu.kanade.presentation.glass.Glass.panel else bgColor)) {
         AndroidView<WebView>(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx: android.content.Context ->

@@ -1052,3 +1052,44 @@ html[data-theme="dark"][data-chima-eink-mode="true"] .anki-open-btn:hover {
 .top-picture[hidden] {
   display: none;
 }
+
+/* ── Glass popup D (payload.glassPopup): the Compose card owns the first entry's headword, pitch, audio, + and rating row ── */
+html[data-glass-popup="true"] .entry[data-index="0"] .entry-headword-row,
+html[data-glass-popup="true"] .entry[data-index="0"] .kumapie-ratings,
+html[data-glass-popup="true"] .entry[data-index="0"] .pitches-section,
+html[data-glass-popup="true"] .floating-nav-container { display: none !important; }
+html[data-glass-popup="true"] .entries { padding: 0 20px 8px; }
+html[data-glass-popup="true"] .entry { padding: 0; }
+html[data-glass-popup="true"] .entry + .entry { border-top: 1px solid var(--border); margin-top: 0; padding-top: 8px; }
+html[data-glass-popup="true"] body { font-size: 16px; line-height: 24px; }
+html[data-glass-popup="true"] .glass-termtags { padding: 10px 0 2px; }
+html[data-glass-popup="true"] .dictionary-group {
+  margin: 0 -20px; padding: 0 20px; border-top: 1px solid var(--border);
+}
+html[data-glass-popup="true"] .dictionary-header {
+  height: 48px; padding: 0; margin: 0; gap: 10px; border-left: 0; background: none;
+  font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85);
+}
+html[data-glass-popup="true"] .dictionary-header.selected { color: var(--accent); background: none; }
+html[data-glass-popup="true"] .dictionary-header .dict-arrow { margin-right: 0; }
+html[data-glass-popup="true"] .dictionary-header .dict-arrow svg { width: 22px; height: 22px; }
+html[data-glass-popup="true"] .definition-list { margin: 0 0 10px; padding-left: 0; }
+html[data-glass-popup="true"] .definition-item { margin-bottom: 8px; line-height: 24px; }
+/* tags as Glass chips: grey word type, ice-outline usage, star on common */
+html[data-glass-popup="true"] .tag { font-size: 12px; margin: 0 6px 6px 0; }
+html[data-glass-popup="true"] .tag-label {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 8px;
+  background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); font-weight: 600; gap: 4px;
+}
+html[data-glass-popup="true"] .tag-body {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 0 8px 8px 0;
+  background: rgba(255,255,255,0.2); color: #fff;
+}
+html[data-glass-popup="true"] .tag[data-category="style"] .tag-label,
+html[data-glass-popup="true"] .tag[data-category="dialect"] .tag-label {
+  background: transparent; border: 1px solid rgba(156,201,255,0.55); color: #9CC9FF;
+}
+html[data-glass-popup="true"] .tag[data-category="popular"] .tag-label::before { content: "\2605"; }
+html[data-glass-popup="true"] .tag[data-category="frequency"] .tag-label,
+html[data-glass-popup="true"] .tag[data-category="frequency"] .tag-body { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+html[data-glass-popup="true"] .entry-deinflection-row { opacity: 0.62; font-size: 14px; }

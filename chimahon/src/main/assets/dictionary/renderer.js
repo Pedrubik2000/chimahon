@@ -14,6 +14,7 @@
   let _pendingPopupSelection = '';
   let _selectedDictionaries = {}; // entryIndex -> dictName
   let _wordAudioEnabled = true;
+  let _glassPopup = false;
   let _autoplayGuard = false;
   let _listenersInstalled = false;
   let _lastAnkiDupAction = -1; // -1 = unknown/not set
@@ -2889,6 +2890,16 @@
     appendKumapieMark(iconGroup, expression, reading, result.matched);
     headSection.appendChild(iconGroup);
     body.appendChild(headSection);
+    if (_glassPopup && !result.index) {
+      // Popup D: the card draws this headword; its term tags (common, word type...) stay as a chip row.
+      const termTagList = headSection.querySelector('.headword-tag-list');
+      if (termTagList) {
+        const tagRow = document.createElement('div');
+        tagRow.className = 'glass-termtags';
+        tagRow.appendChild(termTagList);
+        body.appendChild(tagRow);
+      }
+    }
     appendKumapieRatings(article, expression, reading);
 
     const deinflection = createDeinflectionRow(result.process, result.term ? result.term.rules : '', result.term ? result.term.ruleTags : null);
@@ -2981,6 +2992,17 @@
       const started = performance.now();
       const root = document.documentElement;
       _wordAudioEnabled = payload.wordAudioEnabled !== false;
+      // Popup option D: Glass colours, and the first entry's headword / pitch / rating row are the Compose card's.
+      _glassPopup = payload.glassPopup === true;
+      root.dataset.glassPopup = _glassPopup ? 'true' : 'false';
+      const glassVars = {
+        '--bg': '#14171D', '--fg': '#ffffff', '--secondary': 'rgba(255,255,255,0.62)', '--border': 'rgba(255,255,255,0.18)',
+        '--hover-bg': 'rgba(255,255,255,0.06)', '--accent': '#9CC9FF', '--on-accent': '#000000',
+        '--pronunciation-annotation-color': '#ffffff',
+      };
+      for (const key in glassVars) {
+        if (_glassPopup) root.style.setProperty(key, glassVars[key], 'important'); else root.style.removeProperty(key);
+      }
       _autoplayGuard = false;
       _selectedDictionaries = {};
       resetDictionaryMediaObserver();
@@ -3301,6 +3323,32 @@
       } catch (e) {
         console.error('[DictionaryRenderJS] updateMediaDataUris error:', e);
       }
+    },
+
+    /** Popup D: opens the dictionary's section of the first entry and scrolls it to the top. */
+    scrollToDictionary(name) {
+      const groups = Array.from(document.querySelectorAll('.entry[data-index="0"] .dictionary-group'));
+      const group = groups.find((g) => g.dataset.dictionary === name);
+      if (!group) return;
+      group.dataset.collapsed = 'false';
+      _isJumping = true;
+      group.scrollIntoView({ behavior: document.documentElement.dataset.chimaScrollBehavior || 'smooth', block: 'start' });
+      setTimeout(() => { _isJumping = false; }, 500);
+    },
+
+    /** Popup D: presses one of the first entry's own buttons ('audio', 'mine', 'open'), so selection, dictionary choice and duplicates act as before. */
+    press(which) {
+      const selector = { audio: '.word-audio-btn', mine: '.anki-add-btn', open: '.anki-open-btn' }[which];
+      const button = selector && document.querySelector('.entry[data-index="0"] ' + selector);
+      if (button) button.click();
+    },
+
+    /** Popup D arrows: the next / previous entry, or a page of the one entry. */
+    step(delta) {
+      if (document.querySelectorAll('.entry').length > 1) { window.DictionaryRenderer.navigate(delta); return; }
+      _isJumping = true;
+      window.scrollBy({ top: delta * window.innerHeight * 0.8, behavior: document.documentElement.dataset.chimaScrollBehavior || 'smooth' });
+      setTimeout(() => { _isJumping = false; }, 500);
     },
 
     onAudioResults: (id, results) => { /* overriden by UI */ },

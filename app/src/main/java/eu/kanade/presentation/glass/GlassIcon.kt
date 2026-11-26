@@ -102,6 +102,8 @@ private val GlassIcons: Map<String, ImageVector> by lazy {
         "cards" to listOf(s(rect(3f, 7f, 13f, 13f, 2f) + "M8 4h11a2 2 0 0 1 2 2v11", join = true)),
         "eye" to listOf(s("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" + circle(12f, 12f, 3f), cap = true, join = true)),
         "undo" to listOf(s("M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3", cap = true, join = true)),
+        "arrowUp" to listOf(s("M12 20V5M6 11l6-6 6 6", cap = true, join = true)),
+        "arrowDown" to listOf(s("M12 4v15M6 13l6 6 6-6", cap = true, join = true)),
         "stats" to listOf(s("M4 19.5V14M9 19.5V9M14 19.5v-6M19 19.5V5", cap = true, join = true)),
         "bookmark" to listOf(s("M6.5 3.5h11v17l-5.5-4-5.5 4z", join = true)),
         "pencil" to listOf(s("M4 20l1-4.5L16 4.5l3.5 3.5-11 11zM14 7l3.5 3.5", join = true)),
