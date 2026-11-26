@@ -679,7 +679,7 @@ object SettingsReaderScreen : SearchableSettings {
                             try {
                                 ocrManager.clearCache()
                                 withUIContext {
-                                    context.toast(MR.strings.cache_deleted)
+                                    context.toast(MR.strings.ocr_cache_cleared)
                                     ocrCacheSizeText = ""
                                 }
                             } catch (e: Throwable) {
