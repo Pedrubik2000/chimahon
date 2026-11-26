@@ -54,7 +54,7 @@ import eu.kanade.tachiyomi.ui.glass.openTitle
 import eu.kanade.tachiyomi.ui.glass.statusLabel
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
-import eu.kanade.tachiyomi.ui.setting.SettingsScreen
+import eu.kanade.tachiyomi.ui.glass.discover.NeedsList
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
@@ -72,16 +72,8 @@ fun GlassHomePage(model: GlassTitlesModel, navigator: Navigator) {
             hero?.let { Backdrop(it.title) }
             Header(model, navigator)
             if (list.isEmpty()) {
-                Column(
-                    Modifier.padding(start = 108.dp, top = 160.dp, end = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(stringResource(MR.strings.glass_empty), fontSize = Glass.label)
-                    Pill(
-                        stringResource(MR.strings.glass_open_tracking),
-                        onClick = { navigator.push(SettingsScreen(SettingsScreen.Destination.Tracking)) },
-                        primary = true,
-                    )
+                Box(Modifier.padding(start = 108.dp, top = 160.dp, end = 32.dp)) {
+                    NeedsList(stringResource(MR.strings.glass_empty))
                 }
             } else {
                 hero?.let { HeroText(it, navigator) }

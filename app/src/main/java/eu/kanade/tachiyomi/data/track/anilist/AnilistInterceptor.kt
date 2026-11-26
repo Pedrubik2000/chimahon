@@ -32,6 +32,7 @@ class AnilistInterceptor(val anilist: Anilist, private var token: String?) : Int
         // Refresh access token if null or expired.
         if (oauth!!.isExpired()) {
             anilist.logout()
+            anilist.markExpired() // after logout(): that clears the flag
             throw IOException("Token expired")
         }
 

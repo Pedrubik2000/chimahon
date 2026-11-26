@@ -45,7 +45,7 @@ import kotlin.time.Duration.Companion.minutes
 import tachiyomi.domain.track.anime.model.AnimeTrack as DomainAnimeTrack
 import tachiyomi.domain.track.model.Track as DomainTrack
 
-class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
+class AnilistApi(val client: OkHttpClient, private val interceptor: AnilistInterceptor) {
 
     private val json: Json by injectLazy()
 
@@ -95,6 +95,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         errorObj?.errors?.firstOrNull()?.let {
             val msg = it.message
             if (msg.contains("Invalid token") || it.status == 401) {
+                if (msg.contains("Invalid token")) interceptor.anilist.markExpired()
                 throw Exception("AniList token expired, please login again")
             }
             throw Exception(msg)

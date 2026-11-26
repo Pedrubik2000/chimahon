@@ -195,7 +195,14 @@ internal fun sourceOrderLine(): String {
 internal fun sectionItems(id: String, navigator: Navigator): List<Preference> = when (id) {
     "accounts" -> {
         val dl = splitDownloads()
-        listOfNotNull(group(stringResource(MR.strings.glass_dl_rd), dl.realDebrid)) + SettingsTrackingScreen.getPreferences()
+        var other by rememberSaveable { mutableStateOf(false) }
+        val trackers = SettingsTrackingScreen.getPreferences() // composed always: its dialogs live in it
+        listOf<Preference>(
+            Preference.PreferenceItem.CustomPreference(title = "AniList") { AniListCard() },
+            Preference.PreferenceItem.CustomPreference(title = stringResource(MR.strings.glass_acc_other)) {
+                OtherTrackersFold(other) { other = !other }
+            },
+        ) + (if (other) trackers else emptyList()) + listOfNotNull(group(stringResource(MR.strings.glass_dl_rd), dl.realDebrid))
     }
     "sources" -> {
         val dl = splitDownloads()

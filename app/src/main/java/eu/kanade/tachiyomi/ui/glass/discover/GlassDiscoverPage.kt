@@ -62,12 +62,12 @@ import eu.kanade.tachiyomi.data.anilist.AniListLibrary.Entry
 import eu.kanade.tachiyomi.ui.glass.FilterGroup
 import eu.kanade.tachiyomi.ui.glass.GlassFilterScaffold
 import eu.kanade.tachiyomi.ui.glass.GlassSearchField
+import eu.kanade.tachiyomi.ui.glass.settings.AniListNeeds
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.TagChip
 import eu.kanade.tachiyomi.ui.glass.TagState
 import eu.kanade.tachiyomi.ui.glass.lengthLabel
 import eu.kanade.tachiyomi.ui.glass.openTitle
-import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 import uy.kohesive.injekt.Injekt
@@ -89,14 +89,15 @@ internal val ON_HOME = setOf("CURRENT", "REPEATING", "PLANNING")
 @Composable
 fun GlassDiscoverPage(model: GlassDiscoverModel, navigator: Navigator) {
     val entries by model.entries.collectAsStateWithLifecycle()
+    val loggedIn by model.loggedInState.collectAsStateWithLifecycle()
     val open: (Entry) -> Unit = { openDiscoverTitle(navigator, it) }
 
-    LaunchedEffect(entries) { model.loadRecs() }
+    LaunchedEffect(entries, loggedIn) { model.loadRecs() }
 
-    if (!model.loggedIn) {
+    if (!loggedIn) {
         Column(Modifier.padding(start = 108.dp, top = 28.dp, end = 32.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
             Tabs(model)
-            NeedsList(stringResource(MR.strings.glass_discover_login), navigator)
+            NeedsList(stringResource(MR.strings.glass_discover_login))
         }
         return
     }
@@ -121,16 +122,7 @@ private fun Tabs(model: GlassDiscoverModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun NeedsList(text: String, navigator: Navigator) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(text, fontSize = Glass.label)
-        Pill(
-            stringResource(MR.strings.glass_open_tracking),
-            onClick = { navigator.push(SettingsScreen(SettingsScreen.Destination.Tracking)) },
-            primary = true,
-        )
-    }
-}
+internal fun NeedsList(text: String) = AniListNeeds(text)
 
 @Composable
 internal fun ErrorLine(model: GlassDiscoverModel) {
@@ -242,7 +234,7 @@ private fun PickTab(model: GlassDiscoverModel, open: (Entry) -> Unit, navigator:
             when {
                 nv == null -> Unit
                 nv.ranked.isEmpty() && model.entries.value.isNullOrEmpty() ->
-                    NeedsList(stringResource(MR.strings.glass_empty), navigator)
+                    NeedsList(stringResource(MR.strings.glass_empty))
                 pick == null -> Text(stringResource(MR.strings.glass_discover_nothing), fontSize = Glass.label)
                 else -> {
                     PickMain(model, pick, nv.why(pick, recommendedBy), open)
@@ -379,7 +371,7 @@ private fun DuelTab(model: GlassDiscoverModel, open: (Entry) -> Unit, navigator:
         val winner = d?.winner
         when {
             ranking == null -> Unit
-            model.entries.value.isNullOrEmpty() -> NeedsList(stringResource(MR.strings.glass_empty), navigator)
+            model.entries.value.isNullOrEmpty() -> NeedsList(stringResource(MR.strings.glass_empty))
             pair != null -> {
                 Text(stringResource(MR.strings.glass_discover_which), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
                 Row(Modifier.fillMaxWidth().height(466.dp), verticalAlignment = Alignment.CenterVertically) {

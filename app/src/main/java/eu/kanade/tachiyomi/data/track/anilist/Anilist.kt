@@ -382,6 +382,9 @@ class Anilist(id: Long) : BaseTracker(id, "AniList"), DeletableTracker, AnimeTra
         }
     }
 
+    /** The API said the token is no good (the Glass AniList card shows "Login expired" until the next sign in). */
+    fun markExpired() = trackPreferences.trackAuthExpired(this).set(true)
+
     override fun logout() {
         super.logout()
         trackPreferences.trackToken(this).delete()

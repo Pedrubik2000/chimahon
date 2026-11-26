@@ -122,6 +122,10 @@ class GlassDiscoverModel(
 
     val loggedIn: Boolean get() = trackerManager.aniList.isLoggedIn
 
+    /** For the pages: signing in from the card redraws them. */
+    val loggedInState: StateFlow<Boolean> = trackerManager.aniList.isLoggedInFlow
+        .stateIn(screenModelScope, SharingStarted.Eagerly, trackerManager.aniList.isLoggedIn)
+
     var tab by mutableStateOf(DiscoverTab.PICK)
 
     /** Quiet line for the last failed AniList call; what is shown stays. */

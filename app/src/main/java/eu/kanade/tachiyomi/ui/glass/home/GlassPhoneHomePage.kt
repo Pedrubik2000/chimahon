@@ -56,7 +56,7 @@ import eu.kanade.tachiyomi.ui.glass.Hero
 import eu.kanade.tachiyomi.ui.glass.openTitle
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
-import eu.kanade.tachiyomi.ui.setting.SettingsScreen
+import eu.kanade.tachiyomi.ui.glass.discover.NeedsList
 import kotlinx.coroutines.launch
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -127,14 +127,7 @@ fun GlassPhoneHomePage(
         }
 
         if (list.isEmpty()) {
-            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(stringResource(MR.strings.glass_empty), fontSize = Glass.label)
-                Pill(
-                    stringResource(MR.strings.glass_open_tracking),
-                    onClick = { navigator.push(SettingsScreen(SettingsScreen.Destination.Tracking)) },
-                    primary = true,
-                )
-            }
+            Box(Modifier.padding(horizontal = 16.dp)) { NeedsList(stringResource(MR.strings.glass_empty)) }
         } else {
             Row(
                 Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),

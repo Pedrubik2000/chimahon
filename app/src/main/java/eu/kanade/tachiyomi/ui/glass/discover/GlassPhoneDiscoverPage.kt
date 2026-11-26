@@ -84,11 +84,12 @@ import kotlin.math.roundToInt
 @Composable
 fun GlassPhoneDiscoverPage(model: GlassDiscoverModel, navigator: Navigator) {
     val entries by model.entries.collectAsStateWithLifecycle()
+    val loggedIn by model.loggedInState.collectAsStateWithLifecycle()
     val open: (Entry) -> Unit = { openDiscoverTitle(navigator, it) }
 
-    LaunchedEffect(entries) { model.loadRecs() }
+    LaunchedEffect(entries, loggedIn) { model.loadRecs() }
 
-    if (model.loggedIn && model.tab == DiscoverTab.BROWSE) {
+    if (loggedIn && model.tab == DiscoverTab.BROWSE) {
         PhoneBrowse(model, open)
         return
     }
@@ -101,7 +102,7 @@ fun GlassPhoneDiscoverPage(model: GlassDiscoverModel, navigator: Navigator) {
     ) {
         PhoneHeader(model)
         when {
-            !model.loggedIn -> NeedsList(stringResource(MR.strings.glass_discover_login), navigator)
+            !loggedIn -> NeedsList(stringResource(MR.strings.glass_discover_login))
             model.tab == DiscoverTab.PICK -> PhonePick(model, open, navigator)
             else -> PhoneDuel(model, open, navigator)
         }
@@ -176,7 +177,7 @@ private fun PhonePick(model: GlassDiscoverModel, open: (Entry) -> Unit, navigato
     when {
         nv == null -> Unit
         nv.ranked.isEmpty() && model.entries.value.isNullOrEmpty() ->
-            NeedsList(stringResource(MR.strings.glass_empty), navigator)
+            NeedsList(stringResource(MR.strings.glass_empty))
         pick == null -> Text(stringResource(MR.strings.glass_discover_nothing), fontSize = Glass.label)
         else -> {
             val e = pick.entry
@@ -360,7 +361,7 @@ private fun PhoneDuel(model: GlassDiscoverModel, open: (Entry) -> Unit, navigato
 
     when {
         ranking == null -> Unit
-        model.entries.value.isNullOrEmpty() -> NeedsList(stringResource(MR.strings.glass_empty), navigator)
+        model.entries.value.isNullOrEmpty() -> NeedsList(stringResource(MR.strings.glass_empty))
         d != null && pair != null -> {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
