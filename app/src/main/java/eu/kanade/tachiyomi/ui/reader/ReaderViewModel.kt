@@ -203,7 +203,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private var ocrScanJob: Job? = null
     private var ocrScanChapterId: Long? = null
     private val ocrScannedChapterIds = mutableSetOf<Long>()
-    private val ocrDiagLoggedChapters = mutableSetOf<Long>()
+    private val ocrDiagLoggedChapters = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
     private val maxOcrCacheEntries = 120
 
     private val mokuroChapterCache = mutableMapOf<Long, MokuroChapterData>()

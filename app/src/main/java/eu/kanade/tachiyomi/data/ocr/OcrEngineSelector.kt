@@ -37,16 +37,19 @@ suspend fun recognizePage(
         val localOcrBridge = Injekt.get<LocalOcrBridge>()
         val modelDownloader = Injekt.get<ModelDownloader>()
         if (!modelDownloader.isDownloaded) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local selected but models not downloaded, triggering download" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local selected but models not downloaded, triggering download" }
             modelDownloader.triggerDownload()
             return emptyList()
         }
-        if (!localOcrBridge.isAvailable) return emptyList()
+        if (!localOcrBridge.isAvailable) {
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine not available" }
+            return emptyList()
+        }
         if (!localOcrBridge.isInitialized) {
             localOcrBridge.init()
         }
         if (!localOcrBridge.isInitialized) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local engine failed to initialize" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine failed to initialize" }
             return emptyList()
         }
         val result = processImageWithChunks(bytes, language) { chunk ->
@@ -58,9 +61,10 @@ suspend fun recognizePage(
             lines
         }
         if (result.isEmpty()) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local engine returned no results" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine returned no results" }
             return emptyList()
         }
+        logcat("KumahonOcr", LogPriority.INFO) { "OCR engine=local lang=${language.bcp47} merged=${result.size}" }
         return result
     }
 
@@ -82,16 +86,19 @@ suspend fun recognizePage(
         val localOcrBridge = Injekt.get<LocalOcrBridge>()
         val modelDownloader = Injekt.get<ModelDownloader>()
         if (!modelDownloader.isDownloaded) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local selected but models not downloaded, triggering download" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local selected but models not downloaded, triggering download" }
             modelDownloader.triggerDownload()
             return emptyList()
         }
-        if (!localOcrBridge.isAvailable) return emptyList()
+        if (!localOcrBridge.isAvailable) {
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine not available" }
+            return emptyList()
+        }
         if (!localOcrBridge.isInitialized) {
             localOcrBridge.init()
         }
         if (!localOcrBridge.isInitialized) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local engine failed to initialize" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine failed to initialize" }
             return emptyList()
         }
         val result = processImageWithChunks(bitmap, language) { chunk ->
@@ -103,9 +110,10 @@ suspend fun recognizePage(
             lines
         }
         if (result.isEmpty()) {
-            logcat("OcrEngineSelector", LogPriority.WARN) { "local engine returned no results" }
+            logcat("KumahonOcr", LogPriority.WARN) { "local engine returned no results" }
             return emptyList()
         }
+        logcat("KumahonOcr", LogPriority.INFO) { "OCR engine=local lang=${language.bcp47} merged=${result.size}" }
         return result
     }
 
