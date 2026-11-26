@@ -10,21 +10,24 @@ import chimahon.srs.SyncTrigger
  * ([SyncTrigger]), so the rating reaches kumapie as a revlog event (ids kept: ms * 1000 + 0..999, dedup by id).
  */
 object PopupRating {
-    /** Rates the word's card (1 Again .. 4 Easy); answers the undo token (the card id), or null = not saved (no card of it). Blocking. */
+    /** Rates the word's card (1 Again .. 4 Easy); answers the undo token (`card:revlogId`), or null = not saved (no card of it). Blocking. */
     fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long): String? {
         val card = Cards.find(context, word, reading) ?: return null
         val srs = Cards.store(context)
         val sentence = chimahon.ocr.KumapieColours.sentence
         val place = chimahon.ocr.KumapieColours.place
-        val token = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") }?.toString()
+        val rev = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") } ?: return null
         // where it happened is a context of the card (local only, never synced), as the rating row has always saved
-        if (token != null && place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
-        return token
+        if (place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
+        chimahon.ocr.KumapieColours.clear() // the page's colours follow the new state
+        return "${card.id}:$rev"
     }
 
-    /** Takes back the rating [token] ([ratePopupCard]'s answer); false = not undone. Blocking. */
+    /** Takes back the rating [token] ([ratePopupCard]'s answer) when it is still the card's newest; false = not undone. Blocking. */
     fun undoPopupCard(context: Context, token: String): Boolean {
-        val id = token.toLongOrNull() ?: return false
-        return PopupRate.undo(Cards.store(context), id) { SyncTrigger.request(context, "popup undo") }
+        val (card, rev) = token.split(":").mapNotNull { it.toLongOrNull() }.takeIf { it.size == 2 } ?: return false
+        val undone = PopupRate.undo(Cards.store(context), card, rev) { SyncTrigger.request(context, "popup undo") }
+        if (undone) chimahon.ocr.KumapieColours.clear()
+        return undone
     }
 }

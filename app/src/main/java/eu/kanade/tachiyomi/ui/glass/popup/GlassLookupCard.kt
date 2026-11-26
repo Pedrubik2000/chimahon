@@ -112,10 +112,13 @@ internal fun GlassLookupCard(
     var answered by remember(expression, reading) { mutableStateOf<Pair<String, String>?>(null) }
     var note by remember(expression, reading) { mutableStateOf<String?>(null) }
     val shownAt = remember(expression, reading) { SystemClock.elapsedRealtime() }
+    val once = remember(expression, reading) { RateOnce() }
 
-    val state = word?.state
-    val hasCard = state != null && state != "u" && (state != "k" || word?.preview != null)
-    val bar = if (state == null) PopupLogic.Bar.MINE else PopupLogic.bar(state, hasCard)
+    // loading (word == null): no state shown yet, no bar. Loaded: the card exists only when kumahon's own store has it (preview); else the word is
+    // New (or Known), and the bar is Mark known + Mine as before.
+    val hasCard = word?.preview != null
+    val state = word?.let { if (hasCard || it.state == "k") it.state else "u" }
+    val bar = if (state == null || !hasCard) PopupLogic.Bar.MINE else PopupLogic.bar(state, true)
     var dictionary by remember(expression) { mutableIntStateOf(0) }
 
     fun press(which: String) { webView.evaluateJavascript("window.DictionaryRenderer && window.DictionaryRenderer.press('$which');", null) }
@@ -132,17 +135,18 @@ internal fun GlassLookupCard(
         }
     }
     fun rate(ease: Int) {
+        if (answered != null || !once.begin()) return // one rating per word per popup open: a double tap is ignored
         scope.launch {
             val ms = SystemClock.elapsedRealtime() - shownAt
             val token = withContext(Dispatchers.IO) { PopupRating.ratePopupCard(context, expression, reading, ease, ms) }
-            if (token != null) { answered = PopupLogic.RATINGS[ease - 1] to token; note = null; tick++ } else note = "The rating was not saved."
+            if (token != null) { answered = PopupLogic.RATINGS[ease - 1] to token; note = null; tick++ } else { once.fail(); note = "The rating was not saved." }
         }
     }
     fun undo() {
         val (_, token) = answered ?: return
         scope.launch {
             val undone = withContext(Dispatchers.IO) { PopupRating.undoPopupCard(context, token) }
-            if (undone) { answered = null; tick++ } else note = "Undo did not work."
+            if (undone) { answered = null; once.reset(); tick++ } else note = "Undo did not work."
         }
     }
 
@@ -165,7 +169,7 @@ internal fun GlassLookupCard(
                         Box(Modifier.size(8.dp).clip(CircleShape).background(stateColour(state)))
                         val p = word?.preview?.card
                         Text(
-                            note ?: PopupLogic.statusLine(state ?: "u", p?.created, p?.due, System.currentTimeMillis()),
+                            note ?: if (state == null) "" else PopupLogic.statusLine(state, p?.created, p?.due, System.currentTimeMillis()),
                             color = Glass.secondary, fontSize = Glass.body, maxLines = 2,
                         )
                     }
@@ -202,7 +206,7 @@ internal fun GlassLookupCard(
         Box(Modifier.fillMaxWidth().height(1.dp).background(Glass.line))
         Column(Modifier.fillMaxWidth().background(Glass.panel).padding(horizontal = 14.dp, vertical = 12.dp)) {
             when {
-                result == null -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Arrows(arrowsEnabled, ::step) }
+                result == null || state == null -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Arrows(arrowsEnabled, ::step) }
                 bar == PopupLogic.Bar.MINE -> Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val marked = word?.marked == true
                     Pill(if (marked) "Known" else "Mark known", ::mark, Modifier.weight(1f), primary = !marked, icon = "check", centered = true)

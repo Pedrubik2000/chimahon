@@ -115,10 +115,36 @@ internal class KumapieJsBridge(
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
+    /**
+     * Popup D (the page sends `own: true`): state, mark, rate and undo go to kumahon's own store only, the rating through the same
+     * function as the card's buttons ([eu.kanade.tachiyomi.ui.glass.popup.PopupRating]); never kumapie's provider. Else as ever. Blocking.
+     */
+    private fun answer(bodyJson: String): String {
+        val body = org.json.JSONObject(bodyJson)
+        if (!body.optBoolean("own")) return chimahon.ocr.KumapieColours.call(context, bodyJson)
+        val own = { chimahon.ocr.KumapieColours.callOwn(context, bodyJson) }
+        return when (body.optString("action")) {
+            "rate" -> {
+                val token = eu.kanade.tachiyomi.ui.glass.popup.PopupRating.ratePopupCard(
+                    context, body.optString("word"), body.optString("reading"), body.optInt("ease"), body.optLong("ms"),
+                ) ?: return "null"
+                val asked = org.json.JSONObject(bodyJson).put("action", "state").toString()
+                val state = runCatching { org.json.JSONObject(chimahon.ocr.KumapieColours.callOwn(context, asked)).optString("state") }.getOrDefault("")
+                org.json.JSONObject().put("state", state)
+                    .put("rated", org.json.JSONObject().put("notes", org.json.JSONArray().put(0)).put("cards", 1).put("undo", token)).toString()
+            }
+            "undo" -> {
+                val token = body.optJSONObject("rated")?.optString("undo") ?: return "null"
+                org.json.JSONObject().put("undone", eu.kanade.tachiyomi.ui.glass.popup.PopupRating.undoPopupCard(context, token)).toString()
+            }
+            else -> own()
+        }
+    }
+
     @JavascriptInterface
     fun request(bodyJson: String, callbackId: String) {
         scope.launch {
-            val answer = withContext(Dispatchers.IO) { chimahon.ocr.KumapieColours.call(context, bodyJson) }
+            val answer = withContext(Dispatchers.IO) { answer(bodyJson) }
             webViewProvider()?.evaluateJavascript(
                 "window.DictionaryRenderer && window.DictionaryRenderer.onKumapie(${org.json.JSONObject.quote(callbackId)}, $answer);",
                 null,

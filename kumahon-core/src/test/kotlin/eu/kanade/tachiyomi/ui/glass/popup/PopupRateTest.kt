@@ -27,7 +27,8 @@ class PopupRateTest {
         val other = store("other") // stands for anything else: nothing may reach it
         val card = mine(own, "済みません", "すみません")
         var syncs = 0
-        PopupRate.rate(own, card.id, 3, 1200) { syncs++ } shouldBe card.id
+        val rev = PopupRate.rate(own, card.id, 3, 1200) { syncs++ }!!
+        own.lastRevlogId(card.id) shouldBe rev
         syncs shouldBe 1
         own.dump().getJSONArray("revlog").length() shouldBe 1
         other.dump().getJSONArray("revlog").length() shouldBe 0
@@ -43,12 +44,36 @@ class PopupRateTest {
     fun `undo takes it back and syncs`() {
         val own = store("own")
         val card = mine(own, "済みません", "すみません")
-        PopupRate.undo(own, card.id) { } shouldBe false // nothing to undo yet
-        PopupRate.rate(own, card.id, 3, 0) { }
+        PopupRate.undo(own, card.id, 1) { } shouldBe false // nothing to undo yet
+        val rev = PopupRate.rate(own, card.id, 3, 0) { }!!
         var syncs = 0
-        PopupRate.undo(own, card.id) { syncs++ } shouldBe true
+        PopupRate.undo(own, card.id, rev) { syncs++ } shouldBe true
         syncs shouldBe 1
         own.card(card.id)!!.stability shouldBe null
+    }
+
+    @Test
+    fun `undo only takes back its own rating, not a newer one`() {
+        val own = store("own")
+        val card = mine(own, "済みません", "すみません")
+        val mineRev = PopupRate.rate(own, card.id, 3, 0) { }!!
+        own.rate(card.id, 4, now = System.currentTimeMillis() + 5_000) // something else rated it after (Review, another device)
+        var syncs = 0
+        PopupRate.undo(own, card.id, mineRev) { syncs++ } shouldBe false
+        syncs shouldBe 0
+        own.dump().getJSONArray("revlog").length() shouldBe 2 // no undo row written
+        (own.card(card.id)!!.stability != null) shouldBe true
+    }
+
+    @Test
+    fun `a double tap rates once, a failed or undone rating gives the turn back`() {
+        val once = RateOnce()
+        once.begin() shouldBe true
+        once.begin() shouldBe false
+        once.fail()
+        once.begin() shouldBe true
+        once.reset()
+        once.begin() shouldBe true
     }
 
     @Test

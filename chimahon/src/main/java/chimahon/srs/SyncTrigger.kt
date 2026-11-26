@@ -23,6 +23,10 @@ object SyncTrigger {
     /** A reason to sync ([why] is for the log). Cheap and safe from any thread; nothing when not paired. */
     fun request(context: Context, why: String) {
         val app = context.applicationContext
+        worker.execute { requestNow(app, why) } // the pairing is read from preferences: never on the caller's (main) thread
+    }
+
+    private fun requestNow(app: Context, why: String) {
         if (!Cards.peer(app).paired()) return
         Log.i(TAG, "requested: $why")
         if (gate.request()) arm(app)
@@ -45,8 +49,10 @@ object SyncTrigger {
     fun onForeground(context: Context) {
         val app = context.applicationContext
         foreground = true
-        val last = runCatching { Cards.peer(app).lastSyncTime() }.getOrDefault(0L)
-        if (SyncGate.dueOnStart(last, System.currentTimeMillis())) request(app, "app start")
+        worker.execute {
+            val last = runCatching { Cards.peer(app).lastSyncTime() }.getOrDefault(0L)
+            if (SyncGate.dueOnStart(last, System.currentTimeMillis())) requestNow(app, "app start")
+        }
         main.removeCallbacksAndMessages(null)
         tick(app)
     }

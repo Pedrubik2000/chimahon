@@ -280,14 +280,14 @@ object KumapieColours {
     private val OWN_ACTIONS = setOf("state", "rate", "undo", "mark")
 
     /** [rate] / [undo] on kumahon's own store only (never kumapie), in [own]'s JSON; the rating's context is the open popup's sentence and place. Blocking. */
-    fun callOwn(context: Context, bodyJson: String): String = runCatching { own(context, JSONObject(bodyJson)) }
+    fun callOwn(context: Context, bodyJson: String): String = runCatching { own(context, JSONObject(bodyJson), withMarked = true) }
         .onFailure { Log.w("KumapieColours", "own call failed: $it") }.getOrDefault("null")
 
     /** kumapie's provider can be reached (its app is installed); false = kumahon's own store answers ratings. */
     fun present(context: Context): Boolean = authority(context) != null
 
     /** [call] without kumapie: the word's card in kumahon's own store answers "state", "rate" and "undo" in kumapie's JSON shape. */
-    private fun own(context: Context, body: JSONObject): String {
+    private fun own(context: Context, body: JSONObject, withMarked: Boolean = false): String {
         val action = body.getString("action")
         if (action != "state" && action != "rate" && action != "undo" && action != "mark") return "null" // reload, sense: kumapie only, as before
         val srs = Cards.store(context)
@@ -296,16 +296,18 @@ object KumapieColours {
             val word = body.optString("word").takeIf { it.isNotBlank() } ?: return "null"
             val known = body.optBoolean("known")
             srs.mark(word, known)
+            // the page's form too (となり for 隣), as kumapie marks both: the colours of the page follow
+            if (withMarked) body.optString("text").takeIf { it.isNotBlank() && it != word }?.let { srs.mark(it, known) }
             clear()
             Cards.later { Cards.sync(context) }
             return JSONObject().put("marked", known).toString()
         }
         val card = Cards.find(context, body.optString("word"), body.optString("reading"))
             // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
-            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) """{"state":"k","marked":true}""" else "null"
+            ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) (if (withMarked) """{"state":"k","marked":true}""" else """{"state":"k"}""") else "null"
         val out = JSONObject()
         when (action) {
-            "state" -> { out.put("state", Srs.state(card.due)); out.put("marked", srs.isKnown(body.optString("word"), body.optString("reading"))) }
+            "state" -> { out.put("state", Srs.state(card.due)); if (withMarked) out.put("marked", srs.isKnown(body.optString("word"), body.optString("reading"))) }
             "rate" -> {
                 srs.rate(card.id, body.optInt("ease"), answerMs = body.optLong("ms").takeIf { it > 0 })
                 out.put("state", Srs.state(srs.card(card.id)?.due))

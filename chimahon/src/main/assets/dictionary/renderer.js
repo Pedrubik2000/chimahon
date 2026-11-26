@@ -2699,6 +2699,7 @@
 
   function kumapieRequest(body) {
     if (typeof KumapieBridge === 'undefined') return Promise.resolve(null);
+    if (_glassPopup) body = { ...body, own: true }; // popup D: kumahon's own store answers and writes (one writer), never kumapie's provider
     return new Promise((resolve) => {
       const id = 'k' + (kumapieNextId++);
       kumapieWaiting[id] = resolve;
@@ -2847,6 +2848,7 @@
       ankiBtn.innerHTML = isAlreadyAdded && shouldShowAdd ? ICONS.check_circle : ICONS.add_circle;
       ankiBtn.title = isAlreadyAdded ? 'Already in Anki' : 'Add to Anki';
       ankiBtn.style.display = shouldShowAdd ? '' : 'none';
+      ankiBtn.disabled = !shouldShowAdd; ankiBtn.tabIndex = shouldShowAdd ? 0 : -1; // hidden = not clickable, not focusable
       ankiBtn.setAttribute('data-index', String(result.index || 0));
       ankiBtn.setAttribute('data-expression', expression);
       ankiBtn.setAttribute('data-reading', reading);
@@ -2873,6 +2875,7 @@
       bookBtn.innerHTML = ICONS.menu_book;
       bookBtn.title = 'Open in Anki';
       bookBtn.style.display = isAlreadyAdded ? '' : 'none';
+      bookBtn.disabled = !isAlreadyAdded; bookBtn.tabIndex = isAlreadyAdded ? 0 : -1;
       bookBtn.addEventListener('pointerdown', capturePopupSelectionForButton);
       bookBtn.onclick = (e) => {
         e.stopPropagation();
@@ -3293,6 +3296,7 @@
           btn.innerHTML = isAdded && shouldShowAdd ? ICONS.check_circle : ICONS.add_circle;
           btn.title = isAdded ? 'Already in Anki' : 'Add to Anki';
           btn.style.display = shouldShowAdd ? '' : 'none';
+          btn.disabled = !shouldShowAdd; btn.tabIndex = shouldShowAdd ? 0 : -1;
 
           // Book button is always in the DOM inside .entry-icon-group — just show/hide.
           const iconGroup = btn.closest('.entry-icon-group');
@@ -3302,6 +3306,7 @@
               iconGroup.insertBefore(btn, bookBtn);
             }
             bookBtn.style.display = isAdded ? '' : 'none';
+            bookBtn.disabled = !isAdded; bookBtn.tabIndex = isAdded ? 0 : -1;
           }
         });
       } catch (e) {
@@ -3340,7 +3345,7 @@
     press(which) {
       const selector = { audio: '.word-audio-btn', mine: '.anki-add-btn', open: '.anki-open-btn' }[which];
       const button = selector && document.querySelector('.entry[data-index="0"] ' + selector);
-      if (button) button.click();
+      if (button && button.style.display !== 'none' && !button.disabled) button.click(); // a hidden Mine (duplicates prevented) or Open does nothing
     },
 
     /** Popup D arrows: the next / previous entry, or a page of the one entry. */

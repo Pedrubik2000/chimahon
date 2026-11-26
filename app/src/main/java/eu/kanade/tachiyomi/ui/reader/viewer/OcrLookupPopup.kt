@@ -745,11 +745,16 @@ fun OcrLookupPopup(
         val phoneCard = glassCard && screenWidthPx < with(density) { 600.dp.toPx() }
         when (if (phoneCard) "phone_card" else if (isRecursiveChild || glass) "floating" else popupModePref) {
             "phone_card" -> {
-                // the card at the bottom (at the top when the word is down there), the word stays visible above it
+                // the card goes on the other half of the screen from the word (bottom when the word is up there, top when it is down), and
+                // is cut to the room on that side, so it never covers the word
                 w = minOf(popupWidthPx, screenWidthPx)
-                h = minOf(popupHeightPx, screenHeightPx)
+                val want = minOf(popupHeightPx, screenHeightPx)
+                val below = screenHeightPx - (anchorY + maxOf(anchorHeight, 1f)) - gapPx - paddingPx
+                val above = anchorY - gapPx - paddingPx
+                val atBottom = if (below >= want) true else if (above >= want) false else below >= above
+                h = minOf(want, maxOf(if (atBottom) below else above, minOf(want, 120f)))
                 bestX = (screenWidthPx - w) / 2f
-                bestY = if (anchorY + maxOf(anchorHeight, 1f) + gapPx <= screenHeightPx - h - paddingPx) screenHeightPx - h - paddingPx else paddingPx
+                bestY = if (atBottom) screenHeightPx - h - paddingPx else paddingPx
             }
             "full_width" -> {
                 w = screenWidthPx

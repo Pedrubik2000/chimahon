@@ -74,7 +74,7 @@ class Srs(val db: SqlDb, private val device: String) {
     }
 
     /** One rating (1-4) from the player: appended to the revlog with its context; answers the card's new state. */
-    fun rate(cardId: Long, rating: Int, watch: Watch = Watch(), answerMs: Long? = null, now: Long = System.currentTimeMillis()): Fsrs6.State {
+    fun rate(cardId: Long, rating: Int, watch: Watch = Watch(), answerMs: Long? = null, now: Long = System.currentTimeMillis(), revlogId: Long = newId(now)): Fsrs6.State {
         require(rating in 1..4)
         val c = requireNotNull(card(cardId)) { "no card $cardId" }
         val before = c.stability?.let { Fsrs6.State(it, c.difficulty!!) }
@@ -86,7 +86,7 @@ class Srs(val db: SqlDb, private val device: String) {
             arrayOf("$cardId", "${c.lastReview ?: c.created}")) { it.int(0) }.firstOrNull() ?: 0
         db.tx {
             append("revlog", mapOf(
-                "id" to newId(now), "card" to cardId, "time" to now, "rating" to rating, "answer_ms" to answerMs,
+                "id" to revlogId, "card" to cardId, "time" to now, "rating" to rating, "answer_ms" to answerMs,
                 "device" to device, "s_before" to before?.stability, "d_before" to before?.difficulty,
                 "s_after" to after.stability, "d_after" to after.difficulty, "r" to r,
                 "episode" to watch.episode, "scene" to watch.scene, "subs" to watch.subs,
@@ -388,6 +388,9 @@ class Srs(val db: SqlDb, private val device: String) {
     private fun json(c: SqlRow) = JSONObject().apply {
         for (i in 0 until c.columnCount) put(c.name(i), c.value(i) ?: JSONObject.NULL)
     }
+
+    /** The id of the card's newest revlog row (an undo's included), null = none: a popup's Undo checks it is still its own rating before taking it back. */
+    fun lastRevlogId(cardId: Long): Long? = db.query("SELECT id FROM revlog WHERE card = ? ORDER BY time DESC, id DESC LIMIT 1", arrayOf("$cardId")) { it.long(0) }.firstOrNull()
 
     private fun history(cardId: Long) = db.query("SELECT time, rating FROM revlog WHERE card = ? ORDER BY time, id", arrayOf("$cardId")) { c -> c.long(0) to c.int(1) }
 
