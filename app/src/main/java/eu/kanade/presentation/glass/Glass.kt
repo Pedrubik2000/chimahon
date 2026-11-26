@@ -324,7 +324,7 @@ fun Pill(
             .clickable(enabled = enabled, onClick = onClick)
             .then(
                 if (centered) {
-                    Modifier.padding(horizontal = 16.dp)
+                    Modifier.padding(horizontal = 8.dp)
                 } else {
                     Modifier.padding(
                         start = if (icon != null && small) 10.dp else if (small) 16.dp else 22.dp,
@@ -339,7 +339,7 @@ fun Pill(
         Text(
             text,
             color = ink,
-            fontSize = if (small) Glass.body else Glass.label,
+            fontSize = if (small || centered) Glass.body else Glass.label,
             fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
