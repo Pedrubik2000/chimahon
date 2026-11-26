@@ -105,13 +105,11 @@ import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
 import eu.kanade.presentation.reader.glass.GlassPageIndicator
 import eu.kanade.presentation.reader.glass.GlassPageMenu
-import eu.kanade.presentation.reader.glass.GlassPageWords
 import eu.kanade.presentation.reader.glass.GlassReaderSettingsPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
 import eu.kanade.presentation.reader.glass.GlassSettingsSection
 import eu.kanade.presentation.reader.glass.GlassSheetBorder
 import eu.kanade.presentation.reader.glass.GlassVolumeList
-import eu.kanade.presentation.reader.glass.openLookup
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.reader.stats.MangaStatsSheet
 import eu.kanade.presentation.theme.TachiyomiTheme
@@ -1615,30 +1613,7 @@ class ReaderActivity : BaseActivity() {
             onClickShiftPage = ::shiftDoublePages,
             // SY <--
             glass = glassUi,
-            ocrProgress = state.ocrScanProgress?.let { "OCR ${it.completedPages}/${it.totalPages}" },
-            pagePanel = if (glassUi) {
-                {
-                    GlassPageWords(
-                        viewer = state.viewer,
-                        pageKey = state.currentPage,
-                        ocrTick = state.ocrScanProgress?.completedPages,
-                        repository = dictionaryRepository,
-                        lookupPaths = ::getOrRefreshLookupPaths,
-                        mediaInfo = state.manga?.let { m ->
-                            state.currentChapter?.let { chimahon.MediaInfo(m.title, it.chapter.name) }
-                        },
-                        titleId = state.manga?.id?.toString(),
-                        screenshot = { viewModel.getCurrentPageBitmap() },
-                        onReview = {
-                            setMenuVisibility(false)
-                            it.openLookup()
-                        },
-                        onRunOcr = if (!ocrEnabled) ({ toggleOcrFromReader("run-ocr-sheet") }) else null,
-                    )
-                }
-            } else {
-                null
-            },
+            ocrProgress = state.ocrScanProgress?.let { "${it.completedPages}/${it.totalPages}" }, // the pill already says "OCR"
         )
     }
 

@@ -187,7 +187,7 @@ internal fun GlassPageBar(
             Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
         ) {
             Column(
                 Modifier
@@ -195,11 +195,10 @@ internal fun GlassPageBar(
                     .clip(barShape)
                     .background(barColor)
                     .border(1.dp, Glass.line, barShape)
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp)
                     .pointerInput(Unit) {},
-                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(Modifier.fillMaxWidth().height(34.dp)) {
+                Box(Modifier.fillMaxWidth().height(28.dp)) {
                     val leftText = if (chapterLabel != null) stringResource(MR.strings.glass_rbar_left_in, left, chapterLabel) else stringResource(MR.strings.glass_rbar_left, left)
                     Text(
                         buildAnnotatedString {
@@ -218,7 +217,7 @@ internal fun GlassPageBar(
                     )
                     Text(
                         buildAnnotatedString {
-                            withStyle(SpanStyle(fontFamily = FontFamily.Serif, fontSize = 26.sp, color = Color.White)) { append(spreadText ?: currentPage.toString()) }
+                            withStyle(SpanStyle(fontFamily = FontFamily.Serif, fontSize = 22.sp, color = Color.White)) { append(spreadText ?: currentPage.toString()) }
                             withStyle(SpanStyle(fontSize = 15.sp, color = Glass.secondary)) { append(" / $totalPages") }
                         },
                         modifier = Modifier.align(Alignment.Center),
@@ -256,7 +255,7 @@ internal fun GlassPageBar(
                         }
                     }
                 }
-                Row(Modifier.height(74.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                Row(Modifier.height(48.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     SkipButton(
                         next = false,
                         enabled = if (isRtl) enabledNext else enabledPrevious,
@@ -296,27 +295,24 @@ internal fun GlassPageBar(
     }
 }
 
-/** The mockup's `.tool`: a 44dp outlined round button with a 12sp label under it. */
+/** A 40dp outlined round skip button (no label under it: the bar stays slim). */
 @Composable
 private fun SkipButton(next: Boolean, enabled: Boolean, onClick: () -> Unit, label: String, description: String) {
-    Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Box(
-            Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Glass.page)
-                .border(1.dp, Glass.line, CircleShape)
-                .clickable(enabled = enabled, onClick = onClick),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                if (next) Icons.Outlined.SkipNext else Icons.Outlined.SkipPrevious,
-                contentDescription = description,
-                modifier = Modifier.size(18.dp),
-                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
-            )
-        }
-        Text(label, color = Color.White.copy(alpha = if (enabled) 0.85f else 0.3f), fontSize = 12.sp, maxLines = 1)
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Glass.page)
+            .border(1.dp, Glass.line, CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            if (next) Icons.Outlined.SkipNext else Icons.Outlined.SkipPrevious,
+            contentDescription = "$label: $description",
+            modifier = Modifier.size(18.dp),
+            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+        )
     }
 }
 

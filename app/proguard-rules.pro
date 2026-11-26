@@ -345,3 +345,10 @@
 -dontwarn org.ietf.jgss.Oid
 -dontwarn com.google.re2j.Matcher
 -dontwarn com.google.re2j.Pattern
+
+# Sudachi (kumahon-core JapaneseModel) builds its plugins from class names in its bundled sudachi.json, by
+# reflection: shrunk away, every release build failed "non-existent plugin class" and words lost their colours.
+-keep class com.worksap.nlp.sudachi.** { *; }
+-keep class com.worksap.nlp.dartsclone.** { *; }
+-dontwarn com.worksap.nlp.**
+-dontwarn javax.json.**
