@@ -57,16 +57,12 @@ import eu.kanade.presentation.more.settings.screen.SettingsLibraryScreen
 import eu.kanade.presentation.more.settings.screen.SettingsReaderScreen
 import eu.kanade.presentation.more.settings.screen.SettingsSecurityScreen
 import eu.kanade.presentation.more.settings.screen.SettingsTrackingScreen
-import eu.kanade.presentation.more.settings.screen.about.AboutScreen
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
 import eu.kanade.tachiyomi.data.coverage.SourceCoverage
 import eu.kanade.tachiyomi.data.dictionary.RecommendedDictionaries
 import eu.kanade.tachiyomi.ui.glass.dictionary.GlassDictionaryLicencesScreen
 import eu.kanade.tachiyomi.ui.glass.dictionary.UsualDictionariesSettings
 import eu.kanade.tachiyomi.ui.glass.downloads.GlassDownloads
-import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupScreen
-import eu.kanade.tachiyomi.ui.home.HomeScreen
-import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableMap
 import eu.kanade.domain.ui.UiPreferences
@@ -112,6 +108,7 @@ fun GlassSettingsPage(navigator: Navigator) {
     }
     val narrow = LocalConfiguration.current.screenWidthDp < 900
     val sourceLine = sourceOrderLine()
+    val aboutText = aboutLine()
     val current = Sections.first { it.id == section }
 
     Row(Modifier.fillMaxSize()) {
@@ -150,7 +147,7 @@ fun GlassSettingsPage(navigator: Navigator) {
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        if (s.id == "sources" && sourceLine.isNotEmpty()) sourceLine else stringResource(s.summary),
+                        if (s.id == "sources" && sourceLine.isNotEmpty()) sourceLine else if (s.id == "about") aboutText else stringResource(s.summary),
                         color = if (on) Color.Black.copy(alpha = 0.62f) else Glass.secondary,
                         fontSize = Glass.caption,
                         maxLines = 1,
@@ -227,26 +224,7 @@ internal fun sectionItems(id: String, navigator: Navigator): List<Preference> = 
     else -> {
         val dl = splitDownloads()
         listOfNotNull(
-            Preference.PreferenceItem.TextPreference(
-                title = stringResource(MR.strings.glass_settings_about_app),
-                onClick = { navigator.push(AboutScreen()) },
-            ),
-            Preference.PreferenceItem.TextPreference(
-                title = stringResource(MR.strings.glass_settings_all),
-                subtitle = stringResource(MR.strings.glass_settings_all_sub),
-                onClick = { navigator.push(SettingsScreen()) },
-            ),
-            Preference.PreferenceItem.TextPreference(
-                title = stringResource(MR.strings.glass_classic_view),
-                subtitle = stringResource(MR.strings.glass_settings_classic_sub),
-                onClick = { navigator.push(HomeScreen) },
-            ),
-            // chimahon: the first-run setup again (it only reads until something is tapped)
-            Preference.PreferenceItem.TextPreference(
-                title = stringResource(MR.strings.glass_setup_run_again),
-                subtitle = stringResource(MR.strings.glass_setup_run_again_sub),
-                onClick = { navigator.push(GlassSetupScreen(fromSettings = true)) },
-            ),
+            Preference.PreferenceItem.CustomPreference(title = stringResource(MR.strings.glass_settings_about)) { AboutPage(navigator) },
             group(stringResource(MR.strings.glass_settings_developer), dl.coverageTest),
         )
     }

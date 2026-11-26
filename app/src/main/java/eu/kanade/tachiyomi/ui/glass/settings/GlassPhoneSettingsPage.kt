@@ -94,6 +94,7 @@ fun GlassPhoneSettingsPage(navigator: Navigator) {
     }
 
     val sourceLine = sourceOrderLine()
+    val aboutText = aboutLine()
     val accounts = Sections.first { it.id == "accounts" }
     Column(
         Modifier
@@ -140,7 +141,7 @@ fun GlassPhoneSettingsPage(navigator: Navigator) {
                     GlassIcon(SectionIcons[s.id] ?: "gear", size = 22.dp)
                     SectionText(
                         stringResource(s.name),
-                        if (s.id == "sources" && sourceLine.isNotEmpty()) sourceLine else stringResource(s.summary),
+                        if (s.id == "sources" && sourceLine.isNotEmpty()) sourceLine else if (s.id == "about") aboutText else stringResource(s.summary),
                         Modifier.weight(1f),
                     )
                     GlassIcon("chevRight", size = 20.dp, tint = Glass.secondary)
