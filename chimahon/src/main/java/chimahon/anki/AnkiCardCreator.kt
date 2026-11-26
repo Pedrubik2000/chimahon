@@ -315,7 +315,7 @@ object AnkiCardCreator {
         if (forceOpen || answer is AnkiResult.OpenCard) return answer
         val word = result.term.expression
         val reading = result.term.reading
-        // Anki off and kumapie did not take it (not its deck): falls through to the own store, like kumapie absent.
+        // Anki off: falls through to the own store (mined cards never go to kumapie, Pedro 2026-11-26).
         if (kumapie && (ankiEnabled || answer is AnkiResult.Success || answer is AnkiResult.CardExists)) {
             if (answer is AnkiResult.Success || answer is AnkiResult.CardExists) {
                 Cards.later {
@@ -379,8 +379,8 @@ object AnkiCardCreator {
         profileId: String,
         titleId: String?,
         mediaRequest: AnkiMediaRequest?,
-        // false (Anki switched off, kumapie present): only kumapie's mine call; AnkiDroid is never touched (no
-        // permission, no lookup, no media, no addNote); text only.
+        // false (Anki switched off): AnkiDroid is never touched (no permission, no lookup, no media, no addNote);
+        // the card goes to the own store only.
         ankiEnabled: Boolean,
     ): AnkiResult {
         android.util.Log.d(TAG, "addToAnki: deck=$deck, model=$model, forceOpen=$forceOpen, glossaryIndex=$glossaryIndex")
@@ -424,7 +424,7 @@ object AnkiCardCreator {
                 null
             }
 
-            // Anki off: no media (it is stored in AnkiDroid; kumapie's cards are text only).
+            // Anki off: no media (it is stored in AnkiDroid).
             val hasWordAudioMarker = ankiEnabled && fieldMap.values.any {
                 it.contains("{${Marker.WORD_AUDIO}}") || it.contains("{${Marker.AUDIO}}")
             }
@@ -601,21 +601,19 @@ object AnkiCardCreator {
                         .mapNotNull(::normalizeAnkiTag)
                     android.util.Log.d(TAG, "addToAnki: built fields=$fields")
 
-                    // kumapie keeps the Mined decks' cards of its person (kumapie's own Anki): there first, else Anki as before.
+                    // Pedro 2026-11-26: mined cards are never sent to kumapie (only reviews reach it, through the hub sync).
                     val noteId = if (overwriteNoteId != null) {
-                        if (!chimahon.ocr.KumapieColours.update(context, effectiveDeck, overwriteNoteId, fields)) {
-                            bridge.updateNoteFields(overwriteNoteId, fields)
-                        }
+                        bridge.updateNoteFields(overwriteNoteId, fields)
                         overwriteNoteId
+                    } else if (!ankiEnabled) {
+                        return@withContext AnkiResult.NotConfigured // AnkiDroid untouched: the caller uses kumahon's own store
                     } else {
-                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList)
-                            // Anki off: kumapie did not take it, and AnkiDroid is not touched (the caller uses the own store).
-                            ?: if (!ankiEnabled) return@withContext AnkiResult.NotConfigured else bridge.addNote(
-                                deckName = effectiveDeck,
-                                modelName = effectiveModel,
-                                fields = fields,
-                                tags = tagList,
-                            )
+                        bridge.addNote(
+                            deckName = effectiveDeck,
+                            modelName = effectiveModel,
+                            fields = fields,
+                            tags = tagList,
+                        )
                     }
                     com.canopus.chimareader.data.AnkiStatsStorage.addCard(
                         context,

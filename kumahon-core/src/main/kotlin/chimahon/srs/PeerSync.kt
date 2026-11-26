@@ -19,7 +19,7 @@ interface PeerPrefs {
 /**
  * kumahon as one more peer of kumapie's device sync (its `DeviceSync`, port 47823): every device keeps its own cards, and what
  * crosses is the review history per word, as events matched by [WordKey]. We send every revlog row of our store as an event
- * (plus our store as the backup file kumapie keeps) and take the answer's events for words we have a card for.
+ * (never card content, Pedro 2026-11-26) and take the answer's events for words we have a card for.
  * kumapie must have "answer other devices" on, and the user taps Allow once on its side ([pair]).
  *
  * [model] names this machine ("Pixel 8a"); [log] gets one line per sync or failed pairing.
@@ -179,7 +179,7 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
     }
 
     /**
-     * One exchange with kumapie: our events and store out, its events in. Not paired = nothing done. One at a time. Never throws:
+     * One exchange with kumapie: our events and card keys out, its events in. Not paired = nothing done. One at a time. Never throws:
      * false (and the reason in [status]) on any failure; a 403 means kumapie forgot us: unpaired, [pair] again. Blocking.
      */
     fun sync(): Boolean = synchronized(lock) {
@@ -197,8 +197,9 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
                 events.put(JSONObject().put("id", r.getLong("id")).put("key", k).put("time", r.getLong("time")).put("ease", r.getInt("rating")).put("device", r.optString("device")))
             }
             val device = deviceName()
+            // no "cards": card content never leaves kumahon, only rating events and card keys (Pedro 2026-11-26)
             val body = JSONObject().put("format", FORMAT).put("device", device).put("person", "me").put("made", System.currentTimeMillis())
-                .put("events", events).put("carded", own(device, keys.values)).put("cards", JSONObject().put(Srs.LANG, dump)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
+                .put("events", events).put("carded", own(device, keys.values)).apply { progress(store.myMarks(), device)?.let { put("progress", it) } }
                 .apply { store.pendingShared()?.let { (t, w) -> put("known", JSONObject().put(Srs.LANG, JSONObject().put("time", t).put("words", JSONArray(w)))) } }
                 .toString().toByteArray(Charsets.UTF_8)
             val a = post("http://${hub()}/sync", body, mapOf("X-Device" to device, "X-Sig" to sign(secret, body)))
