@@ -1334,12 +1334,12 @@ class ReaderViewModel @JvmOverloads constructor(
         val pref = readerPreferences.ocrOverlayEnabled()
         val enabled = !pref.get()
         if (enabled && !isOcrAllowedForCurrentManga()) {
-            logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: false (not allowed for this manga) caller=$caller" }
+            logcat.logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: false (not allowed for this manga) caller=$caller" }
             cancelOcrScan()
             pref.set(false)
             return false
         }
-        logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: $enabled caller=$caller" }
+        logcat.logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: $enabled caller=$caller" }
         pref.set(enabled)
         if (!enabled) {
             cancelOcrScan()
@@ -2318,7 +2318,7 @@ class ReaderViewModel @JvmOverloads constructor(
         }
 
         if (ocrDiagLoggedChapters.add(chapterId)) {
-            logcat("KumahonOcr", LogPriority.INFO) {
+            logcat.logcat("KumahonOcr", LogPriority.INFO) {
                 "OCR setup: chapter=$chapterId ocrSource=$ocrSource engine=${dictionaryPreferences.ocrEngine().get()} " +
                     "lang=${ocrLang.bcp47} modelsDownloaded=${Injekt.get<eu.kanade.tachiyomi.data.ocr.ModelDownloader>().isDownloaded} " +
                     "localAvailable=${Injekt.get<eu.kanade.tachiyomi.data.ocr.LocalOcrBridge>().isAvailable} " +
