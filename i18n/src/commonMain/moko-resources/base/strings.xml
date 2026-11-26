@@ -806,6 +806,9 @@
     <string name="rd_step_adding">Adding to the library</string>
     <!-- Glass reader (UI rebuild phase 6) -->
     <string name="glass_reader_more">More</string>
+    <string name="glass_rbar_left">%1$d left</string>
+    <string name="glass_rbar_left_in">%1$d left in %2$s</string>
+    <string name="glass_rbar_back">Back to p. %1$d</string>
     <string name="glass_reader_these_pages">These pages</string>
     <string name="glass_reader_new">%1$d new</string>
     <string name="glass_reader_due">%1$d due</string>
@@ -819,6 +822,18 @@
     <string name="glass_reader_unmark_known">Known, tap to undo</string>
     <string name="glass_reader_mine">Mine</string>
     <string name="glass_reader_no_entry">No dictionary entry for %1$s</string>
+    <!-- Glass reader side panels: settings, page menu, volume list -->
+    <string name="glass_rset_title">Reader</string>
+    <string name="glass_rset_scope">This series</string>
+    <string name="glass_rset_page">Page %1$d</string>
+    <string name="glass_rset_p">p. %1$d</string>
+    <string name="glass_rset_both">Both as one</string>
+    <string name="glass_rset_which">Which page</string>
+    <string name="glass_rset_chapters">%1$d chapters</string>
+    <string name="glass_rset_all">All</string>
+    <string name="glass_rset_tablet">On tablet</string>
+    <string name="glass_rset_unread">Unread</string>
+    <string name="glass_rset_bookmarks">Bookmarks</string>
     <!-- Glass Discover (UI rebuild phase 5b) -->
     <string name="glass_discover_pick">Pick for me</string>
     <string name="glass_discover_duel">This or that</string>

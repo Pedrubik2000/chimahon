@@ -104,9 +104,13 @@ import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
 import eu.kanade.presentation.reader.glass.GlassPageIndicator
+import eu.kanade.presentation.reader.glass.GlassPageMenu
 import eu.kanade.presentation.reader.glass.GlassPageWords
+import eu.kanade.presentation.reader.glass.GlassReaderSettingsPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
+import eu.kanade.presentation.reader.glass.GlassSettingsSection
 import eu.kanade.presentation.reader.glass.GlassSheetBorder
+import eu.kanade.presentation.reader.glass.GlassVolumeList
 import eu.kanade.presentation.reader.glass.openLookup
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.reader.stats.MangaStatsSheet
@@ -603,7 +607,15 @@ class ReaderActivity : BaseActivity() {
                     )
                 }
 
-                is ReaderViewModel.Dialog.Settings -> {
+                is ReaderViewModel.Dialog.Settings -> if (glassUi) {
+                    GlassReaderSettingsPanel(
+                        screenModel = settingsScreenModel,
+                        initial = GlassSettingsSection.Mode,
+                        onClose = { onDismissRequest(); setMenuVisibility(true) },
+                        onShowMenus = { setMenuVisibility(true) },
+                        onHideMenus = { setMenuVisibility(false) },
+                    )
+                } else {
                     GlassReaderTheme(glassUi) {
                         ReaderSettingsDialog(
                             onDismissRequest = onDismissRequest,
@@ -615,7 +627,16 @@ class ReaderActivity : BaseActivity() {
                     }
                 }
 
-                is ReaderViewModel.Dialog.ReadingModeSelect -> {
+                is ReaderViewModel.Dialog.ReadingModeSelect, is ReaderViewModel.Dialog.OrientationModeSelect -> if (glassUi) {
+                    // glass: the mode and orientation pickers are the settings panel at its Mode section
+                    GlassReaderSettingsPanel(
+                        screenModel = settingsScreenModel,
+                        initial = GlassSettingsSection.Mode,
+                        onClose = { onDismissRequest(); setMenuVisibility(true) },
+                        onShowMenus = { setMenuVisibility(true) },
+                        onHideMenus = { setMenuVisibility(false) },
+                    )
+                } else if (state.dialog is ReaderViewModel.Dialog.ReadingModeSelect) {
                     ReadingModeSelectDialog(
                         onDismissRequest = onDismissRequest,
                         screenModel = settingsScreenModel,
@@ -626,9 +647,7 @@ class ReaderActivity : BaseActivity() {
                             }
                         },
                     )
-                }
-
-                is ReaderViewModel.Dialog.OrientationModeSelect -> {
+                } else {
                     OrientationSelectDialog(
                         onDismissRequest = onDismissRequest,
                         screenModel = settingsScreenModel,
@@ -640,57 +659,83 @@ class ReaderActivity : BaseActivity() {
                 }
 
                 is ReaderViewModel.Dialog.PageActions -> {
-                    ReaderPageActionsDialog(
-                        onDismissRequest = onDismissRequest,
-                        onSetAsCover = viewModel::setAsCover,
-                        onShare = viewModel::shareImage,
-                        // SY -->
-                        onSave = { extra ->
-                            // KMK -->
-                            if (externalStoragePermissionNotGranted) {
-                                permissionRequester.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                            } else {
-                                // KMK <--
-                                viewModel.saveImage(extra)
-                            }
-                        },
-                        onShareCombined = viewModel::shareImages,
-                        onSaveCombined = {
-                            // KMK -->
-                            if (externalStoragePermissionNotGranted) {
-                                permissionRequester.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                            } else {
-                                // KMK <--
-                                viewModel.saveImages()
-                            }
-                        },
-                        hasExtraPage = (state.dialog as? ReaderViewModel.Dialog.PageActions)?.extraPage != null,
-                    )
+                    val onSave: (Boolean) -> Unit = { extra ->
+                        // KMK -->
+                        if (externalStoragePermissionNotGranted) {
+                            permissionRequester.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        } else {
+                            // KMK <--
+                            viewModel.saveImage(extra)
+                        }
+                    }
+                    val onSaveCombined = {
+                        // KMK -->
+                        if (externalStoragePermissionNotGranted) {
+                            permissionRequester.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        } else {
+                            // KMK <--
+                            viewModel.saveImages()
+                        }
+                    }
+                    val pageDialog = state.dialog as ReaderViewModel.Dialog.PageActions
+                    if (glassUi) {
+                        GlassPageMenu(
+                            page = pageDialog.page,
+                            extraPage = pageDialog.extraPage,
+                            onClose = onDismissRequest,
+                            onSetAsCover = viewModel::setAsCover,
+                            onShare = viewModel::shareImage,
+                            onSave = onSave,
+                            onShareCombined = viewModel::shareImages,
+                            onSaveCombined = onSaveCombined,
+                        )
+                    } else {
+                        ReaderPageActionsDialog(
+                            onDismissRequest = onDismissRequest,
+                            onSetAsCover = viewModel::setAsCover,
+                            onShare = viewModel::shareImage,
+                            // SY -->
+                            onSave = onSave,
+                            onShareCombined = viewModel::shareImages,
+                            onSaveCombined = onSaveCombined,
+                            hasExtraPage = pageDialog.extraPage != null,
+                        )
+                    }
                 }
 
                 is ReaderViewModel.Dialog.ChapterList -> {
                     var chapters by remember {
                         mutableStateOf(viewModel.getChapters().toImmutableList())
                     }
-                    ChapterListDialog(
+                    val onClickChapter: (tachiyomi.domain.chapter.model.Chapter) -> Unit = {
+                        viewModel.loadNewChapterFromDialog(it)
+                        onDismissRequest()
+                    }
+                    val onBookmark: (tachiyomi.domain.chapter.model.Chapter) -> Unit = { chapter ->
+                        viewModel.toggleBookmark(chapter.id, !chapter.bookmark)
+                        chapters = chapters.map {
+                            if (it.chapter.id == chapter.id) {
+                                it.copy(chapter = chapter.copy(bookmark = !chapter.bookmark))
+                            } else {
+                                it
+                            }
+                        }.toImmutableList()
+                    }
+                    if (glassUi) {
+                        GlassVolumeList(
+                            chapters = chapters,
+                            currentPage = state.currentPageText,
+                            onClose = onDismissRequest,
+                            onClickChapter = onClickChapter,
+                            onBookmark = onBookmark,
+                        )
+                    } else ChapterListDialog(
                         onDismissRequest = onDismissRequest,
                         screenModel = settingsScreenModel,
                         chapters = chapters,
-                        onClickChapter = {
-                            viewModel.loadNewChapterFromDialog(it)
-                            onDismissRequest()
-                        },
-                        onBookmark = { chapter ->
-                            viewModel.toggleBookmark(chapter.id, !chapter.bookmark)
-                            chapters = chapters.map {
-                                if (it.chapter.id == chapter.id) {
-                                    it.copy(chapter = chapter.copy(bookmark = !chapter.bookmark))
-                                } else {
-                                    it
-                                }
-                            }.toImmutableList()
-                        },
-                        state.dateRelativeTime,
+                        onClickChapter = onClickChapter,
+                        onBookmark = onBookmark,
+                        dateRelativeTime = state.dateRelativeTime,
                         // KMK -->
                         onDownloadAction = { chapter, action ->
                             viewModel.handleDownloadAction(chapter, action)
@@ -2163,9 +2208,9 @@ class ReaderActivity : BaseActivity() {
             else -> null
         }
             ?: Insets.NONE
-
         setPadding(insets.left, insets.top, insets.right, insets.bottom)
     }
+
 
     /**
      * Class that handles the user preferences of the reader.

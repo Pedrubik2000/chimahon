@@ -32,7 +32,7 @@ private val flashColors = listOf(
 )
 
 @Composable
-internal fun GeneralPage(screenModel: ReaderSettingsScreenModel) {
+internal fun GeneralPage(screenModel: ReaderSettingsScreenModel, showOcr: Boolean = true) {
     val readerTheme by screenModel.preferences.readerTheme().collectAsState()
 
     val flashPageState by screenModel.preferences.flashOnPageChange().collectAsState()
@@ -104,15 +104,7 @@ internal fun GeneralPage(screenModel: ReaderSettingsScreenModel) {
         pref = screenModel.preferences.readWithLongTap(),
     )
 
-    CheckboxItem(
-        label = stringResource(MR.strings.pref_show_ocr_outlines),
-        pref = screenModel.preferences.ocrOutlineVisible(),
-    )
-
-    CheckboxItem(
-        label = stringResource(MR.strings.pref_ocr_two_finger_gesture),
-        pref = screenModel.preferences.ocrTwoFingerGestureEnabled(),
-    )
+    if (showOcr) OcrItems(screenModel)
 
     CheckboxItem(
         label = stringResource(MR.strings.pref_always_show_chapter_transition),
@@ -166,4 +158,18 @@ internal fun GeneralPage(screenModel: ReaderSettingsScreenModel) {
         pref = screenModel.preferences.useAutoWebtoon(),
     )
     // SY <--
+}
+
+/** kumahon's OCR outlines + two-finger gesture (a section of its own in the Glass settings panel). */
+@Composable
+internal fun OcrItems(screenModel: ReaderSettingsScreenModel) {
+    CheckboxItem(
+        label = stringResource(MR.strings.pref_show_ocr_outlines),
+        pref = screenModel.preferences.ocrOutlineVisible(),
+    )
+
+    CheckboxItem(
+        label = stringResource(MR.strings.pref_ocr_two_finger_gesture),
+        pref = screenModel.preferences.ocrTwoFingerGestureEnabled(),
+    )
 }

@@ -22,13 +22,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Explore
@@ -42,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,8 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +59,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassRoundButton
-import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.reader.appbars.ExhUtils
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.components.ChapterNavigator
@@ -75,7 +75,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 
 private val slide = tween<IntOffset>(200)
 private val fade = tween<Float>(150)
-private val barColor = Glass.panel.copy(alpha = 0.94f)
+internal val barColor = Glass.panel.copy(alpha = 0.94f)
 
 /**
  * A3 (pref glassUi): the reader controls in the Glass look. Same actions as [eu.kanade.presentation.reader.appbars.ReaderAppBars]:
@@ -139,28 +139,51 @@ fun GlassReaderAppBars(
     pagePanel: (@Composable () -> Unit)?,
 ) {
     val isRtl = viewer is R2LPagerViewer
+    // The vertical seek bar modes keep the stock navigator; the bottom one is the Glass page bar.
     val navigator: @Composable (Boolean) -> Unit = { vertical ->
-        GlassReaderTheme {
-            ChapterNavigator(
+        if (vertical) {
+            GlassReaderTheme {
+                ChapterNavigator(
+                    isRtl = isRtl,
+                    isVerticalSlider = true,
+                    onNextChapter = onNextChapter,
+                    enabledNext = enabledNext,
+                    onPreviousChapter = onPreviousChapter,
+                    enabledPrevious = enabledPrevious,
+                    currentPage = currentPage,
+                    currentPageText = currentPageText,
+                    totalPages = totalPages,
+                    onPageIndexChange = onPageIndexChange,
+                )
+            }
+        } else {
+            GlassPageBar(
                 isRtl = isRtl,
-                isVerticalSlider = vertical,
                 onNextChapter = onNextChapter,
                 enabledNext = enabledNext,
                 onPreviousChapter = onPreviousChapter,
                 enabledPrevious = enabledPrevious,
                 currentPage = currentPage,
-                currentPageText = currentPageText,
                 totalPages = totalPages,
+                chapterTitle = chapterTitle,
                 onPageIndexChange = onPageIndexChange,
+                chapterLabel = chapterTitle,
+                currentPageText = currentPageText,
             )
         }
     }
 
+    // The header (with the words panel) is measured above the bottom bar, so it can never push the bar off screen.
+    var barPx by remember { mutableIntStateOf(0) }
     Column(Modifier.fillMaxHeight()) {
         AnimatedVisibility(
             visible = visible,
             enter = slideInVertically(slide) { -it } + fadeIn(fade),
             exit = slideOutVertically(slide) { -it } + fadeOut(fade),
+            modifier = Modifier.layout { measurable, c ->
+                val p = measurable.measure(c.copy(maxHeight = (c.maxHeight - barPx).coerceAtLeast(0)))
+                layout(p.width, p.height) { p.place(0, 0) }
+            },
         ) {
             Column {
                 GlassReaderHeader(
@@ -177,6 +200,28 @@ fun GlassReaderAppBars(
                     onToggleOcr = onToggleOcr,
                     onSelectOcrSource = onSelectOcrSource,
                     ocrProgress = ocrProgress,
+                    tools = { modifier ->
+                        GlassReaderTools(
+                            modifier = modifier,
+                            readingMode = readingMode,
+                            onClickReadingMode = onClickReadingMode,
+                            orientation = orientation,
+                            onClickOrientation = onClickOrientation,
+                            cropEnabled = cropEnabled,
+                            onClickCropBorder = onClickCropBorder,
+                            onClickSettings = onClickSettings,
+                            onClickMangaStats = onClickMangaStats,
+                            currentReadingMode = currentReadingMode,
+                            dualPageSplitEnabled = dualPageSplitEnabled,
+                            doublePages = doublePages,
+                            onClickChapterList = onClickChapterList,
+                            onClickWebView = onOpenInWebView,
+                            onClickBrowser = onOpenInBrowser,
+                            onClickShare = onShare,
+                            onClickPageLayout = onClickPageLayout,
+                            onClickShiftPage = onClickShiftPage,
+                        )
+                    },
                 )
                 GlassReaderTheme {
                     ExhUtils(
@@ -220,29 +265,9 @@ fun GlassReaderAppBars(
             visible = visible,
             enter = slideInVertically(slide) { it } + fadeIn(fade),
             exit = slideOutVertically(slide) { it } + fadeOut(fade),
+            modifier = Modifier.onSizeChanged { barPx = it.height },
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (navBarType == NavBarType.Bottom) navigator(false)
-                GlassReaderTools(
-                    readingMode = readingMode,
-                    onClickReadingMode = onClickReadingMode,
-                    orientation = orientation,
-                    onClickOrientation = onClickOrientation,
-                    cropEnabled = cropEnabled,
-                    onClickCropBorder = onClickCropBorder,
-                    onClickSettings = onClickSettings,
-                    onClickMangaStats = onClickMangaStats,
-                    currentReadingMode = currentReadingMode,
-                    dualPageSplitEnabled = dualPageSplitEnabled,
-                    doublePages = doublePages,
-                    onClickChapterList = onClickChapterList,
-                    onClickWebView = onOpenInWebView,
-                    onClickBrowser = onOpenInBrowser,
-                    onClickShare = onShare,
-                    onClickPageLayout = onClickPageLayout,
-                    onClickShiftPage = onClickShiftPage,
-                )
-            }
+            if (navBarType == NavBarType.Bottom) navigator(false)
         }
     }
 }
@@ -263,12 +288,19 @@ private fun GlassReaderHeader(
     onToggleOcr: (() -> Unit)?,
     onSelectOcrSource: (ReaderOcrSource) -> Unit,
     ocrProgress: String?,
+    tools: @Composable (Modifier) -> Unit,
 ) {
-    Row(
+    // The tool buttons sit beside the title on a wide screen, on a second line on a phone.
+    val narrow = LocalConfiguration.current.screenWidthDp < 640
+    Column(
         Modifier
             .fillMaxWidth()
             .background(barColor)
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.statusBars),
+    ) {
+    Row(
+        Modifier
+            .fillMaxWidth()
             .height(72.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -288,6 +320,7 @@ private fun GlassReaderHeader(
                 Text(it, color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+        if (!narrow) tools(Modifier)
         ocrProgress?.let {
             Row(
                 Modifier
@@ -351,6 +384,8 @@ private fun GlassReaderHeader(
             tint = if (bookmarked) Glass.ice else Color.White,
         )
     }
+    if (narrow) tools(Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 4.dp))
+    }
 }
 
 private fun ReaderOcrSource.label() = when (this) {
@@ -364,6 +399,7 @@ private class Tool(val label: String, val onClick: () -> Unit, val glass: String
 
 @Composable
 private fun GlassReaderTools(
+    modifier: Modifier,
     readingMode: ReadingMode,
     onClickReadingMode: () -> Unit,
     orientation: ReaderOrientation,
@@ -395,34 +431,18 @@ private fun GlassReaderTools(
         add(Tool(stringResource(MR.strings.action_settings), onClickSettings, "gear"))
         add(Tool(stringResource(MR.strings.glass_reader_more), { more = true }))
     }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(barColor)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .height(84.dp)
-            .pointerInput(Unit) {},
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(modifier, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         tools.forEach { tool ->
-            Box(Modifier.weight(1f)) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(Glass.r12))
-                        .clickable(onClick = tool.onClick),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-                ) {
-                    if (tool.glass != null) {
-                        GlassIcon(tool.glass, size = 22.dp, tint = tool.tint)
-                    } else {
-                        Icon(Icons.Outlined.MoreHoriz, contentDescription = null, modifier = Modifier.size(22.dp), tint = Color.White)
+            Box {
+                if (tool.glass != null) {
+                    GlassRoundButton(tool.glass, tool.onClick, description = tool.label, tint = tool.tint)
+                } else {
+                    Box(
+                        Modifier.size(Glass.button).clip(CircleShape).clickable(onClick = tool.onClick),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Outlined.MoreHoriz, contentDescription = tool.label, modifier = Modifier.size(22.dp), tint = Color.White)
                     }
-                    Text(tool.label, color = Color.White.copy(alpha = 0.85f), fontSize = Glass.caption, maxLines = 1)
-                }
-                if (tool.glass == null) {
                     GlassReaderTheme {
                         DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
                             MoreItem(stringResource(MR.strings.viewer), onClickReadingMode, { more = false }) {
