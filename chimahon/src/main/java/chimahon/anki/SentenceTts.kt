@@ -33,7 +33,8 @@ object SentenceTts {
         return try {
             val ready = CountDownLatch(1)
             var status = TextToSpeech.ERROR
-            tts = TextToSpeech(context.applicationContext) { status = it; ready.countDown() }
+            // Google TTS has Japanese; Android falls back to the default engine when it is not installed
+            tts = TextToSpeech(context.applicationContext, { status = it; ready.countDown() }, "com.google.android.tts")
             if (!ready.await(INIT_TIMEOUT_S, TimeUnit.SECONDS) || status != TextToSpeech.SUCCESS) {
                 return fail("TTS engine did not start (status=$status)")
             }

@@ -37,7 +37,7 @@ data class WordAudioSource(
             val own = try {
                 json.decodeFromString<List<WordAudioSource>>(prefs.wordAudioSources().get())
             } catch (e: Exception) {
-                emptyList()
+                return // unreadable list: never overwrite the user's sources; try again next start
             }
             prefs.wordAudioSources().set(json.encodeToString(own + createJpod101()))
             prefs.wordAudioDefaultSeeded().set(true)

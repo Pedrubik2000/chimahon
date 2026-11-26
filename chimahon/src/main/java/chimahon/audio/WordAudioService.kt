@@ -134,6 +134,7 @@ class WordAudioService(
     }
 
     private fun findLocalAudio(term: String, reading: String): List<WordAudioDatabase.LocalEntry> {
+        localAccessLost = false // set again below only when this lookup hits a lost grant
         // New path: SAF Uri
         val uriStr = preferences.wordAudioLocalUri().get()
         if (uriStr.isNotBlank()) {
