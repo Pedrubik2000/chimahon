@@ -216,7 +216,7 @@ class GlassTitleStateTest {
         // read AND on the device = READ with its file (the tile shows check + phone); not here = READ without; unread here = HERE
         cells[1].state shouldBe VolState.READ // vol 2, within AniList's 3, file here
         cells[1].local?.number shouldBe 2
-        cells[2].state shouldBe VolState.READ // vol 3 half-read but within the count: read
+        cells[2].state shouldBe VolState.HERE // vol 3 is being read (page 7): AniList's count does not make it READ
         cells[4].state shouldBe VolState.HERE // vol 5 unread
         cells[3].state shouldBe VolState.NONE // vol 4 not here, not read
         cells[0].state shouldBe VolState.READ // vol 1 not here, within the count: read, no file
@@ -252,6 +252,18 @@ class GlassTitleStateTest {
         GlassTitleState.unavailable(cov, sources, 13) shouldBe setOf(13)
         GlassTitleState.unavailable(cov - 3L, sources, 13) shouldBe emptySet() // one still loading: unknown
         GlassTitleState.unavailable(cov + (3L to Coverage(3, "Rawxt", Coverage.State.NEEDS_VISIT)), sources, 13) shouldBe emptySet()
+        // found with no volume numbers = not answered: it might have vol 13
+        GlassTitleState.unavailable(cov + (3L to Coverage(3, "Rawxt", Coverage.State.FOUND)), sources, 13) shouldBe emptySet()
+    }
+
+    @Test
+    fun `source bar rows count the gaps, 15 volumes at 280 dp take two rows with numbers`() {
+        val items = GlassTitleState.sourceBoxes(List(15) { BoxState.HAVE })
+        val (rows, numbers) = boxLayout(items, 280f)
+        rows.size shouldBe 2
+        numbers shouldBe true
+        boxLayout(items, 400f).first.size shouldBe 1 // 15 * 18 + 14 * 2 = 298 fits in 400
+        boxLayout(items, 400f).second shouldBe true
     }
 
     @Test

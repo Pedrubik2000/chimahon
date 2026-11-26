@@ -47,17 +47,24 @@ internal fun splitRows(items: List<SourceBox>, rows: Int): List<List<SourceBox>>
     return out
 }
 
+/**
+ * The rows and whether the numbers show, for a bar [widthDp] wide: rows = ceil(total * (box + gap) / (width + gap)), the
+ * 2 dp gaps included; numbers off when a unit box in the fullest row is still under [MIN_BOX].
+ */
+internal fun boxLayout(items: List<SourceBox>, widthDp: Float): Pair<List<List<SourceBox>>, Boolean> {
+    val total = items.sumOf { weight(it).toDouble() }.toFloat()
+    val rowCount = ceil(total * (MIN_BOX.value + 2f) / (widthDp + 2f)).toInt().coerceIn(1, items.size.coerceAtLeast(1))
+    val rows = splitRows(items, rowCount)
+    val widest = rows.maxOf { r -> r.sumOf { weight(it).toDouble() } }.toFloat()
+    return rows to ((widthDp - 2f * (rows.maxOf { it.size } - 1)) / widest >= MIN_BOX.value)
+}
+
 /** A source card's bar: [GlassTitleState.sourceBoxes], numbered, in as many rows as keep each box at [MIN_BOX]. */
 @Composable
 internal fun SourceBoxes(boxes: List<BoxState>, colours: StatusColours) {
     val items = GlassTitleState.sourceBoxes(boxes)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val total = items.sumOf { weight(it).toDouble() }.toFloat()
-        val rowCount = ceil(total * MIN_BOX.value / maxWidth.value).toInt().coerceIn(1, items.size.coerceAtLeast(1))
-        val rows = splitRows(items, rowCount)
-        val widest = rows.maxOf { r -> r.sumOf { weight(it).toDouble() } }.toFloat()
-        // a unit box's width in the fullest row; narrower than MIN_BOX = numbers off (still the colours)
-        val numbers = (maxWidth - 2.dp * (rows.maxOf { it.size } - 1)) / widest >= MIN_BOX
+        val (rows, numbers) = boxLayout(items, maxWidth.value)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             rows.forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {

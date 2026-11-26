@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -62,6 +63,8 @@ import eu.kanade.presentation.glass.GlassPhoneBarRoom
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
+import eu.kanade.presentation.glass.StatusColours
+import eu.kanade.presentation.glass.StatusPalette
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
 import eu.kanade.presentation.util.glassDevice
@@ -81,8 +84,6 @@ import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
-import eu.kanade.presentation.glass.StatusColours
-import eu.kanade.presentation.glass.StatusPalette
 import eu.kanade.tachiyomi.ui.glass.title.StatusLegend
 import eu.kanade.tachiyomi.ui.glass.title.VolState
 import eu.kanade.tachiyomi.ui.glass.title.dashedBorder
@@ -523,7 +524,11 @@ private fun VolumeBar(cells: List<Cell>, colours: StatusColours, height: android
                         when (c) {
                             Cell.FAILED -> Modifier.hatched(tone)
                             Cell.READ -> Modifier.background(Color.White.copy(alpha = 0.3f))
-                            Cell.HERE, Cell.DOWNLOADING -> Modifier.background(tone)
+                            Cell.HERE -> Modifier.background(colours.have)
+                            // partial fill: differs from HERE and from the even half-tone of QUEUED in every set
+                            Cell.DOWNLOADING -> Modifier.background(tone.copy(alpha = 0.3f)).drawBehind {
+                                drawRect(tone, size = Size(size.width * 0.6f, size.height))
+                            }
                             Cell.QUEUED -> Modifier.background(tone.copy(alpha = 0.5f))
                             Cell.NONE -> Modifier.background(Color.White.copy(alpha = 0.1f))
                                 .dashedBorder(style.border, 1.dp, style.dashed, shape)

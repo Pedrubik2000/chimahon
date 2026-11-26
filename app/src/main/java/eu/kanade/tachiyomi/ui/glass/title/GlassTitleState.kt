@@ -210,8 +210,9 @@ object GlassTitleState {
             val l = byNumber[v]
             val a = active[v]
             when {
-                // read (the row, or within AniList's count) AND the file is here: READ with [local] set = check + on-device mark
-                l != null -> VolumeCell(v, if (l.read || v <= readUpTo) VolState.READ else VolState.HERE, l, null)
+                // read (the row, or within AniList's count) AND the file is here: READ with [local] set = check + on-device mark;
+                // a volume being read (page > 0, unread row) stays HERE whatever AniList says
+                l != null -> VolumeCell(v, if (l.read || (v <= readUpTo && l.lastPageRead == 0L)) VolState.READ else VolState.HERE, l, null)
                 a != null -> VolumeCell(v, if (a.running) VolState.DOWNLOADING else VolState.QUEUED, null, a.fraction)
                 v in failed -> VolumeCell(v, VolState.FAILED, null, null)
                 v <= readUpTo -> VolumeCell(v, VolState.READ, null, null)
@@ -249,8 +250,11 @@ object GlassTitleState {
      * still loading, needing a visit or in error might have it); else empty.
      */
     fun unavailable(coverage: Map<Long, Coverage>, sourceIds: List<Long>, count: Int): Set<Int> {
-        val answered = sourceIds.map { coverage[it]?.state }
-        if (answered.isEmpty() || answered.any { it != Coverage.State.FOUND && it != Coverage.State.NOT_FOUND }) return emptySet()
+        // answered = not found, or found WITH volumes (a found source with no volume numbers might still have it)
+        val answered = sourceIds.map { id ->
+            coverage[id]?.let { it.state == Coverage.State.NOT_FOUND || (it.state == Coverage.State.FOUND && it.volumes.isNotEmpty()) } == true
+        }
+        if (answered.isEmpty() || answered.any { !it }) return emptySet()
         val has = sourceIds.flatMap { coverage[it]?.volumes?.keys.orEmpty() }.toSet()
         return (1..count).filter { it !in has }.toSet()
     }

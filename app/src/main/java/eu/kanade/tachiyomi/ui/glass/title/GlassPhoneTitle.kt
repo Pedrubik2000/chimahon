@@ -11,18 +11,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import eu.kanade.presentation.glass.StatusColours
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,6 +44,7 @@ import coil3.compose.AsyncImage
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Pill
+import eu.kanade.presentation.glass.StatusColours
 import eu.kanade.presentation.glass.glassPanel
 import eu.kanade.presentation.util.glassDevice
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
@@ -279,7 +277,6 @@ private fun PhoneCell(
                     onClick = {
                         when {
                             local != null -> onOpen(local)
-                            unavailable -> Unit // no source has it: nothing to fetch
                             cell.state == VolState.NONE || cell.state == VolState.READ || cell.state == VolState.FAILED -> onFetch() // READ here = read on AniList, not on the phone
                             else -> menu = true
                         }
