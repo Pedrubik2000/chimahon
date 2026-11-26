@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -292,7 +292,7 @@ private fun PitchRows(reading: String, result: LookupResult, diagram: Boolean, n
     }
 }
 
-/** requiredSize, not size: the host Box passes tight full-screen constraints, which size() obeys (the outline filled the screen). */
+/** wrapContentSize(TopStart) first: the host Box passes tight full-screen constraints, which size() obeys (the outline filled the screen); requiredSize alone would centre the box. */
 /** The tapped word's ice outline and the short connector line to the card (all in px of the reader's window, as the card's offset). */
 @Composable
 internal fun GlassAnchorOutline(anchorX: Float, anchorY: Float, anchorW: Float, anchorH: Float, cardX: Float, cardY: Float, cardW: Float, cardH: Float) {
@@ -304,7 +304,7 @@ internal fun GlassAnchorOutline(anchorX: Float, anchorY: Float, anchorW: Float, 
         val right = anchorX + anchorW + pad
         val bottom = anchorY + anchorH + pad
         Box(
-            Modifier.offset(left.toDp(), top.toDp()).requiredSize((right - left).toDp(), (bottom - top).toDp())
+            Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).offset(left.toDp(), top.toDp()).size((right - left).toDp(), (bottom - top).toDp())
                 .border(2.dp, Glass.ice, RoundedCornerShape(Glass.r10)),
         )
         val t = 2.dp.toPx()
@@ -319,7 +319,7 @@ internal fun GlassAnchorOutline(anchorX: Float, anchorY: Float, anchorW: Float, 
             else -> null
         }
         if (line != null && line.width > 0f && line.height > 0f) {
-            Box(Modifier.offset(line.left.toDp(), line.top.toDp()).requiredSize(line.width.toDp(), line.height.toDp()).background(Glass.ice))
+            Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).offset(line.left.toDp(), line.top.toDp()).size(line.width.toDp(), line.height.toDp()).background(Glass.ice))
         }
     }
 }
