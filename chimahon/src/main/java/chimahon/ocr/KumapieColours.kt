@@ -402,14 +402,46 @@ object KumapieColours {
      * own Anki, text only). Its note id, or null: not kumapie's (another deck, kumapie absent or not set up for it),
      * so the caller adds it to Anki as before. Blocking.
      */
-    fun mine(context: Context, deck: String, fields: Map<String, String>, tags: List<String>): Long? = runCatching {
+    fun mine(
+        context: Context,
+        deck: String,
+        fields: Map<String, String>,
+        tags: List<String>,
+        sentenceAudio: chimahon.anki.AnkiMediaSource? = null,
+        wordAudio: chimahon.anki.AnkiMediaSource? = null,
+    ): Long? = runCatching {
         val authority = authority(context) ?: return@runCatching null
-        val extras = Bundle().apply {
-            putString("deck", deck)
-            putString("fields", JSONObject(fields).toString())
-            putString("tags", tags.joinToString(" "))
+        val tmp = mutableListOf<java.io.File>()
+        val fds = mutableListOf<android.os.ParcelFileDescriptor>()
+        try {
+            val extras = Bundle().apply {
+                putString("deck", deck)
+                putString("fields", JSONObject(fields).toString())
+                putString("tags", tags.joinToString(" "))
+                // The audio goes as read-only file descriptors (kumapie copies the bytes); a failure here skips that extra only.
+                for ((key, source) in listOf("sentenceAudio" to sentenceAudio, "wordAudio" to wordAudio)) {
+                    if (source == null) continue
+                    runCatching {
+                        val name = "chimahon_${key.removeSuffix("Audio")}_${java.util.UUID.randomUUID()}.${source.extension}"
+                        val file = when (source) {
+                            is chimahon.anki.AnkiMediaSource.FileSource -> source.file
+                            is chimahon.anki.AnkiMediaSource.Bytes ->
+                                java.io.File(context.cacheDir, name).also { tmp += it; it.writeBytes(source.data) }
+                        }
+                        val fd = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                        fds += fd
+                        putParcelable(key, fd)
+                        putString(key + "Name", name)
+                    }.onFailure { Log.w("KumahonAudio", "mine: $key skipped: $it") }
+                }
+            }
+            val answer = context.contentResolver.call(Uri.parse("content://$authority"), "mine", null, extras)
+            Log.i("KumahonAudio", "mine -> kumapie media=${answer?.getInt("media", 0) ?: 0}")
+            answer?.takeIf { it.containsKey("note") }?.getLong("note")
+        } finally {
+            fds.forEach { runCatching { it.close() } }
+            tmp.forEach { it.delete() }
         }
-        context.contentResolver.call(Uri.parse("content://$authority"), "mine", null, extras)?.takeIf { it.containsKey("note") }?.getLong("note")
     }.onFailure { Log.w("KumapieColours", "kumapie mine: $it") }.getOrNull()
 
     /** An overwrite of note [note] in [deck] done in kumapie's store; false: not kumapie's card, Anki does it. Blocking. */
