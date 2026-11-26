@@ -1338,6 +1338,10 @@ fun OcrLookupPopup(
             }
         }
     } else {
+        // drawn before the card so the card stays above it
+        if (glassCard && visible && contentReady && anchorWidth > 0f && anchorHeight > 0f) {
+            GlassAnchorOutline(anchorX, anchorY, anchorWidth, anchorHeight, layoutResult.x, layoutResult.y, layoutResult.widthPx, layoutResult.heightPx)
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1360,9 +1364,6 @@ fun OcrLookupPopup(
                 )
             }
             PopupContent()
-        }
-        if (glassCard && visible && contentReady && anchorWidth > 0f && anchorHeight > 0f) {
-            GlassAnchorOutline(anchorX, anchorY, anchorWidth, anchorHeight, layoutResult.x, layoutResult.y, layoutResult.widthPx, layoutResult.heightPx)
         }
     }
 
