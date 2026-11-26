@@ -361,6 +361,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
                 else -> MR.strings.glass_setup_colouring_on_row
             },
         ),
+        stringResource(if (model.paired) MR.strings.glass_setup_known_paired_row else MR.strings.glass_setup_known_row),
     )
     val skipped = listOf(
         false,
@@ -369,6 +370,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         model.notificationsSkipped,
         model.dictionarySkipped,
         model.colouringSkipped,
+        model.knownSkipped,
     )
     val skippedText = listOf(
         "",
@@ -377,11 +379,12 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         stringResource(MR.strings.glass_setup_notifications_skip_row),
         stringResource(MR.strings.glass_setup_dictionary_skip_row),
         stringResource(MR.strings.glass_setup_colouring_skip_row),
+        stringResource(MR.strings.glass_setup_known_skip_row),
     )
     val notDone = stringResource(MR.strings.glass_setup_not_done)
     val notSet = stringResource(MR.strings.glass_setup_not_set)
-    // "done" for 1, 3, 4 and 5 includes skipped; a row is "ok" only when really set
-    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null, !model.colouringSkipped)
+    // "done" for 1, 3, 4, 5 and 6 includes skipped; a row is "ok" only when really set
+    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null, !model.colouringSkipped, !model.knownSkipped)
     Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
         names.forEachIndexed { i, n ->
             val fix = !ok[i] && GlassSetupLogic.needed(i)

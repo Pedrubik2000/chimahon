@@ -123,9 +123,13 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
             stringResource(MR.strings.glass_setup_notifications),
             stringResource(MR.strings.glass_setup_dictionary),
             stringResource(MR.strings.glass_setup_colouring),
+            stringResource(MR.strings.glass_setup_known),
         )
-        // the optional Word colouring step counts as looked at once it is on screen
-        LaunchedEffect(step) { if (step == 5) model.colouringVisited = true }
+        // the optional Word colouring and Known words steps count as looked at once they are on screen
+        LaunchedEffect(step) {
+            if (step == 5) model.colouringVisited = true
+            if (step == 6) model.knownVisited = true
+        }
 
         GlassPage {
             BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -139,7 +143,12 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 val leftWidth = maxWidth - 684.dp
                 if (coversShown) {
                     // before sign-in the "covers show up here" line only on the AniList step
-                    Covers(signedIn, entries, emptyLine = signedIn || step == 0, modifier = Modifier.align(Alignment.TopEnd))
+                    if (step == 5 || step == 6) {
+                        // the manga page of mockup B stands where the covers stand
+                        MangaPreview(model.colouringOn, known = step == 6, Modifier.align(Alignment.TopEnd).padding(top = 110.dp, end = 80.dp).width(500.dp))
+                    } else {
+                        Covers(signedIn, entries, emptyLine = signedIn || step == 0, modifier = Modifier.align(Alignment.TopEnd))
+                    }
                 }
 
                 Box(
@@ -156,7 +165,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 val stepsLabel = stringResource(MR.strings.glass_setup_steps)
                 Row(
                     Modifier
-                        // six bars: 96dp and 10dp apart on a tablet so they end before 800dp
+                        // seven bars: 96dp and 10dp apart on a tablet so they end before 900dp
                         .offset(x = if (phone) 76.dp else 152.dp, y = if (phone) 22.dp else 36.dp)
                         .then(if (phone) Modifier.width(barsWidth) else Modifier)
                         .semantics { contentDescription = stepsLabel },
@@ -211,9 +220,9 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         .then(
                             when {
                                 phone -> Modifier.fillMaxWidth()
-                                // Word colouring has a sample line, two role cards and a list: wider than the other steps
-                                coversShown -> Modifier.width(leftWidth.coerceAtMost(if (step == 5) 640.dp else 520.dp))
-                                step == 5 -> Modifier.width((maxWidth - edge * 2).coerceAtMost(720.dp))
+                                // Word colouring and Known words have cards side by side and a list: wider than the other steps
+                                coversShown -> Modifier.width(leftWidth.coerceAtMost(if (step >= 5 && step != GlassSetupLogic.SUMMARY) 640.dp else 520.dp))
+                                step == 5 || step == 6 -> Modifier.width((maxWidth - edge * 2).coerceAtMost(720.dp))
                                 else -> Modifier.width(520.dp)
                             },
                         )
@@ -265,6 +274,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                                 3 -> MR.strings.glass_setup_notifications_why
                                 4 -> MR.strings.glass_setup_dictionary_why
                                 5 -> MR.strings.glass_setup_colouring_why
+                                6 -> MR.strings.glass_setup_known_why
                                 else -> if (missing.isEmpty()) MR.strings.glass_setup_ready_why else MR.strings.glass_setup_almost_why
                             },
                         ),
@@ -274,14 +284,15 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         lineHeight = 24.sp,
                     )
                     // the Dictionary step is the tallest: 24dp there so it needs no scroll on a landscape tablet
-                    Column(Modifier.padding(top = if (step == 4) 12.dp else if (step == 5) 20.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(Modifier.padding(top = if (step == 4) 12.dp else if (step == 5 || step == 6) 20.dp else 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         when (step) {
                             0 -> AniListStep(model, signedIn, entries)
                             1 -> RealDebridStep(model)
                             2 -> StorageStep(model)
                             3 -> NotificationsStep(model)
                             4 -> DictionaryStep(model)
-                            5 -> ColouringStep(model, phone)
+                            5 -> ColouringStep(model, phone, coversShown)
+                            6 -> KnownWordsStep(model, phone, coversShown)
                             else -> SummaryStep(model, names, entries)
                         }
                     }
@@ -299,16 +310,16 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                         SetupButton(stringResource(MR.strings.glass_back), { model.step = step - 1 }, primary = false, leading = "chevLeft")
                     }
                     if (!isEnd) {
-                        // Word colouring is optional and never blocks: Continue is always on there
-                        val canNext = step == 5 || model.done(step)
+                        // Word colouring and Known words are optional and never block: Continue is always on there
+                        val canNext = step == 5 || step == 6 || model.done(step)
                         SetupButton(
                             stringResource(MR.strings.glass_setup_continue),
-                            { if (step == 5) model.colouringContinue() else model.step = step + 1 },
+                            { when (step) { 5 -> model.colouringContinue(); 6 -> model.knownContinue(); else -> model.step = step + 1 } },
                             enabled = canNext,
                             trailing = "chevRight",
                         )
-                        if (step == 5) {
-                            QuietButton(stringResource(MR.strings.glass_setup_not_now), model::skipColouring)
+                        if (step == 5 || step == 6) {
+                            QuietButton(stringResource(MR.strings.glass_setup_not_now), if (step == 5) model::skipColouring else model::skipKnown)
                         } else if (!canNext) {
                             Text(
                                 stringResource(if (GlassSetupLogic.needed(step)) MR.strings.glass_setup_needed else MR.strings.glass_setup_or_not_now),
@@ -354,7 +365,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
     }
 }
 
-private val StepIcons = listOf("person", "key", "folder", "bell", "book", "pencil")
+private val StepIcons = listOf("person", "key", "folder", "bell", "book", "pencil", "library")
 
 /** A step left with "Not now": between done (white) and not started ([Glass.line]). */
 private val SkippedBar = Color.White.copy(alpha = 0.38f)

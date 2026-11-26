@@ -131,7 +131,7 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
             RecommendedDictionaries.all.filter { downloads[it.id] == DictionaryDownloads.State.Installed }.map { it.name },
         ).ifEmpty { dictionary.orEmpty() }
 
-    /** Step 0-5, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
+    /** Step 0-6, or [GlassSetupLogic.SUMMARY]. From Settings: step 1 (AniList); a first run: the first missing one. */
     var step by mutableIntStateOf(
         if (fromSettings) {
             0
@@ -195,12 +195,27 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
 
     fun skipColouring() {
         colouringSkipped = true
-        step = GlassSetupLogic.SUMMARY
+        step = 6
     }
 
     /** Continue on the step: it was looked at, so it is not "skipped" any more. */
     fun colouringContinue() {
         colouringSkipped = false
+        step = 6
+    }
+
+    // Known words (step 7): the sources themselves keep their own state (Jiten import, kumapie pairing, kuma3 layer).
+    var knownSkipped by mutableStateOf(false)
+        private set
+    var knownVisited by mutableStateOf(false)
+
+    fun skipKnown() {
+        knownSkipped = true
+        step = GlassSetupLogic.SUMMARY
+    }
+
+    fun knownContinue() {
+        knownSkipped = false
         step = GlassSetupLogic.SUMMARY
     }
 
@@ -291,15 +306,17 @@ class GlassSetupModel(private val fromSettings: Boolean) : ScreenModel {
         4 -> dictionary != null || dictionarySkipped || dictionaryDownloading
         // optional and always allowed: it has been looked at, or skipped
         5 -> colouringVisited || colouringSkipped
+        6 -> knownVisited || knownSkipped
         else -> false
     }
 
-    /** "Not now" on 1, 3 or 4 and still not set: done for Continue, but not really done (dimmer bar). */
+    /** "Not now" on 1, 3, 4, 5 or 6 and still not set: done for Continue, but not really done (dimmer bar). */
     fun skipped(i: Int): Boolean = when (i) {
         1 -> realDebridSkipped && !realDebridDone
         3 -> notificationsSkipped && !notificationsAllowed
         4 -> dictionarySkipped && dictionary == null
         5 -> colouringSkipped
+        6 -> knownSkipped
         else -> false
     }
 

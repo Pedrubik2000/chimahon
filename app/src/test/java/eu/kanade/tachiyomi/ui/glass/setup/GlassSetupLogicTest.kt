@@ -37,12 +37,13 @@ class GlassSetupLogicTest {
     }
 
     @Test
-    fun `six steps, the summary after them, one name each`() {
-        GlassSetupLogic.STEPS shouldBe 6
-        GlassSetupLogic.SUMMARY shouldBe 6
+    fun `seven steps, the summary after them, one name each`() {
+        GlassSetupLogic.STEPS shouldBe 7
+        GlassSetupLogic.SUMMARY shouldBe 7
         GlassSetupLogic.NAMES.size shouldBe GlassSetupLogic.STEPS
-        GlassSetupLogic.NAMES.last() shouldBe "Word colouring"
+        GlassSetupLogic.NAMES.last() shouldBe "Known words"
         GlassSetupLogic.tag(5, 2) shouldBe "CAN SKIP"
+        GlassSetupLogic.tag(6, 2) shouldBe "CAN SKIP"
     }
 
     @Test

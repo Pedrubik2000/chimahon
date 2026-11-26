@@ -9,14 +9,14 @@ object GlassSetupLogic {
      */
     data class Facts(val aniList: Boolean, val realDebrid: Boolean, val storage: Boolean)
 
-    /** Steps 0-5 (AniList, Real-Debrid, Storage, Notifications, Dictionary, Word colouring), then the summary. */
-    const val STEPS = 6
-    const val SUMMARY = 6
+    /** Steps 0-6 (AniList, Real-Debrid, Storage, Notifications, Dictionary, Word colouring, Known words), then the summary. */
+    const val STEPS = 7
+    const val SUMMARY = 7
 
     /** The step names as the bars, the summary rows and [missingLine] say them. */
-    val NAMES = listOf("AniList", "Real-Debrid", "Storage", "Notifications", "Dictionary", "Word colouring")
+    val NAMES = listOf("AniList", "Real-Debrid", "Storage", "Notifications", "Dictionary", "Word colouring", "Known words")
 
-    /** AniList (0) and Storage (2) are needed; Real-Debrid (1), Notifications (3), Dictionary (4) and Word colouring (5) can be skipped. */
+    /** AniList (0) and Storage (2) are needed; Real-Debrid (1), Notifications (3), Dictionary (4), Word colouring (5) and Known words (6) can be skipped. */
     fun needed(step: Int): Boolean = step == 0 || step == 2
 
     /** Indices of the needed facts that are missing, in step order. */
