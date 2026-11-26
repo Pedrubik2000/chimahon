@@ -29,8 +29,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
 import okio.Buffer
 import okio.BufferedSource
@@ -187,6 +189,13 @@ class PagerPageHolder(
                         if (extra == null) {
                             setImage()
                         } else {
+                            // Bounded wait: if the extra page never gets Ready/Error, show page 1 alone (a later Ready still merges)
+                            initProgressIndicator()
+                            progressIndicator?.show() // page 1 may have been Ready at once: no spinner yet
+                            if (withTimeoutOrNull(EXTRA_WAIT_MS) { extra.statusFlow.first { it is Page.State.Ready || it is Page.State.Error } } == null) {
+                                Log.w("KumahonLag", "extra page ${extra.index} not ready after ${EXTRA_WAIT_MS}ms, showing page ${page.index} alone")
+                                setImage()
+                            }
                             extra.statusFlow.collectLatest {
                                 if (it is Page.State.Ready || it is Page.State.Error) setImage()
                             }
@@ -229,13 +238,20 @@ class PagerPageHolder(
      * Called when the page is ready.
      */
     private suspend fun setImage() {
+        // spinner stays up while decoding/merging (it may not exist yet when the page was Ready at once)
+        initProgressIndicator()
+        progressIndicator?.show()
         if (extraPage == null) {
             progressIndicator?.setProgress(0)
         } else {
             progressIndicator?.setProgress(95)
         }
 
-        val streamFn = page.stream ?: return
+        val streamFn = page.stream ?: run {
+            logcat(LogPriority.ERROR) { "Page ${page.index} is Ready but has no stream" }
+            setError(IllegalStateException("Page ${page.index} has no image stream"))
+            return
+        }
         // only a Ready extra page: an Error one may hold a stale stream whose file is gone, which would fail page 1 too
         val streamFn2 = extraPage?.takeIf { it.status is Page.State.Ready }?.stream
 
@@ -475,6 +491,7 @@ class PagerPageHolder(
 
     private companion object {
         const val MERGE_JPEG_QUALITY = 90
+        const val EXTRA_WAIT_MS = 10_000L
 
         // ponytail: 24 MB of merged JPEGs (~4-8 typical pairs) covers turning back and forth; raise if turns re-merge
         val mergeCache = object : LruCache<MergeKey, MergeResult>(24 * 1024 * 1024) {
