@@ -10,7 +10,7 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 /** One local-source chapter of the title (= one volume). [number] is the volume, from "Vol. NN". */
-data class LocalVolume(val chapterId: Long, val number: Int, val read: Boolean, val lastPageRead: Long)
+data class LocalVolume(val chapterId: Long, val number: Int, val read: Boolean, val lastPageRead: Long, val bookmark: Boolean = false)
 
 /** A queued or running Real-Debrid job's hold on one volume. [fraction] = download progress, null when unknown. */
 data class Active(val sourceId: Long?, val running: Boolean, val fraction: Float?)
@@ -112,6 +112,51 @@ object GlassTitleState {
     fun selectRead(cells: List<VolumeCell>, readUpTo: Int, reading: Int?): Set<Int> {
         val ok = selectable(cells, reading)
         return cells.filter { it.number in ok && it.number <= readUpTo }.mapTo(linkedSetOf()) { it.number }
+    }
+
+    /** Select mode's quick picks. */
+    enum class Pick { ALL, READ, UNREAD_HERE, NOT_FETCHED }
+
+    /** Read = ✓ cells (on AniList or here); unread here = on the tablet, not read; not fetched = no file, not queued. [locked] volumes are never picked. */
+    fun pick(cells: List<VolumeCell>, kind: Pick, locked: Set<Int> = emptySet()): Set<Int> = cells.filter {
+        it.number !in locked &&
+        when (kind) {
+            Pick.ALL -> true
+            Pick.READ -> it.state == VolState.READ
+            Pick.UNREAD_HERE -> it.local != null && it.state != VolState.READ
+            Pick.NOT_FETCHED -> it.local == null && (it.state == VolState.NONE || it.state == VolState.FAILED)
+        }
+    }.mapTo(linkedSetOf()) { it.number }
+
+    /** Range pick: every cell from [a] to [b], whichever comes first, except [locked] ones. */
+    fun range(cells: List<VolumeCell>, a: Int, b: Int, locked: Set<Int> = emptySet()): Set<Int> =
+        cells.filter { it.number in minOf(a, b)..maxOf(a, b) && it.number !in locked }.mapTo(linkedSetOf()) { it.number }
+
+    /** The [picked] volumes whose files can go: on the tablet and not the one being read. */
+    fun deletable(cells: List<VolumeCell>, picked: Set<Int>, reading: Int?): Set<Int> =
+        selectable(cells, reading) intersect picked
+
+    /** The [picked] volumes "Get" fetches: no file here and not queued (a read one on AniList too). */
+    fun gettable(cells: List<VolumeCell>, picked: Set<Int>): List<Int> =
+        cells.filter { it.number in picked && it.local == null && it.state in setOf(VolState.NONE, VolState.FAILED, VolState.READ) }
+            .map { it.number }
+
+    /** "Mark read up to here": volumes on the tablet numbered up to [n]. */
+    fun upTo(cells: List<VolumeCell>, n: Int): Set<Int> =
+        cells.filter { it.local != null && it.number <= n }.mapTo(linkedSetOf()) { it.number }
+
+    /** The delete sheet's boxes: [goes] lose their file; [reading] never goes; [stays] = the others on the tablet; [queued] untouched. */
+    data class DeleteSummary(val goes: List<Int>, val reading: List<Int>, val stays: List<Int>, val queued: List<Int>)
+
+    fun deleteSummary(cells: List<VolumeCell>, goes: Set<Int>, reading: Int?): DeleteSummary {
+        val locked = locked(cells, reading)
+        val here = cells.filter { it.local != null }.map { it.number }
+        return DeleteSummary(
+            goes = here.filter { it in goes && it !in locked },
+            reading = here.filter { it in locked },
+            stays = here.filter { it !in goes && it !in locked },
+            queued = cells.filter { it.state == VolState.QUEUED || it.state == VolState.DOWNLOADING }.map { it.number },
+        )
     }
 
     /** [picked] volumes marked read only on this tablet (above AniList's [readUpTo]): their mark goes with the file. */

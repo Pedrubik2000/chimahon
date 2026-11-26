@@ -209,6 +209,55 @@ class GlassTitleStateTest {
     }
 
     @Test
+    fun `quick picks, range, get and delete targets`() {
+        // 1-2 read on AniList only, 3-12 read here, 13 reading, 14 unread here, 15 not here, 16 queued, 17 failed
+        val cells = GlassTitleState.cells(
+            17,
+            (3..12).map { vol(it, read = true) } + vol(13, page = 4) + vol(14),
+            mapOf(16 to Active(1L, true, 0.5f)),
+            readUpTo = 12,
+            totalKnown = true,
+            failed = setOf(17),
+        )
+        GlassTitleState.pick(cells, GlassTitleState.Pick.ALL) shouldBe (1..17).toSet()
+        GlassTitleState.pick(cells, GlassTitleState.Pick.READ) shouldBe (1..12).toSet()
+        GlassTitleState.pick(cells, GlassTitleState.Pick.UNREAD_HERE) shouldBe setOf(13, 14)
+        GlassTitleState.pick(cells, GlassTitleState.Pick.NOT_FETCHED) shouldBe setOf(15, 17)
+        GlassTitleState.range(cells, 5, 3) shouldBe setOf(3, 4, 5)
+        GlassTitleState.range(cells, 16, 40) shouldBe setOf(16, 17)
+        // Get: no file and not queued (read on AniList too); Delete: a file, never the one being read
+        GlassTitleState.gettable(cells, (1..17).toSet()) shouldBe listOf(1, 2, 15, 17)
+        GlassTitleState.deletable(cells, setOf(2, 3, 13, 14, 16), 13) shouldBe setOf(3, 14)
+        GlassTitleState.upTo(cells, 4) shouldBe setOf(3, 4)
+    }
+
+    @Test
+    fun `quick picks and range never include the locked reading volume`() {
+        val cells = selectCells() // 13 is being read
+        val locked = GlassTitleState.locked(cells, 13)
+        locked shouldBe setOf(13)
+        GlassTitleState.Pick.entries.forEach { GlassTitleState.pick(cells, it, locked).contains(13) shouldBe false }
+        GlassTitleState.pick(cells, GlassTitleState.Pick.UNREAD_HERE, locked) shouldBe setOf(14)
+        GlassTitleState.range(cells, 12, 15, locked) shouldBe setOf(12, 14, 15)
+    }
+
+    @Test
+    fun `delete read goes for read volumes on the tablet, the sheet says what stays`() {
+        val cells = selectCells()
+        val goes = GlassTitleState.selectRead(cells, 12, 13)
+        goes shouldBe (3..12).toSet()
+        val sum = GlassTitleState.deleteSummary(cells, goes, 13)
+        sum.goes shouldBe (3..12).toList()
+        sum.reading shouldBe listOf(13)
+        sum.stays shouldBe listOf(14)
+        sum.queued shouldBe emptyList()
+        // nothing read on the tablet: no button
+        GlassTitleState.selectRead(GlassTitleState.cells(3, listOf(vol(1)), emptyMap()), 0, null) shouldBe emptySet()
+        // the one being read is never in a delete, even when asked for
+        GlassTitleState.deleteSummary(cells, setOf(13, 14), 13).goes shouldBe listOf(14)
+    }
+
+    @Test
     fun `a volume under AniList's count on the tablet counts as read, the reading one never selectable`() {
         val cells = GlassTitleState.cells(5, listOf(vol(2), vol(3, page = 7), vol(5)), emptyMap(), readUpTo = 3)
         GlassTitleState.selectRead(cells, 3, 3) shouldBe setOf(2)

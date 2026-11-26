@@ -80,15 +80,22 @@ internal fun GlassPhoneTitle(
     colours: StatusColours,
     unavailable: Set<Int>,
     topRow: @Composable () -> Unit,
+    /** "N volumes" with Delete read / Select / Fetch, or Select mode's bar. */
+    volumesHeader: @Composable () -> Unit,
     onHome: Boolean,
     onAddHome: () -> Unit,
     onOpen: (LocalVolume) -> Unit,
     onFetch: (List<Int>) -> Unit,
     onByHand: () -> Unit,
     onCancel: (Int) -> Unit,
-    onSetRead: (LocalVolume, Boolean) -> Unit,
+    actions: VolumeActions,
+    /** Select mode: a cell's pick state, null when off. */
+    select: (VolumeCell) -> CellSelect?,
+    onToggle: (Int) -> Unit,
     sourceList: @Composable () -> Unit,
     aniList: @Composable () -> Unit,
+    /** Extra room under the list (the Select dock). */
+    bottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val seriesCover = entry?.let { it.coverLarge ?: it.cover }
     // BoxWithConstraints outside the scrolling column: inside it maxHeight would be unbounded
@@ -97,7 +104,7 @@ internal fun GlassPhoneTitle(
         val heroHeight = maxOf(maxHeight * 0.45f, 280.dp)
         // lazy: a volume row composes (and loads its cover) only when it scrolls near the screen
         val pad = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp + bottomPadding)) {
             item { Box(Modifier.fillMaxWidth().height(heroHeight).background(Glass.panel)) {
                 AsyncImage(
                     model = entry?.let { it.coverLarge ?: it.cover },
@@ -160,22 +167,7 @@ internal fun GlassPhoneTitle(
             } }
 
             item {
-                Row(pad, verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        stringResource(MR.strings.glass_n_volumes, count),
-                        fontSize = Glass.heading,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (fetchable.isNotEmpty()) {
-                        Pill(
-                            stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
-                            onClick = { onFetch(fetchable) },
-                            icon = "download",
-                            small = true,
-                        )
-                    }
-                }
+                Box(pad) { volumesHeader() }
             }
 
             items(cells.chunked(COLUMNS), key = { it.first().number }) { row ->
@@ -196,7 +188,9 @@ internal fun GlassPhoneTitle(
                             onOpen = onOpen,
                             onFetch = { onFetch(listOf(cell.number)) },
                             onCancel = { onCancel(cell.number) },
-                            onSetRead = onSetRead,
+                            actions = actions,
+                            select = select(cell),
+                            onToggle = { onToggle(cell.number) },
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -254,7 +248,9 @@ private fun PhoneCell(
     onOpen: (LocalVolume) -> Unit,
     onFetch: () -> Unit,
     onCancel: () -> Unit,
-    onSetRead: (LocalVolume, Boolean) -> Unit,
+    actions: VolumeActions,
+    select: CellSelect?,
+    onToggle: () -> Unit,
     modifier: Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
@@ -267,30 +263,29 @@ private fun PhoneCell(
             fraction = cell.fraction,
             standIn = standIn,
             blurred = hidden,
-            current = current,
+            current = current || select?.picked == true,
             onDevice = cell.state == VolState.READ && local != null,
             unavailable = unavailable,
             colours = colours,
+            overlay = { CellOverlay(select, local?.bookmark == true) },
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = {
                         when {
+                            select != null -> onToggle()
                             local != null -> onOpen(local)
                             cell.state == VolState.NONE || cell.state == VolState.READ || cell.state == VolState.FAILED -> onFetch() // READ here = read on AniList, not on the phone
                             else -> menu = true
                         }
                     },
-                    onLongClick = { if (local != null) menu = true },
+                    onLongClick = { if (local != null && select == null) menu = true },
                 ),
         )
-        GlassMenu(menu, { menu = false }) {
-            if (local != null) {
-                MenuItem(stringResource(if (local.read) MR.strings.glass_title_mark_unread else MR.strings.glass_title_mark_read)) {
-                    menu = false
-                    onSetRead(local, !local.read)
-                }
-            } else {
+        if (local != null) {
+            VolumeMenu(menu, { menu = false }, cell.number, local, actions)
+        } else {
+            GlassMenu(menu, { menu = false }) {
                 MenuItem(stringResource(MR.strings.action_cancel)) {
                     menu = false
                     onCancel()

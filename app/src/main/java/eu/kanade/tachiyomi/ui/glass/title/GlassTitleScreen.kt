@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -45,7 +49,27 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
+import dev.icerock.moko.resources.StringResource
+import eu.kanade.presentation.category.components.ChangeCategoryDialog
+import eu.kanade.domain.manga.model.hasCustomCover
+import eu.kanade.presentation.manga.EditCoverAction
+import eu.kanade.presentation.manga.components.MangaCoverDialog
+import eu.kanade.tachiyomi.ui.category.CategoryScreen
+import eu.kanade.tachiyomi.ui.manga.EditMangaDialog
+import eu.kanade.tachiyomi.ui.manga.MangaCoverScreenModel
+import eu.kanade.tachiyomi.util.system.toShareIntent
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.launch
+import mihon.feature.migration.config.MigrationConfigScreen
+import tachiyomi.core.common.preference.CheckboxState
+import tachiyomi.domain.category.model.Category
+import tachiyomi.domain.manga.model.Manga
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -105,7 +129,6 @@ import eu.kanade.tachiyomi.ui.glass.downloads.hatched
 import eu.kanade.tachiyomi.ui.glass.manual.GlassManualScreen
 import eu.kanade.tachiyomi.ui.glass.manual.GlassTorrentScreen
 import eu.kanade.tachiyomi.ui.glass.statusLabel
-import eu.kanade.tachiyomi.ui.manga.MangaScreen
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
@@ -181,20 +204,37 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         }
         val sourceName = { id: Long -> sources.firstOrNull { it.id == id }?.name ?: coverage[id]?.sourceName.orEmpty() }
 
-        // Select mode: pick volumes on the tablet to delete their files (rows, read marks and AniList stay)
+        // Select mode (canvas kumahon-volume-actions C): pick volumes, then Read / Unread / Mark / Get / Delete files
+        // (a delete removes files only: rows, read marks and AniList stay)
         val readUpTo = savedVolumes
         val reading = (primary as? Primary.Resume)?.volume?.number
-        val selectable = GlassTitleState.selectable(cells, reading)
         val locked = GlassTitleState.locked(cells, reading)
         var selecting by remember { mutableStateOf(false) }
         var picked by remember { mutableStateOf(emptySet<Int>()) }
-        // picks made by "Select read" stay tied to it (they shrink if the read set does) until a hand pick or another chip
-        var readMode by remember { mutableStateOf(false) }
-        val readNow = GlassTitleState.selectRead(cells, readUpTo, reading)
-        val pickedNow = if (readMode) picked intersect readNow else picked intersect selectable
+        var ranging by remember { mutableStateOf(false) }
+        var rangeFrom by remember { mutableStateOf<Int?>(null) }
+        // locked volumes (the one being read) are never picked: Unread would reset its page and unprotect it
+        val pickedNow = picked intersect cells.mapNotNullTo(mutableSetOf()) { c -> c.number.takeIf { it !in locked } }
+        val deletable = GlassTitleState.deletable(cells, pickedNow, reading)
+        val gettable = GlassTitleState.gettable(cells, pickedNow)
+        val pickedHere = cells.filter { it.number in pickedNow && it.local != null }
         var pickedBytes by remember { mutableLongStateOf(0L) }
-        LaunchedEffect(pickedNow, local) { pickedBytes = if (pickedNow.isEmpty()) 0L else model.sizeOf(pickedNow) }
-        if (selecting && selectable.isEmpty()) selecting = false
+        LaunchedEffect(deletable, local) { pickedBytes = if (deletable.isEmpty()) 0L else model.sizeOf(deletable) }
+        // "Delete read": the read volumes still on the tablet (not the one being read)
+        val readNow = GlassTitleState.selectRead(cells, readUpTo, reading)
+        var readBytes by remember { mutableLongStateOf(0L) }
+        LaunchedEffect(readNow, local) { readBytes = if (readNow.isEmpty()) 0L else model.sizeOf(readNow) }
+        var deleteAsk by remember { mutableStateOf<Set<Int>?>(null) }
+        var sheetBytes by remember { mutableLongStateOf(0L) }
+        LaunchedEffect(deleteAsk, local) { sheetBytes = deleteAsk?.let { model.sizeOf(GlassTitleState.deletable(cells, it, reading)) } ?: 0L }
+        val leaveSelect = {
+            selecting = false
+            picked = emptySet()
+            ranging = false
+            rangeFrom = null
+        }
+        var dialog by remember { mutableStateOf<TitleDialog?>(null) }
+        val scope = rememberCoroutineScope()
 
         var confirm by remember { mutableStateOf<List<Int>?>(null) }
         /** Any fetch, a single volume too: the confirm dialog first (what it adds, from which source). */
@@ -214,15 +254,140 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
             Unit
         }
 
+        val actions = VolumeActions(
+            open = openVolume,
+            readUpTo = { n -> model.setRead(GlassTitleState.upTo(cells, n), true) },
+            setRead = { v, read -> model.setRead(listOf(v.number), read) },
+            bookmark = { v -> model.setBookmark(listOf(v.number), !v.bookmark) },
+            delete = { n -> deleteAsk = setOf(n) },
+            selectMore = { n ->
+                selecting = true
+                picked = if (n in locked) emptySet() else setOf(n)
+            },
+            locked = locked,
+            size = { n -> model.sizeOf(setOf(n)) },
+        )
+        /** A tap on a cover in Select mode: toggles it, or (Range) sets the first, then the last. */
+        val toggle = toggle@{ n: Int ->
+            if (n in locked) return@toggle
+            val from = rangeFrom
+            if (!ranging) {
+                picked = if (n in pickedNow) pickedNow - n else pickedNow + n
+            } else if (from == null) {
+                rangeFrom = n
+            } else {
+                picked = pickedNow + GlassTitleState.range(cells, from, n, locked)
+                ranging = false
+                rangeFrom = null
+            }
+        }
+        val selectOf = { cell: VolumeCell ->
+            if (selecting) CellSelect(cell.number in pickedNow, cell.number in locked && cell.local != null) else null
+        }
+        val selectActions: @Composable () -> Unit = {
+            SelectActions(
+                hasLocal = pickedHere.isNotEmpty(),
+                allMarked = pickedHere.all { it.local?.bookmark == true },
+                canGet = gettable.isNotEmpty(),
+                canDelete = deletable.isNotEmpty(),
+                onRead = { model.setRead(pickedHere.map { it.number }, true); leaveSelect() },
+                onUnread = { model.setRead(pickedHere.map { it.number }, false); leaveSelect() },
+                onMark = {
+                    model.setBookmark(pickedHere.map { it.number }, !pickedHere.all { it.local?.bookmark == true })
+                    leaveSelect()
+                },
+                onGet = { request(gettable); leaveSelect() },
+                onDelete = { deleteAsk = deletable },
+            )
+        }
+        /** The grid's header: "N volumes" with Delete read / Select / Fetch, or Select mode's toolbar. */
+        val volumesHeader: @Composable (Boolean) -> Unit = { phone ->
+            if (selecting) {
+                SelectBar(
+                    title = stringResource(MR.strings.glass_title_n_selected, pickedNow.size) +
+                        if (pickedBytes > 0) " · ${GlassTitleState.sizeText(pickedBytes)}" else "",
+                    onClose = leaveSelect,
+                    actions = if (phone) null else selectActions,
+                    picks = {
+                        PickRow(
+                            cells, locked, pickedNow, ranging, rangeFrom,
+                            onPick = { picked = it; ranging = false; rangeFrom = null },
+                            onRange = { ranging = !ranging; rangeFrom = null },
+                        )
+                    },
+                )
+            } else {
+                val pills: @Composable () -> Unit = {
+                    if (readNow.isNotEmpty()) {
+                        Pill(
+                            stringResource(MR.strings.glass_title_delete_read, GlassTitleState.sizeText(readBytes)),
+                            onClick = { deleteAsk = readNow },
+                            small = true,
+                        )
+                    }
+                    if (cells.isNotEmpty()) {
+                        Pill(stringResource(MR.strings.glass_title_select), onClick = { selecting = true }, icon = "check", small = true)
+                    }
+                    if (fetchable.isNotEmpty()) {
+                        // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
+                        Pill(
+                            stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
+                            onClick = { request(fetchable) },
+                            icon = "download",
+                            small = true,
+                        )
+                    }
+                }
+                if (phone) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { pills() }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f))
+                        pills()
+                    }
+                }
+            }
+        }
+
+        val manga = local?.manga
+        val aniListUrl = AnilistApi.mangaUrl(mediaId)
+        val topRow: @Composable () -> Unit = {
+            TopRow(
+                onBack = { navigator.pop() },
+                onRefresh = model::refreshSources,
+                hideUnread = hideUnread,
+                onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
+                more = listOfNotNull(
+                    manga?.let {
+                        MR.strings.glass_title_edit_info to {
+                            scope.launch { model.freshManga()?.let { dialog = TitleDialog.EditInfo(it) } }
+                            Unit
+                        }
+                    },
+                    manga?.let { MR.strings.glass_title_change_cover to { dialog = TitleDialog.Cover(it.id) } },
+                    manga?.let {
+                        MR.strings.action_edit_categories to {
+                            scope.launch { model.categorySelection()?.let { dialog = TitleDialog.Categories(it) } }
+                            Unit
+                        }
+                    },
+                    manga?.takeIf { it.favorite }?.let { MR.strings.action_migrate to { navigator.push(MigrationConfigScreen(it.id)) } },
+                    MR.strings.action_share to {
+                        runCatching { context.startActivity(aniListUrl.toUri().toShareIntent(context, type = "text/plain")) }
+                        Unit
+                    },
+                    MR.strings.action_open_in_browser to { uriHandler.openUri(aniListUrl) },
+                ),
+            )
+        }
+
         val header: @Composable () -> Unit = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                TopRow(
-                    onBack = { navigator.pop() },
-                    onClassic = local?.let { l -> { navigator.push(MangaScreen(l.manga.id)) } },
-                    onRefresh = model::refreshSources,
-                    hideUnread = hideUnread,
-                    onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
-                )
+                topRow()
                 Heading(entry, fallbackTitle = local?.manga?.title)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (primary) {
@@ -325,47 +490,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
         }
 
         val volumeGrid: LazyGridScope.() -> Unit = {
-            fullSpan {
-                if (selecting) Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(CircleShape)
-                        .background(Glass.panel)
-                        .border(1.dp, Glass.line, CircleShape)
-                        .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(Modifier.size(32.dp).clip(CircleShape).clickable { selecting = false; picked = emptySet(); readMode = false }, contentAlignment = Alignment.Center) {
-                        GlassIcon("close", size = 18.dp)
-                    }
-                    Text(
-                        stringResource(MR.strings.glass_title_n_selected, pickedNow.size, GlassTitleState.sizeText(pickedBytes)),
-                        fontSize = Glass.body,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                    )
-                    GlassChip(stringResource(MR.strings.glass_title_select_read), selected = readMode && pickedNow == readNow && readNow.isNotEmpty(), onClick = { picked = readNow; readMode = true })
-                    GlassChip(stringResource(MR.strings.glass_title_select_all), selected = pickedNow == selectable, onClick = { picked = selectable; readMode = false })
-                    GlassChip(stringResource(MR.strings.glass_title_select_none), selected = false, onClick = { picked = emptySet(); readMode = false })
-                } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.weight(1f))
-                    if (selectable.isNotEmpty()) {
-                        Pill(stringResource(MR.strings.glass_title_select), onClick = { selecting = true }, icon = "check", small = true)
-                    }
-                    if (fetchable.isNotEmpty()) {
-                        // ponytail: no size: Coverage keeps links, not the link texts that carry sizes (X3DL)
-                        Pill(
-                            stringResource(MR.strings.glass_title_fetch_n, fetchable.size),
-                            onClick = { request(fetchable) },
-                            icon = "download",
-                            small = true,
-                        )
-                    }
-                }
-            }
+            fullSpan { volumesHeader(false) }
             failed.forEach { r ->
                 fullSpan { FailedRow(r, here, active.keys, request) }
             }
@@ -383,16 +508,9 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     onOpen = openVolume,
                     onFetch = { request(listOf(cell.number)) },
                     onCancel = { model.cancel(cell.number) },
-                    onSetRead = model::setRead,
-                    select = if (selecting) {
-                        CellSelect(cell.number in selectable, cell.number in pickedNow, cell.number in locked && cell.local != null)
-                    } else {
-                        null
-                    },
-                    onToggle = {
-                        picked = if (cell.number in pickedNow) pickedNow - cell.number else pickedNow + cell.number
-                        readMode = false
-                    },
+                    actions = actions,
+                    select = selectOf(cell),
+                    onToggle = { toggle(cell.number) },
                 )
             }
             fullSpan { StatusLegend(Modifier.padding(top = 4.dp), cover = entry?.let { it.coverLarge ?: it.cover }, colours = colours) }
@@ -444,22 +562,19 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 active = active.keys,
                 colours = colours,
                 unavailable = GlassTitleState.unavailable(coverage, sources.map { it.id }, count),
-                topRow = {
-                    TopRow(
-                        onBack = { navigator.pop() },
-                        onClassic = local?.let { l -> { navigator.push(MangaScreen(l.manga.id)) } },
-                        onRefresh = model::refreshSources,
-                        hideUnread = hideUnread,
-                        onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
-                    )
-                },
+                topRow = topRow,
+                // the dock (~88 dp) and the navigation bar cover the end of the list while it shows
+                bottomPadding = if (selecting && pickedNow.isNotEmpty()) 96.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp,
+                volumesHeader = { volumesHeader(true) },
                 onHome = GlassTitleState.onHome(entry?.status),
                 onAddHome = model::addToHome,
                 onOpen = openVolume,
                 onFetch = request,
                 onByHand = { navigator.push(GlassManualScreen(mediaId, missing, here.toList())) },
                 onCancel = model::cancel,
-                onSetRead = model::setRead,
+                actions = actions,
+                select = selectOf,
+                onToggle = toggle,
                 sourceList = sourceList,
                 aniList = aniListBlock,
             ) else BoxWithConstraints(
@@ -501,76 +616,44 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     grid(Modifier.fillMaxSize(), true)
                 }
             }
-            if (selecting && pickedNow.isNotEmpty()) Row(
+            // Select mode on a phone: the actions sit in a dock at the bottom (the tablet has them in the header)
+            if (selecting && phone && pickedNow.isNotEmpty()) Row(
                 Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(start = if (phone) 16.dp else 108.dp, end = if (phone) 16.dp else 32.dp, bottom = 16.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(Glass.r8))
+                    .navigationBarsPadding()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(Glass.r16))
                     .background(Glass.panel)
-                    .border(1.dp, Glass.line, RoundedCornerShape(Glass.r8))
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                val freed = GlassTitleState.sizeText(pickedBytes)
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (pickedNow.size == 1) {
-                            stringResource(MR.strings.glass_title_delete_ask_one)
-                        } else {
-                            stringResource(MR.strings.glass_title_delete_ask, pickedNow.size)
-                        },
-                        fontSize = Glass.label,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    // a mark kept only by the row (read here, above AniList's count) goes with the file: say so
-                    val onlyHere = GlassTitleState.readOnlyHere(cells, pickedNow, readUpTo)
-                    Text(
-                        when {
-                            onlyHere.size == 1 -> stringResource(MR.strings.glass_title_read_only_here_one, onlyHere.first())
-                            onlyHere.isNotEmpty() ->
-                                stringResource(MR.strings.glass_title_read_only_here, CoverageMatch.ranges(onlyHere))
-                            readUpTo > 0 -> stringResource(MR.strings.glass_title_delete_frees_anilist, freed, readUpTo)
-                            else -> stringResource(MR.strings.glass_title_delete_frees, freed)
-                        },
-                        color = if (onlyHere.isEmpty()) Glass.secondary else Glass.red,
-                        fontSize = Glass.caption,
-                    )
-                }
-                Box(
-                    Modifier
-                        .height(Glass.button)
-                        .clip(CircleShape)
-                        .background(Glass.red.copy(alpha = 0.9f))
-                        .clickable {
-                            val chosenVolumes = pickedNow
-                            selecting = false
-                            picked = emptySet()
-                            readMode = false
-                            // runs in the model's scope: leaving the page does not cancel it half-way
-                            model.deleteVolumes(chosenVolumes) { r ->
-                                if (r.deleted == 0 && r.failed == 0) return@deleteVolumes // no files found: nothing to say
-                                val sizeText = GlassTitleState.sizeText(r.freed)
-                                val done = when {
-                                    r.deleted == 0 && r.failed > 0 -> null
-                                    r.deleted == 1 -> context.stringResource(MR.strings.glass_title_deleted_one, sizeText)
-                                    else -> context.stringResource(MR.strings.glass_title_deleted, r.deleted, sizeText)
-                                }
-                                val failedText = if (r.failed > 0) context.stringResource(MR.strings.glass_title_delete_failed, r.failed) else null
-                                Toast.makeText(context, listOfNotNull(done, failedText).joinToString(" · "), Toast.LENGTH_LONG).show()
+                    .border(1.dp, Glass.line, RoundedCornerShape(Glass.r16))
+                    .padding(10.dp),
+            ) { selectActions() }
+            deleteAsk?.let { goes ->
+                DeleteSheet(
+                    cells = cells,
+                    goes = goes,
+                    reading = reading,
+                    bytes = sheetBytes,
+                    onlyHere = GlassTitleState.readOnlyHere(cells, goes, readUpTo),
+                    onCancel = { deleteAsk = null },
+                    onConfirm = {
+                        val chosenVolumes = GlassTitleState.deletable(cells, goes, reading)
+                        deleteAsk = null
+                        leaveSelect()
+                        // runs in the model's scope: leaving the page does not cancel it half-way
+                        model.deleteVolumes(chosenVolumes) { r ->
+                            if (r.deleted == 0 && r.failed == 0) return@deleteVolumes // no files found: nothing to say
+                            val sizeText = GlassTitleState.sizeText(r.freed)
+                            val done = when {
+                                r.deleted == 0 && r.failed > 0 -> null
+                                r.deleted == 1 -> context.stringResource(MR.strings.glass_title_deleted_one, sizeText)
+                                else -> context.stringResource(MR.strings.glass_title_deleted, r.deleted, sizeText)
                             }
+                            val failedText = if (r.failed > 0) context.stringResource(MR.strings.glass_title_delete_failed, r.failed) else null
+                            Toast.makeText(context, listOfNotNull(done, failedText).joinToString(" · "), Toast.LENGTH_LONG).show()
                         }
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        stringResource(MR.strings.glass_title_delete_n, pickedNow.size),
-                        color = Color.Black,
-                        fontSize = Glass.label,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                    },
+                )
             }
             if (!phone) GlassRail(
                 active = "none",
@@ -584,6 +667,45 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 },
                 modifier = Modifier.padding(start = 20.dp, top = 24.dp),
             )
+        }
+
+        when (val d = dialog) {
+            null -> Unit
+            is TitleDialog.EditInfo -> EditMangaDialog(
+                manga = d.manga,
+                coverRatio = remember { mutableFloatStateOf(1f) },
+                onDismissRequest = { dialog = null },
+                onPositiveClick = model::updateInfo,
+            )
+            is TitleDialog.Categories -> ChangeCategoryDialog(
+                initialSelection = d.selection,
+                onDismissRequest = { dialog = null },
+                onEditCategories = { navigator.push(CategoryScreen()) },
+                onConfirm = { include, _ -> model.setCategories(include) },
+            )
+            is TitleDialog.Cover -> {
+                val sm = rememberScreenModel { MangaCoverScreenModel(d.mangaId) }
+                val coverManga by sm.state.collectAsStateWithLifecycle()
+                val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+                    if (uri != null) sm.editCover(context, uri)
+                }
+                coverManga?.let {
+                    MangaCoverDialog(
+                        manga = it,
+                        snackbarHostState = sm.snackbarHostState,
+                        isCustomCover = remember(it) { it.hasCustomCover() },
+                        onShareClick = { sm.shareCover(context) },
+                        onSaveClick = { sm.saveCover(context) },
+                        onEditClick = { action ->
+                            when (action) {
+                                EditCoverAction.EDIT -> pick.launch("image/*")
+                                EditCoverAction.DELETE -> sm.deleteCustomCover(context)
+                            }
+                        },
+                        onDismissRequest = { dialog = null },
+                    )
+                }
+            }
         }
 
         confirm?.let { vols ->
@@ -612,6 +734,13 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
     }
 }
 
+/** The classic dialogs the "More" menu opens over the page. */
+private sealed interface TitleDialog {
+    data class EditInfo(val manga: Manga) : TitleDialog
+    data class Categories(val selection: ImmutableList<CheckboxState<Category>>) : TitleDialog
+    data class Cover(val mangaId: Long) : TitleDialog
+}
+
 private fun LazyGridScope.fullSpan(content: @Composable () -> Unit) {
     item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
@@ -619,11 +748,12 @@ private fun LazyGridScope.fullSpan(content: @Composable () -> Unit) {
 @Composable
 internal fun TopRow(
     onBack: () -> Unit,
-    onClassic: (() -> Unit)?,
     onRefresh: () -> Unit,
     hideUnread: Boolean,
     onToggleHideUnread: () -> Unit,
     showHideUnread: Boolean = true,
+    /** The title-level actions after the two above: Edit info, Change cover, Categories, Migrate, Share, Open in browser. */
+    more: List<Pair<StringResource, () -> Unit>> = emptyList(),
 ) {
     var open by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -644,10 +774,10 @@ internal fun TopRow(
                     open = false
                     onToggleHideUnread()
                 }
-                onClassic?.let {
-                    MenuItem(stringResource(MR.strings.glass_classic_view)) {
+                more.forEach { (label, action) ->
+                    MenuItem(stringResource(label)) {
                         open = false
-                        it()
+                        action()
                     }
                 }
             }
@@ -1015,9 +1145,6 @@ internal fun FailedRow(r: RealDebridQueue.Row, here: Set<Int>, active: Set<Int>,
     }
 }
 
-/** A cell in Select mode: [pickable] = on the tablet and not the one being read; [reading] = that locked one. */
-private data class CellSelect(val pickable: Boolean, val picked: Boolean, val reading: Boolean)
-
 @Composable
 private fun VolumeCellView(
     cell: VolumeCell,
@@ -1030,8 +1157,8 @@ private fun VolumeCellView(
     onOpen: (LocalVolume) -> Unit,
     onFetch: () -> Unit,
     onCancel: () -> Unit,
-    onSetRead: (LocalVolume, Boolean) -> Unit,
-    /** Select mode: null = off; else whether this cell can be picked, is picked, is the locked reading volume. */
+    actions: VolumeActions,
+    /** Select mode: null = off; else whether this cell is picked and whether it is the locked reading volume. */
     select: CellSelect? = null,
     onToggle: () -> Unit = {},
 ) {
@@ -1055,7 +1182,7 @@ private fun VolumeCellView(
                 .combinedClickable(
                     onClick = {
                         when {
-                            select != null -> if (select.pickable) onToggle()
+                            select != null -> onToggle()
                             local != null -> onOpen(local)
                             cell.state == VolState.NONE || cell.state == VolState.READ || failed -> onFetch() // READ here = read on AniList, not on the tablet
                             else -> menu = true
@@ -1063,44 +1190,12 @@ private fun VolumeCellView(
                     },
                     onLongClick = { if (local != null && select == null) menu = true },
                 ),
-            overlay = {
-                if (select != null && select.pickable) {
-                    Box(
-                        Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(6.dp)
-                            .padding(bottom = 4.dp)
-                            .size(22.dp)
-                            .clip(CircleShape)
-                            .background(if (select.picked) Glass.ice else Glass.scrim)
-                            .border(1.5.dp, if (select.picked) Glass.ice else Color.White.copy(alpha = 0.8f), CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (select.picked) GlassIcon("check", size = 14.dp, tint = Color.Black)
-                    }
-                }
-                if (select?.reading == true) {
-                    Text(
-                        stringResource(MR.strings.glass_title_reading),
-                        fontSize = Glass.caption,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 10.dp)
-                            .clip(CircleShape)
-                            .background(Glass.scrim)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
-                }
-            },
+            overlay = { CellOverlay(select, local?.bookmark == true) },
         )
-        GlassMenu(menu, { menu = false }) {
-            if (local != null) {
-                MenuItem(stringResource(if (local.read) MR.strings.glass_title_mark_unread else MR.strings.glass_title_mark_read)) {
-                    menu = false
-                    onSetRead(local, !local.read)
-                }
-            } else {
+        if (local != null) {
+            VolumeMenu(menu, { menu = false }, cell.number, local, actions)
+        } else {
+            GlassMenu(menu, { menu = false }) {
                 MenuItem(stringResource(MR.strings.action_cancel)) {
                     menu = false
                     onCancel()

@@ -49,7 +49,25 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
+import android.app.Application
+import eu.kanade.domain.manga.interactor.UpdateManga
+import eu.kanade.domain.manga.model.toSManga
+import eu.kanade.domain.track.interactor.TrackChapter
+import exh.util.nullIfEmpty
+import exh.util.trimOrNull
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
+import tachiyomi.core.common.preference.CheckboxState
+import tachiyomi.core.common.preference.mapAsCheckboxState
+import tachiyomi.core.common.util.lang.launchNonCancellable
+import tachiyomi.domain.category.interactor.GetCategories
+import tachiyomi.domain.category.interactor.SetMangaCategories
+import tachiyomi.domain.category.model.Category
+import tachiyomi.domain.chapter.interactor.UpdateChapter
 import tachiyomi.domain.chapter.model.Chapter
+import tachiyomi.domain.chapter.model.ChapterUpdate
+import tachiyomi.domain.manga.model.MangaUpdate
+import tachiyomi.domain.source.service.SourceManager
 import tachiyomi.domain.chapter.repository.ChapterRepository
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.domain.manga.interactor.GetFavorites
@@ -84,6 +102,11 @@ class GlassTitleScreenModel(
     private val getFavorites: GetFavorites = Injekt.get(),
     private val setReadStatus: SetReadStatus = Injekt.get(),
     private val insertTrack: InsertTrack = Injekt.get(),
+    private val trackChapter: TrackChapter = Injekt.get(),
+    private val updateChapter: UpdateChapter = Injekt.get(),
+    private val getCategories: GetCategories = Injekt.get(),
+    private val setMangaCategories: SetMangaCategories = Injekt.get(),
+    private val updateManga: UpdateManga = Injekt.get(),
     private val trackerManager: TrackerManager = Injekt.get(),
     private val trackPreferences: TrackPreferences = Injekt.get(),
     val downloadPreferences: DownloadPreferences = Injekt.get(),
@@ -136,7 +159,7 @@ class GlassTitleScreenModel(
                     // deleted here and not replaced since (dateUpload unchanged); an emptied folder lists as "unreadable", so emptyUrls alone would miss them
                     val gone = chapters.filter { deleted[it.url] == it.dateUpload }.mapTo(mutableSetOf()) { it.url }
                     val volumes = chapters.filter { it.url !in empty && it.url !in gone }.mapNotNull { c ->
-                        GlassTitleState.volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead) }
+                        GlassTitleState.volumeNumber(c)?.let { LocalVolume(c.id, it, c.read, c.lastPageRead, c.bookmark) }
                     }
                     Local(pair.first, pair.second, chapters, GlassTitleState.dedupe(volumes))
                 }
@@ -313,9 +336,90 @@ class GlassTitleScreenModel(
         screenModelScope.launch { queue.cancel(mediaId, volume) }
     }
 
-    fun setRead(volume: LocalVolume, read: Boolean) {
-        val chapter = local.value?.chapters?.firstOrNull { it.id == volume.chapterId } ?: return
-        screenModelScope.launch(Dispatchers.IO) { setReadStatus.await(read, chapter) }
+    /** The chapters of the volumes [numbers] that are on the tablet. */
+    private fun chaptersOf(numbers: Collection<Int>): List<Chapter> {
+        val l = local.value ?: return emptyList()
+        val ids = l.volumes.filter { it.number in numbers }.mapTo(mutableSetOf()) { it.chapterId }
+        return l.chapters.filter { it.id in ids }
+    }
+
+    /**
+     * Marks the volumes [numbers] read or unread. Read also sends the highest one to AniList as the reader does
+     * (TrackChapter: volumes read, only when the "update progress after reading" setting is on; unread never lowers it).
+     */
+    fun setRead(numbers: Collection<Int>, read: Boolean) {
+        val chapters = chaptersOf(numbers)
+        val l = local.value ?: return
+        if (chapters.isEmpty()) return
+        val highest = l.volumes.filter { it.number in numbers }.maxOf { it.number }
+        volumeScope.launch { // outlives the page
+            setReadStatus.await(read, *chapters.toTypedArray())
+            if (read && trackPreferences.autoUpdateTrack().get()) {
+                trackChapter.await(Injekt.get<Application>(), l.manga.id, highest.toDouble())
+            }
+        }
+    }
+
+    fun setBookmark(numbers: Collection<Int>, bookmarked: Boolean) {
+        val updates = chaptersOf(numbers).filter { it.bookmark != bookmarked }.map { ChapterUpdate(id = it.id, bookmark = bookmarked) }
+        screenModelScope.launch(Dispatchers.IO) { updateChapter.awaitAll(updates) }
+    }
+
+    // Title-level actions of the "More" menu (what the classic page did for a local series)
+
+    /** The series row as it is now (an edit makes [local]'s copy stale). */
+    suspend fun freshManga(): Manga? = local.value?.manga?.let { getManga.await(it.id) }
+
+    /** Categories with the series' own ticked. */
+    suspend fun categorySelection(): ImmutableList<CheckboxState<Category>>? {
+        val manga = local.value?.manga ?: return null
+        val mine = getCategories.await(manga.id).map { it.id }
+        return getCategories.await().filterNot { it.isSystemCategory }
+            .mapAsCheckboxState { it.id in mine }.toImmutableList()
+    }
+
+    fun setCategories(ids: List<Long>) {
+        val manga = local.value?.manga ?: return
+        screenModelScope.launch(Dispatchers.IO) { setMangaCategories.await(manga.id, ids) }
+    }
+
+    /** "Edit info" for a local series, as the classic page saves it (the series folder's details file and the row). */
+    fun updateInfo(
+        title: String?,
+        author: String?,
+        artist: String?,
+        thumbnailUrl: String?,
+        description: String?,
+        tags: List<String>?,
+        status: Long?,
+    ) {
+        val manga = local.value?.manga ?: return
+        val newTitle = if (title.isNullOrBlank()) manga.url else title.trim()
+        val edited = manga.copy(
+            ogTitle = newTitle,
+            ogAuthor = author?.trimOrNull(),
+            ogArtist = artist?.trimOrNull(),
+            ogThumbnailUrl = thumbnailUrl?.trimOrNull(),
+            ogDescription = description?.trimOrNull(),
+            ogGenre = tags?.nullIfEmpty(),
+            ogStatus = status ?: 0,
+            lastUpdate = manga.lastUpdate + 1,
+        )
+        (Injekt.get<SourceManager>().get(LocalSource.ID) as LocalSource).updateMangaInfo(edited.toSManga())
+        screenModelScope.launchNonCancellable {
+            updateManga.await(
+                MangaUpdate(
+                    edited.id,
+                    title = newTitle,
+                    author = author?.trimOrNull(),
+                    artist = artist?.trimOrNull(),
+                    thumbnailUrl = thumbnailUrl?.trimOrNull(),
+                    description = description?.trimOrNull(),
+                    genre = tags,
+                    status = status,
+                ),
+            )
+        }
     }
 
     /** What a delete did, in volumes ([failed] = files that could not be removed) and bytes freed. */
