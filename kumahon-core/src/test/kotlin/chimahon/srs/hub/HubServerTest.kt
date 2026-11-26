@@ -156,7 +156,6 @@ class HubServerTest {
         val o = JSONObject(r.second)
         assertEquals("kumapie-device-1", o.getString("format")); assertEquals("kumahon hub", o.getString("device")); assertEquals("me", o.getString("person"))
         assertFalse(o.has("cards"))
-        assertEquals("kumahon", o.getString("app"))
     }
 
     @Test fun refusals() {

@@ -174,7 +174,7 @@ class HubServer(
                 secret == null -> Answer(403, NOT_PAIRED.toByteArray())
                 !PeerSync.verify(secret, body, sig) -> Answer(403, WRONG_SIG.toByteArray())
                 else -> runCatching {
-                    val out = store.merge(JSONObject(String(body, Charsets.UTF_8))).put("app", "kumahon").toString().toByteArray(Charsets.UTF_8) // "app": tells kumapie to send no "cards" to a kumahon hub (its side by Pia)
+                    val out = store.merge(JSONObject(String(body, Charsets.UTF_8))).toString().toByteArray(Charsets.UTF_8)
                     log("hub: synced $device")
                     Answer(200, out, PeerSync.sign(secret, out))
                 }.getOrElse { Answer(422, (it.message ?: it.toString()).toByteArray()) }
@@ -188,7 +188,7 @@ class HubServer(
         // the hub's own name is public: nobody may pair as the hub (kumahon's own pairing is made locally, never over HTTP)
         if (who == store.hubName) return Answer(403, "That name is this hub's.".toByteArray())
         if (who.length > MAX_DEVICE) return Answer(400, "Device name too long.".toByteArray())
-        val reply = JSONObject().put("device", store.hubName).put("setup", false).put("app", "kumahon").toString().toByteArray()
+        val reply = JSONObject().put("device", store.hubName).put("setup", false).toString().toByteArray()
         if (store.secretOf(who) == secret) return Answer(200, reply)
         val ask = synchronized(asking) {
             asking.removeAll { now - it.seen > DEAD_MS }
