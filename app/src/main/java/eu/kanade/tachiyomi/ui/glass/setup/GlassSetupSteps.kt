@@ -56,7 +56,6 @@ import eu.kanade.tachiyomi.ui.glass.title.VolumeTile
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.remember
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.GlassIcon
@@ -497,7 +496,7 @@ private object MaskKey : VisualTransformation {
         TransformedText(AnnotatedString(GlassSetupLogic.masked(text.text)), OffsetMapping.Identity)
 }
 
-/** The volume status colour set, as chips with a preview of the picked set (On device, Failed, Not asked for). */
+/** The volume status colour set, as chips with a strip of the six states in the picked set. */
 @Composable
 private fun StatusColourChoice() {
     val pref = remember { Injekt.get<UiPreferences>().glassStatusColours() }
@@ -514,9 +513,10 @@ private fun StatusColourChoice() {
             StatusColourSet.entries.forEach {
                 GlassChip(stringResource(it.titleRes), selected = it == set, onClick = { pref.set(it) })
             }
-            Spacer(Modifier.weight(1f))
-            listOf(VolState.HERE, VolState.FAILED, VolState.NONE).forEach {
-                VolumeTile(it, null, null, Modifier.width(26.dp), fraction = 0.6f)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(VolState.READ, VolState.HERE, VolState.DOWNLOADING, VolState.QUEUED, VolState.FAILED, VolState.NONE).forEach {
+                VolumeTile(it, null, null, Modifier.width(30.dp), fraction = 0.6f)
             }
         }
     }

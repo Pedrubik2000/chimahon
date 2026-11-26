@@ -27,7 +27,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
 /** A box narrower than this cannot show its number: the bar wraps into two rows. */
-private val MIN_BOX = 15.dp
+private val MIN_BOX = 18.dp
 
 /** A gap box is as wide as this many volume boxes (it carries a label). */
 private fun gapWeight(from: Int, to: Int) = (to - from + 1).coerceIn(2, 4).toFloat()
