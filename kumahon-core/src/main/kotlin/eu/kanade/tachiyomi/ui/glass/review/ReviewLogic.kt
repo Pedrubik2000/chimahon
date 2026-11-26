@@ -25,6 +25,30 @@ object ReviewLogic {
         return Word(spelling, reading)
     }
 
+    /** The Sound pill's cycle: auto -> tap -> off -> auto. Anything unknown reads as auto. */
+    fun nextSound(mode: String): String = when (mode) {
+        "auto" -> "tap"
+        "tap" -> "off"
+        else -> "auto"
+    }
+
+    fun normalSound(mode: String?): String = if (mode == "tap" || mode == "off") mode else "auto"
+
+    /** The sentence to speak: the context shown, else the card's own sentence (clean text). */
+    fun pickSentence(shown: String?, cardSentenceRaw: String): String =
+        shown?.takeIf { it.isNotBlank() } ?: cardSentence(cardSentenceRaw)
+
+    /** Cache file name of a sentence's voice: sha1 of the text, so the same sentence is made once. */
+    fun ttsCacheName(text: String): String =
+        java.security.MessageDigest.getInstance("SHA-1").digest(text.trim().toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) } + ".wav"
+
+    /** The reading to look a word's recording up with: the card's Reading field, else the one in its furigana form. */
+    fun audioReading(fieldsJson: String, word: Word): String {
+        val r = try { org.json.JSONObject(fieldsJson).optString("Reading") } catch (_: Exception) { "" }
+        return r.ifBlank { word.reading }
+    }
+
     /** Dictionary meaning as plain text: line-break tags become new lines, other tags go, common entities decoded. */
     fun plainText(html: String): String {
         val s = html

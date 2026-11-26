@@ -25,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,6 +87,7 @@ fun GlassReviewPage(model: GlassReviewModel) {
                         modifier = Modifier.weight(1f),
                     )
                     ReviewCounts(model.session, Glass.body)
+                    Pill("Sound: ${model.sound}", onClick = model::cycleSound, icon = "speaker", small = true)
                     if (model.canUndo) Pill("Undo", onClick = model::undo, icon = "undo", small = true)
                 }
                 Row(
@@ -107,12 +110,129 @@ fun GlassReviewPage(model: GlassReviewModel) {
 private fun ThumbColumn(model: GlassReviewModel, left: Boolean, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
         if (!model.shown) {
-            ReviewShowButton(model::show, Modifier.fillMaxWidth().height(272.dp), compact = false)
+            if (left) {
+                // the word is not shown yet: Sentence (Replay) above Show
+                ReviewSentenceButton(model, Modifier.fillMaxWidth().height(84.dp))
+                ReviewShowButton(model::show, Modifier.fillMaxWidth().height(176.dp), compact = false)
+            } else {
+                ReviewShowButton(model::show, Modifier.fillMaxWidth().height(272.dp), compact = false)
+            }
         } else {
             val ratings = if (left) listOf(1, 2) else listOf(3, 4)
+            if (left) ReviewWordButton(model, Modifier.fillMaxWidth().height(84.dp)) else ReviewSentenceButton(model, Modifier.fillMaxWidth().height(84.dp))
             ratings.forEach { ReviewAnswer(model, it, Modifier.fillMaxWidth().height(130.dp)) }
         }
     }
+}
+
+/** The ice line under text that is being spoken; dotted while its voice is still being made. */
+private fun Modifier.speakingLine(on: Boolean, dotted: Boolean): Modifier =
+    if (!on) this else drawBehind {
+        val w = 3.dp.toPx()
+        val y = size.height - w / 2
+        drawLine(
+            Glass.ice,
+            androidx.compose.ui.geometry.Offset(0f, y),
+            androidx.compose.ui.geometry.Offset(size.width, y),
+            strokeWidth = w,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            pathEffect = if (dotted) PathEffect.dashPathEffect(floatArrayOf(0.1f, w * 2.2f)) else null,
+        )
+    }
+
+/** A tap without a ripple (the text itself is the button). */
+@Composable
+private fun Modifier.tapText(onClick: () -> Unit): Modifier =
+    clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+
+/**
+ * The big Word / Sentence button of the thumb columns (mockup C): icon, label and a small state line; white while it plays,
+ * a ring while the voice is made, dashed and dim when the word has no recording (a tap then uses the phone voice).
+ */
+@Composable
+private fun ReviewAudioButton(label: String, state: String, active: Boolean, making: Boolean, dim: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(Glass.r16)
+    val ink = when {
+        active -> Color.Black
+        dim -> Glass.secondary
+        else -> Color.White
+    }
+    Row(
+        modifier
+            .clip(shape)
+            .then(
+                if (active) {
+                    Modifier.background(Color.White)
+                } else if (dim) {
+                    Modifier.background(Glass.panel).drawBehind {
+                        drawRoundRect(
+                            color = Color.White.copy(alpha = 0.3f),
+                            cornerRadius = CornerRadius(16.dp.toPx()),
+                            style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f))),
+                        )
+                    }
+                } else {
+                    Modifier.background(Glass.panel).border(1.dp, Glass.line, shape)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (making) {
+            CircularProgressIndicator(Modifier.size(22.dp), color = Glass.ice, strokeWidth = 2.dp)
+        } else {
+            GlassIcon("speaker", size = 24.dp, tint = ink)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(label, color = ink, fontSize = Glass.label, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(
+                state,
+                color = if (making) Glass.ice else if (active) Color.Black.copy(alpha = 0.6f) else Glass.secondary,
+                fontSize = Glass.caption,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 3,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ReviewWordButton(model: GlassReviewModel, modifier: Modifier) {
+    val v = model.voice
+    val making = v == GlassReviewModel.Voice.MakingWord
+    val active = v == GlassReviewModel.Voice.Word
+    val dim = model.wordNoRecording && !active && !making
+    ReviewAudioButton(
+        "Word",
+        when {
+            making -> "Making voice…"
+            active -> "Playing"
+            dim -> "No recording · tap for the phone voice"
+            else -> "Tap to hear"
+        },
+        active, making, dim, modifier, model::playWord,
+    )
+}
+
+/** On the front (no word yet) its state line says Replay. */
+@Composable
+internal fun ReviewSentenceButton(model: GlassReviewModel, modifier: Modifier) {
+    val v = model.voice
+    val making = v == GlassReviewModel.Voice.MakingSentence
+    val active = v == GlassReviewModel.Voice.Sentence
+    ReviewAudioButton(
+        "Sentence",
+        when {
+            making -> "Making voice…"
+            active -> "Playing"
+            model.shown -> "Tap to hear"
+            else -> "Replay"
+        },
+        active, making, false, modifier,
+    ) { model.playSentence(model.currentSentence()) }
 }
 
 @Composable
@@ -268,14 +388,38 @@ private fun ColumnScope.ReviewCardBody(model: GlassReviewModel, wordRaw: String,
     val pager = rememberPagerState { faces.size }
 
     HorizontalPager(pager, Modifier.fillMaxWidth().weight(1f)) { i ->
-        ReviewFaceView(faces[i], word.spelling, phone)
+        ReviewFaceView(model, faces[i], word.spelling, phone)
     }
     if (model.shown) {
         Box(Modifier.padding(vertical = 12.dp).fillMaxWidth().height(1.dp).background(Glass.line))
         val meaning = remember(meaningRaw) { ReviewLogic.plainText(meaningRaw) }
         Column(Modifier.fillMaxWidth().heightIn(max = if (phone) 200.dp else 300.dp).verticalScroll(rememberScrollState())) {
             if (word.reading.isNotEmpty()) Text(word.reading, color = Glass.secondary, fontSize = Glass.label)
-            Text(word.spelling, fontSize = if (phone) 40.sp else 60.sp, fontWeight = FontWeight.Bold)
+            val wordVoice = model.voice == GlassReviewModel.Voice.Word || model.voice == GlassReviewModel.Voice.MakingWord
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    word.spelling,
+                    fontSize = if (phone) 40.sp else 60.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .speakingLine(wordVoice, model.voice == GlassReviewModel.Voice.MakingWord)
+                        .tapText(model::tapWord),
+                )
+                if (model.voice == GlassReviewModel.Voice.Word) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        GlassIcon("speaker", size = 20.dp, tint = Glass.ice)
+                        Text("playing", color = Glass.ice, fontSize = Glass.body, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            if (model.sound != "off") {
+                Text(
+                    if (model.wordNoRecording) "No recording · tap for the phone voice" else "Tap the word or the sentence to hear it again",
+                    color = Glass.secondary,
+                    fontSize = Glass.caption,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             if (meaning.isNotEmpty()) {
                 Text(
                     meaning,
@@ -307,7 +451,7 @@ private fun ColumnScope.ReviewCardBody(model: GlassReviewModel, wordRaw: String,
 
 /** One context: the panel image when there is one, then where it was met and the sentence with the word marked. */
 @Composable
-private fun ReviewFaceView(face: ReviewFace, spelling: String, phone: Boolean) {
+private fun ReviewFaceView(model: GlassReviewModel, face: ReviewFace, spelling: String, phone: Boolean) {
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(if (phone) 12.dp else 24.dp)) {
         face.image?.let { file ->
             val shape = RoundedCornerShape(Glass.r12)
@@ -331,12 +475,19 @@ private fun ReviewFaceView(face: ReviewFace, spelling: String, phone: Boolean) {
             if (face.where.isNotEmpty()) {
                 Text(face.where, color = Glass.secondary, fontSize = if (phone) Glass.caption else Glass.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
+            val text = face.sentence.ifBlank { spelling }
+            val mine = model.voiceText == text
+            val making = mine && model.voice == GlassReviewModel.Voice.MakingSentence
+            val speaking = mine && (making || model.voice == GlassReviewModel.Voice.Sentence)
             Text(
-                marked(face.sentence.ifBlank { spelling }, spelling),
+                marked(text, spelling),
                 fontSize = if (phone) 22.sp else 32.sp,
                 lineHeight = if (phone) 32.sp else 46.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = if (phone) 8.dp else 16.dp),
+                modifier = Modifier
+                    .padding(top = if (phone) 8.dp else 16.dp)
+                    .speakingLine(speaking, making)
+                    .tapText { model.tapSentence(text) },
             )
         }
     }
@@ -345,5 +496,23 @@ private fun ReviewFaceView(face: ReviewFace, spelling: String, phone: Boolean) {
 private fun marked(text: String, word: String): AnnotatedString = buildAnnotatedString {
     for ((part, hit) in ReviewLogic.segments(text, word)) {
         if (hit) withStyle(SpanStyle(background = Glass.green.copy(alpha = 0.3f))) { append(part) } else append(part)
+    }
+}
+
+/** The Sound pill, phone: icon only (white = auto, outlined = tap, dashed and dim = off); one tap cycles. */
+@Composable
+internal fun ReviewSoundIcon(model: GlassReviewModel) {
+    val on = model.sound == "auto"
+    val off = model.sound == "off"
+    Box(
+        Modifier
+            .size(Glass.chip)
+            .clip(CircleShape)
+            .background(if (on) Color.White else Glass.panel)
+            .border(1.dp, if (on) Color.White else Glass.line, CircleShape)
+            .clickable(onClick = model::cycleSound),
+        contentAlignment = Alignment.Center,
+    ) {
+        GlassIcon("speaker", size = 20.dp, tint = if (on) Color.Black else if (off) Glass.secondary else Color.White)
     }
 }

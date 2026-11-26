@@ -48,13 +48,20 @@ fun GlassPhoneReviewPage(model: GlassReviewModel) {
                         }
                         Meter(fraction = if (s.total == 0) 0f else s.done.toFloat() / s.total)
                     }
+                    ReviewSoundIcon(model)
                     if (model.canUndo) Pill("Undo", onClick = model::undo, icon = "undo", small = true)
                 }
                 ReviewCardStack(model, phone = true, Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = 12.dp))
                 if (!model.shown) {
+                    ReviewSentenceButton(model, Modifier.fillMaxWidth().height(56.dp))
+                    Spacer(Modifier.height(8.dp))
                     ReviewShowButton(model::show, Modifier.fillMaxWidth().height(72.dp), compact = true)
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ReviewWordButton(model, Modifier.weight(1f).height(56.dp))
+                            ReviewSentenceButton(model, Modifier.weight(1f).height(56.dp))
+                        }
                         listOf(listOf(1, 2), listOf(3, 4)).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { ReviewAnswer(model, it, Modifier.weight(1f).height(88.dp)) }

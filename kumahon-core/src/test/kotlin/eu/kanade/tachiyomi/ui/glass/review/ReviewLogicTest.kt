@@ -81,4 +81,28 @@ class ReviewLogicTest {
         ReviewLogic.intervalLabel(400) shouldBe "1 y"
         ReviewLogic.whereLine("MASHLE", null, 42) shouldBe "MASHLE · p. 42"
     }
+
+    @Test
+    fun `sound mode cycles auto tap off`() {
+        ReviewLogic.nextSound("auto") shouldBe "tap"
+        ReviewLogic.nextSound("tap") shouldBe "off"
+        ReviewLogic.nextSound("off") shouldBe "auto"
+        ReviewLogic.normalSound("junk") shouldBe "auto"
+        ReviewLogic.normalSound("off") shouldBe "off"
+    }
+
+    @Test
+    fun `sentence pick and cache name`() {
+        ReviewLogic.pickSentence("彼は", "x") shouldBe "彼は"
+        ReviewLogic.pickSentence("  ", "あ") shouldBe "あ"
+        ReviewLogic.pickSentence(null, "あ") shouldBe "あ"
+        ReviewLogic.ttsCacheName("abc") shouldBe "a9993e364706816aba3e25717850c26c9cd0d89d.wav"
+        ReviewLogic.ttsCacheName(" abc ") shouldBe ReviewLogic.ttsCacheName("abc")
+    }
+
+    @Test
+    fun `audio reading prefers the Reading field`() {
+        ReviewLogic.audioReading("""{"Reading":"なすりつける"}""", ReviewLogic.Word("擦り付ける", "x")) shouldBe "なすりつける"
+        ReviewLogic.audioReading("not json", ReviewLogic.Word("魔法", "まほう")) shouldBe "まほう"
+    }
 }

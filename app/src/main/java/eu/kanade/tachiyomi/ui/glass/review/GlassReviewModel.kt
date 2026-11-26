@@ -9,19 +9,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import android.media.MediaPlayer
+import android.net.Uri
+import android.os.ParcelFileDescriptor
+import chimahon.anki.SentenceTts
+import chimahon.audio.WordAudioService
 import chimahon.srs.Cards
 import chimahon.srs.Fsrs6
 import chimahon.srs.Srs
 import eu.kanade.presentation.glass.glassReviewDue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+
+private const val AUDIO_TAG = "KumahonAudio"
 
 /** One place a card was met, ready to draw: [where] is "Title · vol. 3 · p. 42", [image] only when the file exists. */
 data class ReviewFace(val where: String, val sentence: String, val image: File?)
@@ -96,7 +107,162 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     }
 
     fun show() {
-        if (card != null) shown = true
+        if (card == null) return
+        shown = true
+        stopAudio()
+        if (sound == "auto") playWord()
+    }
+
+    // ---- audio: the Sound pill, the buttons and taps on the text all end up in play() ----
+
+    /** What is sounding now; the Making* ones are the wait for the voice / the recording. */
+    enum class Voice { None, MakingSentence, Sentence, MakingWord, Word }
+
+    private val prefs = app.getSharedPreferences("glass_review", Context.MODE_PRIVATE)
+
+    /** "auto" (front: the sentence reads itself, Show: the word), "tap" (only on tap), "off" (taps on text do nothing special). */
+    var sound by mutableStateOf(ReviewLogic.normalSound(prefs.getString("sound", null)))
+        private set
+    var voice by mutableStateOf(Voice.None)
+        private set
+
+    /** The sentence text being made or spoken (the face that shows it gets the ice line). */
+    var voiceText by mutableStateOf("")
+        private set
+
+    /** The current card's word has no recording (found out on the first try): the phone voice is used. */
+    var wordNoRecording by mutableStateOf(false)
+        private set
+
+    private var playGen = 0 // bumped by every stop/play: a late result of an older one is dropped
+    private var playJob: Job? = null
+
+    fun cycleSound() {
+        sound = ReviewLogic.nextSound(sound)
+        prefs.edit().putString("sound", sound).apply()
+    }
+
+    /** A tap on the sentence text: plays it, unless Sound is off (then the front still means Show). */
+    fun tapSentence(text: String) {
+        if (sound != "off") playSentence(text) else if (!shown) show()
+    }
+
+    /** A tap on the word text (answer side); nothing when Sound is off. */
+    fun tapWord() {
+        if (sound != "off") playWord()
+    }
+
+    /** The sentence the buttons and the front's autoplay speak: the newest context, else the card's own. */
+    fun currentSentence(): String =
+        ReviewLogic.pickSentence(contexts.firstOrNull()?.sentence, card?.sentence.orEmpty())
+
+    fun playSentence(text: String) {
+        if (text.isBlank()) return
+        play(Voice.MakingSentence, text)
+    }
+
+    fun playWord() = play(Voice.MakingWord, "")
+
+    fun stopAudio() {
+        playGen++
+        playJob?.cancel()
+        playJob = null
+        voice = Voice.None
+    }
+
+    override fun onDispose() = stopAudio()
+
+    private sealed class Src {
+        class Url(val url: String) : Src()
+        class Fd(val pfd: ParcelFileDescriptor) : Src()
+        class Wav(val file: File) : Src()
+    }
+
+    private fun play(kind: Voice, text: String) {
+        val c = card ?: return
+        stopAudio()
+        val gen = playGen
+        val sentence = kind == Voice.MakingSentence
+        voice = kind
+        voiceText = text
+        playJob = screenModelScope.launch {
+            var src: Src? = null
+            try {
+                val found = withContext<Pair<Src?, Boolean>>(Dispatchers.IO) {
+                    try {
+                        if (sentence) {
+                            ttsFile(text)?.let { Src.Wav(it) } to false
+                        } else {
+                            val w = ReviewLogic.parseWord(c.word)
+                            val reading = ReviewLogic.audioReading(c.fields, w)
+                            wordSource(w.spelling, reading)?.let { it to false }
+                                ?: (ttsFile(reading.ifBlank { w.spelling })?.let { Src.Wav(it) } to true) // phone voice
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.i(AUDIO_TAG, "audio lookup failed: $e")
+                        null to false
+                    }
+                }
+                src = found.first
+                if (gen != playGen || card?.id != c.id) return@launch
+                if (!sentence) wordNoRecording = found.second
+                if (src == null) return@launch
+                playSource(src) { if (gen == playGen) voice = if (sentence) Voice.Sentence else Voice.Word }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.i(AUDIO_TAG, "audio play failed: $e")
+            } finally {
+                (src as? Src.Fd)?.let { runCatching { it.pfd.close() } }
+                if (gen == playGen) voice = Voice.None
+            }
+        }
+    }
+
+    /** The word's first recording (url or a local dictionary file), or null. Blocking: IO thread. */
+    private suspend fun wordSource(word: String, reading: String): Src? {
+        val r = Injekt.get<WordAudioService>().findWordAudio(word, reading).firstOrNull() ?: return null
+        if (!r.url.startsWith("chimahon-local://")) return Src.Url(r.url)
+        val uri = Uri.parse(r.url)
+        val pfd = Injekt.get<WordAudioService>().getAudioDataFd(uri.path?.removePrefix("/") ?: return null, uri.host ?: return null)
+        return pfd?.let { Src.Fd(it) }
+    }
+
+    /** The phone voice for [text] as a cached wav (made once per text), or null. Blocking: IO thread. */
+    private fun ttsFile(text: String): File? {
+        val dir = File(app.cacheDir, "review_tts").apply { mkdirs() }
+        val f = File(dir, ReviewLogic.ttsCacheName(text))
+        if (f.length() > 44) return f
+        val bytes = SentenceTts.say(app, text) ?: return null
+        f.writeBytes(bytes)
+        return f
+    }
+
+    /** Plays [src] on a new MediaPlayer until it ends; cancelling releases it. Main thread. */
+    private suspend fun playSource(src: Src, onStart: () -> Unit) = suspendCancellableCoroutine<Unit> { cont ->
+        val p = MediaPlayer()
+        cont.invokeOnCancellation { runCatching { p.release() } }
+        p.setOnPreparedListener { if (cont.isActive) { onStart(); it.start() } }
+        p.setOnCompletionListener { runCatching { it.release() }; if (cont.isActive) cont.resume(Unit) }
+        p.setOnErrorListener { m, what, extra ->
+            Log.i(AUDIO_TAG, "player error $what/$extra")
+            runCatching { m.release() }
+            if (cont.isActive) cont.resume(Unit)
+            true
+        }
+        try {
+            when (src) {
+                is Src.Url -> p.setDataSource(src.url)
+                is Src.Fd -> p.setDataSource(src.pfd.fileDescriptor)
+                is Src.Wav -> p.setDataSource(src.file.absolutePath)
+            }
+            p.prepareAsync()
+        } catch (e: Exception) {
+            runCatching { p.release() }
+            cont.resumeWithException(e)
+        }
     }
 
     fun answer(rating: Int) {
@@ -199,6 +365,8 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     /** The head of the queue becomes the current card, front side; its contexts and answer intervals are read next. */
     private fun showCurrent() {
         val id = session.current
+        stopAudio()
+        wordNoRecording = false
         card = id?.let { cards[it] }
         shown = false
         contexts = emptyList()
@@ -234,10 +402,13 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
                     }
                 }
             }
-            if (read != null && card?.id == id) {
+            if (card?.id != id) return@launch
+            if (read != null) {
                 contexts = read.first
                 intervals = read.second
             }
+            // auto: the front reads its sentence once the card opens (never over a Show that came first)
+            if (sound == "auto" && !shown) playSentence(currentSentence())
         }
     }
 }
