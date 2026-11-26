@@ -81,6 +81,7 @@ import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
+import eu.kanade.tachiyomi.ui.glass.title.StatusLegend
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -627,28 +628,7 @@ private fun Aside(sourceIds: List<Long>, sourceNames: Map<Long, String>, modifie
             )
         }
 
-        Label(stringResource(MR.strings.glass_dl_key), Modifier.padding(top = 12.dp))
-        val key = listOf(
-            Cell.READ to stringResource(MR.strings.glass_dl_key_read),
-            Cell.HERE to stringResource(MR.strings.glass_dl_key_here, glassDevice()),
-            Cell.DOWNLOADING to stringResource(MR.strings.glass_dl_key_downloading),
-            Cell.QUEUED to stringResource(MR.strings.glass_dl_queued),
-            Cell.NONE to stringResource(MR.strings.glass_dl_key_none),
-            Cell.FAILED to stringResource(MR.strings.glass_dl_key_failed),
-        )
-        key.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                pair.forEach { (c, n) ->
-                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(
-                            Modifier.size(16.dp, 10.dp).clip(RoundedCornerShape(2.dp))
-                                .then(if (c == Cell.FAILED) Modifier.hatched() else Modifier.background(cellColor(c))),
-                        )
-                        Text(n, color = Glass.have, fontSize = Glass.body)
-                    }
-                }
-            }
-        }
+        StatusLegend(Modifier.padding(top = 12.dp))
     }
 }
 

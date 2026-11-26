@@ -80,7 +80,6 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
-import eu.kanade.presentation.glass.CoverageBar
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
@@ -348,8 +347,7 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     GlassChip(stringResource(MR.strings.glass_title_select_none), selected = false, onClick = { picked = emptySet(); readMode = false })
                 } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(MR.strings.glass_n_volumes, count), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
-                    // scrolls sideways on a phone, where it does not fit next to the Fetch pill
-                    Legend(Modifier.weight(1f).horizontalScroll(rememberScrollState()), notFound = cells.any { it.state == VolState.FAILED })
+                    Spacer(Modifier.weight(1f))
                     if (selectable.isNotEmpty()) {
                         Pill(stringResource(MR.strings.glass_title_select), onClick = { selecting = true }, icon = "check", small = true)
                     }
@@ -386,13 +384,13 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                     } else {
                         null
                     },
-                    readHere = GlassTitleState.readHere(cell, readUpTo),
                     onToggle = {
                         picked = if (cell.number in pickedNow) pickedNow - cell.number else pickedNow + cell.number
                         readMode = false
                     },
                 )
             }
+            fullSpan { StatusLegend(Modifier.padding(top = 4.dp), cover = entry?.let { it.coverLarge ?: it.cover }) }
             if (selecting) fullSpan {
                 val missingRead = GlassTitleState.readNotHere(cells)
                 val note = listOfNotNull(
@@ -431,6 +429,9 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                 current = current,
                 count = count,
                 cells = cells,
+                localCovers = localCovers,
+                covers = covers,
+                hideUnread = hideUnread,
                 missing = missing,
                 fetchable = fetchable,
                 failed = failed,
@@ -443,7 +444,6 @@ class GlassTitleScreen(private val mediaId: Long) : Screen() {
                         onRefresh = model::refreshSources,
                         hideUnread = hideUnread,
                         onToggleHideUnread = { hideUnreadPref.set(!hideUnread) },
-                        showHideUnread = false, // phone cells draw no covers
                     )
                 },
                 onHome = GlassTitleState.onHome(entry?.status),
@@ -726,16 +726,7 @@ private fun SourceCard(
             }
         }
         if (count > 0) {
-            CoverageBar(
-                boxes.map {
-                    when (it) {
-                        BoxState.NONE -> Glass.none
-                        BoxState.HAVE -> Glass.have
-                        BoxState.HERE -> Color.White.copy(alpha = 0.35f)
-                        BoxState.QUEUED -> Glass.ice
-                    }
-                },
-            )
+            SourceBoxes(boxes)
         }
         Text(stateText(coverage, count), color = Glass.secondary, fontSize = Glass.caption)
         coverage?.takeIf { it.state == Coverage.State.FOUND }?.postTitle?.let {
@@ -1018,24 +1009,6 @@ internal fun FailedRow(r: RealDebridQueue.Row, here: Set<Int>, active: Set<Int>,
     }
 }
 
-@Composable
-internal fun Legend(modifier: Modifier, notFound: Boolean) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-        LegendItem("check", stringResource(MR.strings.glass_title_legend_read), Glass.secondary)
-        LegendItem("dot", stringResource(MR.strings.glass_title_legend_here, glassDevice()), Color.White)
-        LegendItem("download", stringResource(MR.strings.glass_title_legend_downloading), Glass.ice)
-        if (notFound) LegendItem("alert", stringResource(MR.strings.glass_title_legend_not_found), Color.White)
-    }
-}
-
-@Composable
-private fun LegendItem(icon: String, text: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        GlassIcon(icon, size = 14.dp, tint = color)
-        Text(text, color = color, fontSize = Glass.caption)
-    }
-}
-
 /** A cell in Select mode: [pickable] = on the tablet and not the one being read; [reading] = that locked one. */
 private data class CellSelect(val pickable: Boolean, val picked: Boolean, val reading: Boolean)
 
@@ -1053,43 +1026,23 @@ private fun VolumeCellView(
     onSetRead: (LocalVolume, Boolean) -> Unit,
     /** Select mode: null = off; else whether this cell can be picked, is picked, is the locked reading volume. */
     select: CellSelect? = null,
-    readHere: Boolean = false,
     onToggle: () -> Unit = {},
 ) {
     var menu by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Glass.r8)
     val local = cell.local
-    val alpha = when {
-        localCover == null && cover == null -> 0.3f // the series cover standing in, dimmed
-        cell.state == VolState.READ -> 0.35f
-        cell.state == VolState.HERE -> 1f
-        cell.state == VolState.DOWNLOADING -> 0.7f
-        cell.state == VolState.QUEUED -> 0.5f
-        else -> 0.4f
-    }
-    val (icon, tint) = when (cell.state) {
-        VolState.READ -> "check" to Glass.have
-        VolState.HERE -> "dot" to Color.White
-        VolState.DOWNLOADING -> "download" to Glass.ice
-        VolState.QUEUED -> "download" to Glass.ice.copy(alpha = 0.55f)
-        VolState.FAILED -> "alert" to Color.White
-        VolState.NONE -> null to Color.White
-    }
     val failed = cell.state == VolState.FAILED
+    val image = volumeImage(localCover, cover, seriesCover) // the series cover stands in (dimmed) when neither exists
     Box {
-        Box(
-            Modifier
+        VolumeTile(
+            state = cell.state,
+            number = cell.number,
+            image = image,
+            fraction = cell.fraction,
+            standIn = localCover == null && cover == null,
+            blurred = hidden,
+            current = current || select?.picked == true,
+            modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f)
-                .clip(shape)
-                .background(Glass.panel)
-                // failed: the Downloads bar's hatch instead of a cover
-                .then(if (failed) Modifier.hatched(Color.White.copy(alpha = 0.18f)) else Modifier)
-                .border(
-                    if (current || select?.picked == true) 2.dp else 1.dp,
-                    if (current || select?.picked == true) Glass.ice else Glass.line,
-                    shape,
-                )
                 .combinedClickable(
                     onClick = {
                         when {
@@ -1101,111 +1054,37 @@ private fun VolumeCellView(
                     },
                     onLongClick = { if (local != null && select == null) menu = true },
                 ),
-        ) {
-            val context = LocalPlatformContext.current
-            // hidden = blurred beyond recognition (needs Android 12; older: no image at all)
-            if (!failed && (!hidden || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)) AsyncImage(
-                // the volume's own first page, else MangaDex's cover, else the series cover
-                model = when {
-                    localCover != null -> localCover
-                    cover == null -> seriesCover
-                    else -> remember(cover) {
-                        ImageRequest.Builder(context).data(cover).httpHeaders(VolumeCovers.imageHeaders).build()
+            overlay = {
+                if (select != null && select.pickable) {
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .padding(bottom = 4.dp)
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(if (select.picked) Glass.ice else Glass.scrim)
+                            .border(1.5.dp, if (select.picked) Glass.ice else Color.White.copy(alpha = 0.8f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (select.picked) GlassIcon("check", size = 14.dp, tint = Color.Black)
                     }
-                },
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                alpha = alpha,
-                modifier = Modifier.fillMaxSize().then(if (hidden) Modifier.blur(18.dp) else Modifier),
-            )
-            Text(
-                cell.number.toString(),
-                fontSize = Glass.caption,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .heightIn(min = 20.dp)
-                    .widthIn(min = 20.dp)
-                    .clip(CircleShape)
-                    .background(Glass.scrim)
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-            icon?.let {
-                Row(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .height(22.dp)
-                        .widthIn(min = 22.dp)
-                        .clip(CircleShape)
-                        .background(Glass.scrim)
-                        .padding(horizontal = if (readHere) 4.dp else 0.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-                ) {
-                    // read and still on the tablet: both marks
-                    if (readHere && cell.state != VolState.READ) GlassIcon("check", size = 14.dp, tint = Glass.have)
-                    GlassIcon(it, size = 14.dp, tint = tint)
-                    if (readHere && cell.state == VolState.READ) GlassIcon("dot", size = 14.dp, tint = Color.White)
                 }
-            }
-            if (select != null && select.pickable) {
-                Box(
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp)
-                        .padding(bottom = 4.dp)
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(if (select.picked) Glass.ice else Glass.scrim)
-                        .border(1.5.dp, if (select.picked) Glass.ice else Color.White.copy(alpha = 0.8f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (select.picked) GlassIcon("check", size = 14.dp, tint = Color.Black)
+                if (select?.reading == true) {
+                    Text(
+                        stringResource(MR.strings.glass_title_reading),
+                        fontSize = Glass.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 10.dp)
+                            .clip(CircleShape)
+                            .background(Glass.scrim)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
                 }
-            }
-            if (select?.reading == true) {
-                Text(
-                    stringResource(MR.strings.glass_title_reading),
-                    fontSize = Glass.caption,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 10.dp)
-                        .clip(CircleShape)
-                        .background(Glass.scrim)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                )
-            }
-            if (failed) {
-                Text(
-                    stringResource(MR.strings.glass_dl_not_found),
-                    fontSize = Glass.caption,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 10.dp)
-                        .clip(CircleShape)
-                        .background(Glass.scrim)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                )
-            }
-            // ponytail: no reading-progress bar for a half-read volume: chapters keep the last page, not the page count
-            val bar = when (cell.state) {
-                VolState.READ -> 1f
-                VolState.DOWNLOADING -> cell.fraction ?: 0f
-                else -> 0f
-            }
-            Box(
-                Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(Color.Black.copy(alpha = 0.6f)),
-            ) {
-                Box(Modifier.fillMaxWidth(bar).fillMaxHeight().background(tint))
-            }
-        }
+            },
+        )
         GlassMenu(menu, { menu = false }) {
             if (local != null) {
                 MenuItem(stringResource(if (local.read) MR.strings.glass_title_mark_unread else MR.strings.glass_title_mark_read)) {

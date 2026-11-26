@@ -18,6 +18,12 @@ data class Active(val sourceId: Long?, val running: Boolean, val fraction: Float
 /** One box of a source card's coverage bar. */
 enum class BoxState { NONE, HAVE, HERE, QUEUED }
 
+/** One box of a source card's bar after merging: a volume, or a run of missing ones ([from]..[to]). */
+sealed interface SourceBox {
+    data class Vol(val number: Int, val state: BoxState) : SourceBox
+    data class Gap(val from: Int, val to: Int) : SourceBox
+}
+
 enum class VolState { READ, HERE, DOWNLOADING, QUEUED, FAILED, NONE }
 
 data class VolumeCell(val number: Int, val state: VolState, val local: LocalVolume?, val fraction: Float?)
@@ -280,6 +286,34 @@ object GlassTitleState {
     }
 
     fun listStatus(trackerStatus: Long): String? = statuses.firstOrNull { trackerStatus(it) == trackerStatus }
+
+    /**
+     * A source card's bar as boxes: every volume its own box, except a run of two or more missing volumes, which
+     * merges into one [SourceBox.Gap] ("20–24 missing"); a single missing volume stays a box with its number.
+     */
+    fun sourceBoxes(boxes: List<BoxState>): List<SourceBox> {
+        val out = mutableListOf<SourceBox>()
+        var i = 0
+        while (i < boxes.size) {
+            if (boxes[i] != BoxState.NONE) {
+                out += SourceBox.Vol(i + 1, boxes[i])
+                i++
+                continue
+            }
+            var j = i
+            while (j < boxes.size && boxes[j] == BoxState.NONE) j++
+            out += if (j - i == 1) SourceBox.Vol(i + 1, BoxState.NONE) else SourceBox.Gap(i + 1, j)
+            i = j
+        }
+        return out
+    }
+
+    /** "20 of 26 · vol. 17, 20–24 missing": [has] = the volumes the source has, of 1..[count]. Null when none are missing. */
+    fun missingLine(has: Set<Int>, count: Int): String? {
+        val missing = (1..count).filter { it !in has }
+        if (missing.isEmpty()) return null
+        return "${has.count { it in 1..count }} of $count · vol. ${CoverageMatch.ranges(missing)} missing"
+    }
 
     /** "On Home" = on the Reading or Plan to read list. */
     fun onHome(status: String?): Boolean = status == "CURRENT" || status == "PLANNING" || status == "REPEATING"

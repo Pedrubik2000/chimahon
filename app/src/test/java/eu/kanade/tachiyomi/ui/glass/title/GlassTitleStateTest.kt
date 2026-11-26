@@ -252,4 +252,17 @@ class GlassTitleStateTest {
         GlassTitleState.volumeSliderMax(0, 9, listOf(vol(7))) shouldBe 14
         GlassTitleState.volumeSliderMax(null, 0, emptyList()) shouldBe 5
     }
+
+    @Test
+    fun `missing runs merge into one gap, a single missing volume keeps its box`() {
+        // Nyaa: 26 volumes, 17 and 20-24 missing
+        val has = (1..26).filter { it != 17 && it !in 20..24 }.toSet()
+        val boxes = GlassTitleState.boxes(Coverage(1, "Nyaa", Coverage.State.FOUND, volumes = has.associateWith { "v$it" }), 26, emptySet(), emptyMap())
+        val merged = GlassTitleState.sourceBoxes(boxes)
+        merged.filterIsInstance<SourceBox.Gap>() shouldBe listOf(SourceBox.Gap(20, 24))
+        merged.filterIsInstance<SourceBox.Vol>().filter { it.state == BoxState.NONE } shouldBe listOf(SourceBox.Vol(17, BoxState.NONE))
+        merged.size shouldBe 26 - 6 + 1 + 1 // 20 volumes, the lone 17, the one gap
+        GlassTitleState.missingLine(has, 26) shouldBe "20 of 26 · vol. 17, 20–24 missing"
+        GlassTitleState.missingLine((1..26).toSet(), 26) shouldBe null
+    }
 }

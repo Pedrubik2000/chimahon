@@ -3,6 +3,7 @@ package eu.kanade.domain.ui
 import androidx.compose.material3.FabPosition
 import com.materialkolor.PaletteStyle
 import eu.kanade.domain.ui.model.AppTheme
+import eu.kanade.domain.ui.model.StatusColourSet
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.domain.ui.model.ThemeMode
 import tachiyomi.core.common.preference.Preference
@@ -59,6 +60,9 @@ class UiPreferences(
 
     /** Glass title page: a volume shows its cover only once it is read or started. */
     fun glassHideUnreadCovers() = preferenceStore.getBoolean("pref_glass_hide_unread_covers", false)
+
+    /** Glass volume status colours: the title grid badges and borders, the legend, the source boxes. */
+    fun glassStatusColours() = preferenceStore.getEnum("pref_glass_status_colours", StatusColourSet.DEFAULT)
 
     fun imagesInDescription() = preferenceStore.getBoolean("pref_render_images_description", true)
 

@@ -53,7 +53,7 @@ import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
-private const val COLUMNS = 6
+private const val COLUMNS = 4
 
 /**
  * The title page on a phone (canvas "Title page" of option A): one scrolling column. Cover hero, volume grid,
@@ -67,6 +67,9 @@ internal fun GlassPhoneTitle(
     current: Int?,
     count: Int,
     cells: List<VolumeCell>,
+    localCovers: Map<Int, java.io.File>,
+    covers: Map<Int, String>,
+    hideUnread: Boolean,
     missing: List<Int>,
     fetchable: List<Int>,
     failed: List<RealDebridQueue.Row>,
@@ -83,6 +86,7 @@ internal fun GlassPhoneTitle(
     sourceList: @Composable () -> Unit,
     aniList: @Composable () -> Unit,
 ) {
+    val seriesCover = entry?.let { it.coverLarge ?: it.cover }
     // BoxWithConstraints outside the scrolling column: inside it maxHeight would be unbounded
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // the content needs ~210dp (back row 44 + 2-line title 76 + meta 24 + pills 54): never less, on a ~360dp window
@@ -170,10 +174,6 @@ internal fun GlassPhoneTitle(
                             )
                         }
                     }
-                    PhoneLegend(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        noSource = cells.any { it.state == VolState.NONE && it.number !in fetchable },
-                    )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -182,8 +182,11 @@ internal fun GlassPhoneTitle(
                             row.forEach { cell ->
                                 PhoneCell(
                                     cell = cell,
+                                    image = volumeImage(localCovers[cell.number], covers[cell.number], seriesCover),
+                                    standIn = localCovers[cell.number] == null && covers[cell.number] == null,
+                                    hidden = hideUnread && cell.state != VolState.READ &&
+                                        cell.local?.let { it.read || it.lastPageRead > 0 } != true,
                                     current = cell.number == current,
-                                    dashed = cell.state == VolState.NONE && cell.number !in fetchable,
                                     onOpen = onOpen,
                                     onFetch = { onFetch(listOf(cell.number)) },
                                     onCancel = { onCancel(cell.number) },
@@ -195,6 +198,8 @@ internal fun GlassPhoneTitle(
                         }
                     }
                 }
+
+                StatusLegend(cover = seriesCover)
 
                 failed.forEach { FailedRow(it, here, active, onFetch) }
 
@@ -230,55 +235,14 @@ internal fun GlassPhoneTitle(
     }
 }
 
-/** The legend of [PhoneCell]: one swatch per state, drawn with the cell's own fill and border. */
-@Composable
-private fun PhoneLegend(modifier: Modifier, noSource: Boolean) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Swatch(Color.White.copy(alpha = 0.30f), stringResource(MR.strings.glass_title_legend_read))
-        Swatch(Glass.have, stringResource(MR.strings.glass_title_legend_here, glassDevice()))
-        Swatch(Glass.ice, stringResource(MR.strings.glass_title_legend_downloading))
-        Swatch(Glass.ice.copy(alpha = 0.35f), stringResource(MR.strings.glass_dl_queued).lowercase())
-        Swatch(Color.Transparent, stringResource(MR.strings.glass_dl_key_failed).lowercase(), failed = true)
-        Swatch(Color.Transparent, stringResource(MR.strings.glass_phone_title_legend_none), line = Glass.line)
-        if (noSource) Swatch(Color.Transparent, stringResource(MR.strings.glass_phone_title_legend_no_source), dashed = true)
-    }
-}
-
-@Composable
-private fun Swatch(fill: Color, text: String, failed: Boolean = false, dashed: Boolean = false, line: Color? = null) {
-    val shape = RoundedCornerShape(3.dp)
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(
-            Modifier
-                .size(12.dp)
-                .clip(shape)
-                .background(fill)
-                .then(if (failed) Modifier.hatched(Color.White.copy(alpha = 0.18f)) else Modifier)
-                .then(
-                    when {
-                        dashed -> Modifier.drawBehind {
-                            drawRoundRect(
-                                color = Color.White.copy(alpha = 0.35f),
-                                cornerRadius = CornerRadius(3.dp.toPx()),
-                                style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f))),
-                            )
-                        }
-                        failed -> Modifier.border(1.dp, Color.White.copy(alpha = 0.5f), shape)
-                        line != null -> Modifier.border(1.dp, line, shape)
-                        else -> Modifier
-                    },
-                ),
-        )
-        Text(text, color = Glass.secondary, fontSize = Glass.caption)
-    }
-}
-
-/** One compact numbered cell; tap and long-press do what [VolumeCellView] does on the tablet. */
+/** One volume cover; tap and long-press do what [VolumeCellView] does on the tablet. */
 @Composable
 private fun PhoneCell(
     cell: VolumeCell,
+    image: Any?,
+    standIn: Boolean,
+    hidden: Boolean,
     current: Boolean,
-    dashed: Boolean,
     onOpen: (LocalVolume) -> Unit,
     onFetch: () -> Unit,
     onCancel: () -> Unit,
@@ -286,71 +250,29 @@ private fun PhoneCell(
     modifier: Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Glass.r8)
     val local = cell.local
-    val failed = cell.state == VolState.FAILED
-    val fill = when (cell.state) {
-        VolState.READ -> Color.White.copy(alpha = 0.30f)
-        VolState.HERE -> if (current) Color.White else Glass.have
-        VolState.DOWNLOADING -> Glass.ice
-        VolState.QUEUED -> Glass.ice.copy(alpha = 0.35f)
-        VolState.FAILED, VolState.NONE -> Color.Transparent
-    }
-    val ink = if (cell.state == VolState.HERE || cell.state == VolState.DOWNLOADING) Color.Black else Color.White
     Box(modifier) {
-        Box(
-            Modifier
+        VolumeTile(
+            state = cell.state,
+            number = cell.number,
+            image = image,
+            fraction = cell.fraction,
+            standIn = standIn,
+            blurred = hidden,
+            current = current,
+            modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(shape)
-                .background(fill)
-                .then(if (failed) Modifier.hatched(Color.White.copy(alpha = 0.18f)) else Modifier)
-                .then(
-                    when {
-                        current -> Modifier.border(2.dp, Glass.ice, shape)
-                        dashed -> Modifier.drawBehind {
-                            drawRoundRect(
-                                color = Color.White.copy(alpha = 0.35f),
-                                cornerRadius = CornerRadius(Glass.r8.toPx()),
-                                style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))),
-                            )
-                        }
-                        cell.state == VolState.NONE || failed -> Modifier.border(1.dp, if (failed) Color.White.copy(alpha = 0.5f) else Glass.line, shape)
-                        else -> Modifier
-                    },
-                )
                 .combinedClickable(
                     onClick = {
                         when {
                             local != null -> onOpen(local)
-                            cell.state == VolState.NONE || cell.state == VolState.READ || failed -> onFetch() // READ here = read on AniList, not on the phone
+                            cell.state == VolState.NONE || cell.state == VolState.READ || cell.state == VolState.FAILED -> onFetch() // READ here = read on AniList, not on the phone
                             else -> menu = true
                         }
                     },
                     onLongClick = { if (local != null) menu = true },
                 ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(cell.number.toString(), color = ink, fontSize = Glass.label, fontWeight = FontWeight.Bold)
-                if (cell.state == VolState.DOWNLOADING) {
-                    cell.fraction?.let { Text("${(it * 100).toInt()}%", color = ink, fontSize = Glass.caption) }
-                }
-            }
-            val icon = when (cell.state) {
-                VolState.READ -> "check"
-                VolState.FAILED -> "alert"
-                else -> null
-            }
-            icon?.let {
-                GlassIcon(
-                    it,
-                    size = 12.dp,
-                    tint = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.align(Alignment.TopEnd).padding(3.dp),
-                )
-            }
-        }
+        )
         GlassMenu(menu, { menu = false }) {
             if (local != null) {
                 MenuItem(stringResource(if (local.read) MR.strings.glass_title_mark_unread else MR.strings.glass_title_mark_read)) {

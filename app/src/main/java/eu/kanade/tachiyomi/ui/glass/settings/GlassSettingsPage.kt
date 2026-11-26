@@ -68,6 +68,9 @@ import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableMap
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.StatusColourSet
 import kotlinx.collections.immutable.toImmutableList
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.i18n.MR
@@ -212,7 +215,7 @@ internal fun sectionItems(id: String, navigator: Navigator): List<Preference> = 
             SettingsDictionaryPopupScreen.getPreferences()
     }
     "mining" -> SettingsAnkiScreen.getPreferences()
-    "library" -> SettingsLibraryScreen.getPreferences() + SettingsDataScreen.getPreferences()
+    "library" -> SettingsLibraryScreen.getPreferences() + statusColoursGroup() + SettingsDataScreen.getPreferences()
     "privacy" -> SettingsSecurityScreen.getPreferences()
     else -> {
         val dl = splitDownloads()
@@ -337,3 +340,17 @@ internal fun SourceOrder() {
     }
 }
 
+
+/** Volume status colours: Default / Green-red / Ice-amber (the title grid, its legend, the source boxes). */
+@Composable
+private fun statusColoursGroup(): Preference.PreferenceGroup = Preference.PreferenceGroup(
+    title = stringResource(MR.strings.glass_status_colours),
+    preferenceItems = persistentListOf(
+        Preference.PreferenceItem.ListPreference(
+            preference = remember { Injekt.get<UiPreferences>().glassStatusColours() },
+            entries = StatusColourSet.entries.associateWith { stringResource(it.titleRes) }.toImmutableMap(),
+            title = stringResource(MR.strings.glass_status_colours),
+            subtitle = stringResource(MR.strings.glass_status_colours_sub),
+        ),
+    ),
+)

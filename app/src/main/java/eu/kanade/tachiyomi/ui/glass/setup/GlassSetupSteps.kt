@@ -48,6 +48,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassChip
+import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.domain.ui.model.StatusColourSet
+import eu.kanade.tachiyomi.ui.glass.title.VolState
+import eu.kanade.tachiyomi.ui.glass.title.VolumeTile
+import tachiyomi.presentation.core.util.collectAsState
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.runtime.remember
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassToggle
@@ -207,6 +217,7 @@ internal fun StorageStep(model: GlassSetupModel) {
         )
         SetupButton(stringResource(MR.strings.glass_setup_another_folder), choose, primary = false, leading = "folder")
     }
+    StatusColourChoice()
 }
 
 @Composable
@@ -484,4 +495,29 @@ private fun Label(text: String) {
 private object MaskKey : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText =
         TransformedText(AnnotatedString(GlassSetupLogic.masked(text.text)), OffsetMapping.Identity)
+}
+
+/** The volume status colour set, as chips with a preview of the picked set (On device, Failed, Not asked for). */
+@Composable
+private fun StatusColourChoice() {
+    val pref = remember { Injekt.get<UiPreferences>().glassStatusColours() }
+    val set by pref.collectAsState()
+    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            stringResource(MR.strings.glass_status_colours),
+            color = Glass.secondary,
+            fontSize = Glass.caption,
+            letterSpacing = 2.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            StatusColourSet.entries.forEach {
+                GlassChip(stringResource(it.titleRes), selected = it == set, onClick = { pref.set(it) })
+            }
+            Spacer(Modifier.weight(1f))
+            listOf(VolState.HERE, VolState.FAILED, VolState.NONE).forEach {
+                VolumeTile(it, null, null, Modifier.width(26.dp), fraction = 0.6f)
+            }
+        }
+    }
 }
