@@ -126,6 +126,9 @@ class PeerSync(private val prefs: PeerPrefs, private val openStore: () -> Srs, p
 
     fun paired(): Boolean = prefs.get(PAIRED) == "true"
 
+    /** When the last sync (or pairing) attempt ended, ms; 0 = never. */
+    fun lastSyncTime(): Long = prefs.get(LAST_TIME)?.toLongOrNull() ?: 0L
+
     /** The settings line: what to do, or how the last sync went. */
     fun status(): String {
         val result = prefs.get(LAST_RESULT).orEmpty()

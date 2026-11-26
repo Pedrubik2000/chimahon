@@ -316,6 +316,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     }
 
     override fun onStart(owner: LifecycleOwner) {
+        chimahon.srs.SyncTrigger.onForeground(this)
         SecureActivityDelegate.onApplicationStart()
 
         val syncPreferences: SyncPreferences = Injekt.get()
@@ -330,6 +331,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     }
 
     override fun onStop(owner: LifecycleOwner) {
+        chimahon.srs.SyncTrigger.onBackground()
         SecureActivityDelegate.onApplicationStopped()
 
         // AM (DISCORD) -->

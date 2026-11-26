@@ -336,6 +336,7 @@ object AnkiCardCreator {
                     page = null, image = screenshotBytes,
                 )
             }
+            chimahon.srs.SyncTrigger.request(context, "mined")
             if (answer is AnkiResult.NotConfigured || answer is AnkiResult.PermissionDenied) AnkiResult.Success(card.id, own = true) else answer
         } catch (e: CancellationException) {
             throw e

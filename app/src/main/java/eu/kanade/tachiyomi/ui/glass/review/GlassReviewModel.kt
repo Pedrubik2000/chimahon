@@ -81,7 +81,10 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     private var loadJob: Job? = null
 
     /** Sync once 60 s pass without a new answer or undo: each one restarts the wait (one sync per burst, not per answer). */
-    private fun syncLater() = ReviewSyncJob.later(app)
+    private fun syncLater() {
+        chimahon.srs.SyncTrigger.request(app, "review rating") // right after (coalesced over 5 s)
+        ReviewSyncJob.later(app) // and once more after 60 s quiet, which survives a killed process
+    }
 
     /** The page opened: read the queue, sync with kumapie, then read it again if nothing was answered meanwhile. */
     fun start() {
