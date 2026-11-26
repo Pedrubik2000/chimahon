@@ -349,8 +349,8 @@ private fun statusColoursGroup(): Preference.PreferenceGroup = Preference.Prefer
         Preference.PreferenceItem.ListPreference(
             preference = remember { Injekt.get<UiPreferences>().glassStatusColours() },
             entries = StatusColourSet.entries.associateWith { stringResource(it.titleRes) }.toImmutableMap(),
-            title = stringResource(MR.strings.glass_status_colours),
-            subtitle = stringResource(MR.strings.glass_status_colours_sub),
+            title = stringResource(MR.strings.glass_status_colours_pick),
+            subtitle = "%s",
         ),
     ),
 )

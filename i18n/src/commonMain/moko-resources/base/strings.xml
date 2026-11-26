@@ -922,7 +922,7 @@
     <string name="glass_legend_box_gap">Gap, named</string>
     <string name="glass_title_gap">%1$s missing</string>
     <string name="glass_status_colours">Volume status colours</string>
-    <string name="glass_status_colours_sub">The badges and borders on the title page, its legend and the source boxes</string>
+    <string name="glass_status_colours_pick">Colour set</string>
     <string name="glass_status_set_default">Default</string>
     <string name="glass_status_set_green_red">Green / red</string>
     <string name="glass_status_set_ice_amber">Ice / amber</string>
