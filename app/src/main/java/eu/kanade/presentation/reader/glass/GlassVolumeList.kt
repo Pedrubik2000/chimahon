@@ -6,6 +6,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -50,6 +52,7 @@ fun <T> List<T>.filterVolumes(filter: VolumeFilter, chapter: (T) -> Chapter, onT
     }
 
 /** Chapter/volume list (A5): a Glass panel on the left, mirror of the settings; tap loads the chapter, the flag toggles its bookmark. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GlassVolumeList(
     chapters: List<ReaderChapterItem>,
@@ -71,7 +74,7 @@ fun GlassVolumeList(
 
     GlassSidePanel(onLeft = true, onClose = onClose) {
         GlassPanelTitle(stringResource(MR.strings.glass_rset_chapters, chapters.size), onClose)
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             VolumeFilter.entries.forEach {
                 GlassChip(stringResource(it.label()), selected = it == filter, onClick = { filter = it })
             }

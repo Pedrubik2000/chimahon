@@ -780,7 +780,8 @@ class PagerPageHolder(
      */
     override fun onScaleChanged(newScale: Float) {
         super.onScaleChanged(newScale)
-        viewer.activity.hideMenu()
+        // A page's own zoom-start animation after a jump must not hide the bars (and the "Back to p." pill).
+        if (scaleByUser) viewer.activity.hideMenu()
     }
 
     private fun showErrorLayout(error: Throwable?): ReaderErrorBinding {

@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -53,10 +56,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.reader.appbars.ExhUtils
@@ -167,7 +172,7 @@ fun GlassReaderAppBars(
                 totalPages = totalPages,
                 chapterTitle = chapterTitle,
                 onPageIndexChange = onPageIndexChange,
-                chapterLabel = chapterTitle,
+                viewer = viewer,
                 currentPageText = currentPageText,
             )
         }
@@ -200,9 +205,10 @@ fun GlassReaderAppBars(
                     onToggleOcr = onToggleOcr,
                     onSelectOcrSource = onSelectOcrSource,
                     ocrProgress = ocrProgress,
-                    tools = { modifier ->
+                    tools = { modifier, narrow ->
                         GlassReaderTools(
                             modifier = modifier,
+                            narrow = narrow,
                             readingMode = readingMode,
                             onClickReadingMode = onClickReadingMode,
                             orientation = orientation,
@@ -220,10 +226,12 @@ fun GlassReaderAppBars(
                             onClickShare = onShare,
                             onClickPageLayout = onClickPageLayout,
                             onClickShiftPage = onClickShiftPage,
+                            onShowExhTools = { onSetExhUtilsVisibility(true) },
                         )
                     },
                 )
-                GlassReaderTheme {
+                // The auto-scroll / retry strip only shows once opened from More (no full-width band otherwise).
+                if (isExhToolsVisible) GlassReaderTheme {
                     ExhUtils(
                         isVisible = isExhToolsVisible,
                         onSetExhUtilsVisibility = onSetExhUtilsVisibility,
@@ -288,106 +296,95 @@ private fun GlassReaderHeader(
     onToggleOcr: (() -> Unit)?,
     onSelectOcrSource: (ReaderOcrSource) -> Unit,
     ocrProgress: String?,
-    tools: @Composable (Modifier) -> Unit,
+    tools: @Composable (Modifier, Boolean) -> Unit,
 ) {
-    // The tool buttons sit beside the title on a wide screen, on a second line on a phone.
+    // The mockup's floating header panel: 64dp, 16dp radius, 44dp outlined round buttons. The tool buttons sit beside
+    // the title on a wide screen, on a second line on a phone.
     val narrow = LocalConfiguration.current.screenWidthDp < 640
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(barColor)
-            .windowInsetsPadding(WindowInsets.statusBars),
-    ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(72.dp)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        GlassRoundButton("chevLeft", navigateUp, description = stringResource(MR.strings.action_bar_up_description))
-        Column(Modifier.weight(1f).clickable(onClick = onClickTitle)) {
-            Text(
-                mangaTitle.orEmpty(),
-                color = Color.White,
-                fontSize = Glass.label,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            chapterTitle?.let {
-                Text(it, color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        if (!narrow) tools(Modifier)
-        ocrProgress?.let {
+    val shape = RoundedCornerShape(Glass.r16)
+    Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
+        Column(Modifier.fillMaxWidth().clip(shape).background(barColor).border(1.dp, Glass.line, shape)) {
             Row(
-                Modifier
-                    .height(Glass.chip)
-                    .border(1.dp, Glass.line, CircleShape)
-                    .padding(horizontal = 12.dp),
+                Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                CircularProgressIndicator(Modifier.size(12.dp), color = Glass.ice, strokeWidth = 2.dp)
-                Text(it, color = Color.White.copy(alpha = 0.85f), fontSize = Glass.caption)
-            }
-        }
-        onToggleOcr?.let { toggle ->
-            var menu by remember { mutableStateOf(false) }
-            val enabled = ocrEnabled || !ocrLoading
-            Box {
-                Box(
-                    Modifier
-                        .height(Glass.button)
-                        .then(
-                            if (ocrEnabled) {
-                                Modifier.clip(CircleShape).background(Color.White)
-                            } else {
-                                Modifier.clip(CircleShape).border(1.dp, Glass.line, CircleShape)
-                            },
-                        )
-                        .combinedClickable(enabled = enabled, onClick = toggle, onLongClick = { menu = true })
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+                GlassRoundButton("chevLeft", navigateUp, glassRound, description = stringResource(MR.strings.action_bar_up_description), outlined = true, iconSize = 20.dp)
+                Column(Modifier.weight(1f).clickable(onClick = onClickTitle)) {
                     Text(
-                        stringResource(MR.strings.action_ocr),
-                        color = if (ocrEnabled) Color.Black else Color.White,
-                        fontSize = Glass.body,
-                        fontWeight = FontWeight.SemiBold,
+                        mangaTitle.orEmpty(),
+                        color = Color.White,
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                    chapterTitle?.let {
+                        Text(it, color = Glass.secondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
-                GlassReaderTheme {
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        ReaderOcrSource.availableSources(BuildConfig.HAS_LOCAL_OCR, mokuroAvailable).forEach { source ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(source.label())) },
-                                onClick = {
-                                    menu = false
-                                    onSelectOcrSource(source)
-                                },
-                                trailingIcon = {
-                                    if (source == ocrSource) Icon(Icons.Outlined.Check, contentDescription = null)
-                                },
+                if (!narrow) {
+                    tools(Modifier, false)
+                    Box(Modifier.width(1.dp).height(32.dp).background(Glass.line))
+                }
+                onToggleOcr?.let { toggle ->
+                    var menu by remember { mutableStateOf(false) }
+                    val enabled = ocrEnabled || !ocrLoading
+                    val ink = if (ocrEnabled) Glass.ice else Color.White
+                    Box {
+                        Row(
+                            Modifier
+                                .height(36.dp)
+                                .clip(CircleShape)
+                                .border(1.dp, if (ocrEnabled) Glass.ice else Glass.line, CircleShape)
+                                .combinedClickable(enabled = enabled, onClick = toggle, onLongClick = { menu = true })
+                                .padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (ocrProgress != null) CircularProgressIndicator(Modifier.size(12.dp), color = Glass.ice, strokeWidth = 2.dp)
+                            Text(
+                                stringResource(MR.strings.action_ocr) + ocrProgress?.let { " $it" }.orEmpty(),
+                                color = ink,
+                                fontSize = 14.sp,
+                                maxLines = 1,
                             )
+                        }
+                        GlassReaderTheme {
+                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                ReaderOcrSource.availableSources(BuildConfig.HAS_LOCAL_OCR, mokuroAvailable).forEach { source ->
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(source.label())) },
+                                        onClick = {
+                                            menu = false
+                                            onSelectOcrSource(source)
+                                        },
+                                        trailingIcon = {
+                                            if (source == ocrSource) Icon(Icons.Outlined.Check, contentDescription = null)
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+                GlassRoundButton(
+                    "bookmark",
+                    onToggleBookmarked,
+                    glassRound,
+                    description = stringResource(if (bookmarked) MR.strings.action_remove_bookmark else MR.strings.action_bookmark),
+                    outlined = true,
+                    tint = if (bookmarked) Glass.ice else Color.White,
+                    iconSize = 20.dp,
+                )
             }
+            if (narrow) tools(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 10.dp), true)
         }
-        GlassRoundButton(
-            "bookmark",
-            onToggleBookmarked,
-            description = stringResource(if (bookmarked) MR.strings.action_remove_bookmark else MR.strings.action_bookmark),
-            tint = if (bookmarked) Glass.ice else Color.White,
-        )
-    }
-    if (narrow) tools(Modifier.fillMaxWidth().padding(horizontal = 8.dp).padding(bottom = 4.dp))
     }
 }
 
+/** The mockup's `.ibtn`: 44dp round, page-coloured fill (the outline comes from GlassRoundButton). */
+private val glassRound = Modifier.size(44.dp).background(Glass.page, CircleShape)
 private fun ReaderOcrSource.label() = when (this) {
     ReaderOcrSource.AUTOMATIC -> KMR.strings.ocr_source_automatic
     ReaderOcrSource.MOKURO -> KMR.strings.ocr_source_mokuro
@@ -400,6 +397,7 @@ private class Tool(val label: String, val onClick: () -> Unit, val glass: String
 @Composable
 private fun GlassReaderTools(
     modifier: Modifier,
+    narrow: Boolean,
     readingMode: ReadingMode,
     onClickReadingMode: () -> Unit,
     orientation: ReaderOrientation,
@@ -417,6 +415,7 @@ private fun GlassReaderTools(
     onClickShare: (() -> Unit)?,
     onClickPageLayout: () -> Unit,
     onClickShiftPage: () -> Unit,
+    onShowExhTools: () -> Unit,
 ) {
     var more by remember { mutableStateOf(false) }
     // Same conditions as ReaderBottomBar for the two that only apply to some modes.
@@ -431,14 +430,14 @@ private fun GlassReaderTools(
         add(Tool(stringResource(MR.strings.action_settings), onClickSettings, "gear"))
         add(Tool(stringResource(MR.strings.glass_reader_more), { more = true }))
     }
-    Row(modifier, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier, horizontalArrangement = if (narrow) Arrangement.SpaceBetween else Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         tools.forEach { tool ->
             Box {
                 if (tool.glass != null) {
-                    GlassRoundButton(tool.glass, tool.onClick, description = tool.label, tint = tool.tint)
+                    GlassRoundButton(tool.glass, tool.onClick, glassRound, description = tool.label, outlined = true, tint = tool.tint, iconSize = 20.dp)
                 } else {
                     Box(
-                        Modifier.size(Glass.button).clip(CircleShape).clickable(onClick = tool.onClick),
+                        glassRound.clip(CircleShape).border(1.dp, Glass.line, CircleShape).clickable(onClick = tool.onClick),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(Icons.Outlined.MoreHoriz, contentDescription = tool.label, modifier = Modifier.size(22.dp), tint = Color.White)
@@ -454,6 +453,7 @@ private fun GlassReaderTools(
                             onClickWebView?.let { MoreItem(stringResource(MR.strings.action_open_in_web_view), it, { more = false }, Icons.Outlined.Public) }
                             onClickBrowser?.let { MoreItem(stringResource(MR.strings.action_open_in_browser), it, { more = false }, Icons.Outlined.Explore) }
                             onClickShare?.let { MoreItem(stringResource(MR.strings.action_share), it, { more = false }, Icons.Outlined.Share) }
+                            MoreItem(stringResource(SYMR.strings.eh_autoscroll), onShowExhTools, { more = false }, Icons.Outlined.SlowMotionVideo)
                         }
                     }
                 }

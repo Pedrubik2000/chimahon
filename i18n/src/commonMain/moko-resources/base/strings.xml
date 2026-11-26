@@ -808,6 +808,8 @@
     <string name="glass_reader_more">More</string>
     <string name="glass_rbar_left">%1$d left</string>
     <string name="glass_rbar_left_in">%1$d left in %2$s</string>
+    <string name="glass_rbar_prev">Previous</string>
+    <string name="glass_rbar_next">Next</string>
     <string name="glass_rbar_back">Back to p. %1$d</string>
     <string name="glass_reader_these_pages">These pages</string>
     <string name="glass_reader_new">%1$d new</string>
@@ -834,6 +836,14 @@
     <string name="glass_rset_tablet">On tablet</string>
     <string name="glass_rset_unread">Unread</string>
     <string name="glass_rset_bookmarks">Bookmarks</string>
+    <string name="glass_rset_reset_filters">Reset filters</string>
+    <string name="glass_rset_sec_mode">Mode</string>
+    <string name="glass_rset_sec_page">Page</string>
+    <string name="glass_rset_sec_display">Display</string>
+    <string name="glass_rset_sec_taps">Taps</string>
+    <string name="glass_rset_sec_filters">Filters</string>
+    <string name="glass_rset_sec_ocr">OCR</string>
+    <string name="glass_rset_sec_more">More</string>
     <!-- Glass Discover (UI rebuild phase 5b) -->
     <string name="glass_discover_pick">Pick for me</string>
     <string name="glass_discover_duel">This or that</string>

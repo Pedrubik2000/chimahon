@@ -180,6 +180,9 @@ open class ReaderPageImageView @JvmOverloads constructor(
         onImageLoadError?.invoke(error)
     }
 
+    /** False while the scale change comes from an animation the app started (e.g. zoom start), not a pinch/double tap. */
+    protected var scaleByUser = true
+
     @CallSuper
     open fun onScaleChanged(newScale: Float) {
         onScaleChanged?.invoke(newScale)
@@ -420,6 +423,7 @@ open class ReaderPageImageView @JvmOverloads constructor(
             setOnStateChangedListener(
                 object : SubsamplingScaleImageView.OnStateChangedListener {
                     override fun onScaleChanged(newScale: Float, origin: Int) {
+                        scaleByUser = origin != SubsamplingScaleImageView.ORIGIN_ANIM
                         this@ReaderPageImageView.onScaleChanged(newScale)
                     }
 

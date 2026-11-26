@@ -1,12 +1,13 @@
 package eu.kanade.presentation.reader.glass
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,24 +29,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.glassPanel
-import eu.kanade.presentation.reader.settings.ColorFilterPage
-import eu.kanade.presentation.reader.settings.GeneralPage
-import eu.kanade.presentation.reader.settings.OcrItems
-import eu.kanade.presentation.reader.settings.ReadingModePage
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
 /** The sections of the Glass settings panel (A: the tabs of the classic dialog, with OCR pulled out of General). */
-enum class GlassSettingsSection { Mode, Display, Filters, Ocr }
+enum class GlassSettingsSection { Mode, Page, Display, Taps, Filters, Ocr, More }
 
 /** The panel is this wide on a tablet (over the page); on a phone it covers the screen width. */
-private val PanelWidth = 360.dp
+private val PanelWidth = 380.dp
 private val PanelGap = 12.dp
 
 /** Clearance above/below the panel: the top bar and the two-line page bar, which a side panel never covers. */
@@ -85,17 +83,18 @@ internal fun GlassSidePanel(
     }
 }
 
-/** Title row of a side panel: [title], optional [trailing] chip, and the close button. */
+/** Title row of a side panel: serif [title], optional [trailing] label, and the close button. */
 @Composable
 internal fun GlassPanelTitle(title: String, onClose: () -> Unit, trailing: @Composable () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, Modifier.weight(1f), fontSize = Glass.heading)
+        Text(title, Modifier.weight(1f), fontSize = Glass.heading, fontFamily = FontFamily.Serif)
         trailing()
         GlassRoundButton("close", onClose, outlined = true)
     }
 }
 
-/** The Glass settings panel: every option of the classic dialog's tabs, in four sections. Filters hides the menus, like the classic tab. */
+/** The Glass settings panel (mockup A): serif title, section chips, then the Glass rows of the section. Filters hides the menus, like the classic tab. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GlassReaderSettingsPanel(
     screenModel: ReaderSettingsScreenModel,
@@ -111,25 +110,31 @@ fun GlassReaderSettingsPanel(
         GlassPanelTitle(stringResource(MR.strings.glass_rset_title), onClose) {
             Text(stringResource(MR.strings.glass_rset_scope), color = Glass.secondary, fontSize = Glass.body)
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             GlassSettingsSection.entries.forEach {
                 GlassChip(stringResource(it.label()), selected = it == section, onClick = { section = it })
             }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             when (section) {
-                GlassSettingsSection.Mode -> ReadingModePage(screenModel)
-                GlassSettingsSection.Display -> GeneralPage(screenModel, showOcr = false)
-                GlassSettingsSection.Filters -> ColorFilterPage(screenModel)
-                GlassSettingsSection.Ocr -> OcrItems(screenModel)
+                GlassSettingsSection.Mode -> GlassModeSection(screenModel)
+                GlassSettingsSection.Page -> GlassPageSection(screenModel)
+                GlassSettingsSection.Display -> GlassDisplaySection(screenModel)
+                GlassSettingsSection.Taps -> GlassTapsSection(screenModel)
+                GlassSettingsSection.Filters -> GlassFiltersSection(screenModel)
+                GlassSettingsSection.Ocr -> GlassOcrSection(screenModel)
+                GlassSettingsSection.More -> GlassMoreSection(screenModel)
             }
         }
     }
 }
 
 private fun GlassSettingsSection.label() = when (this) {
-    GlassSettingsSection.Mode -> MR.strings.pref_category_reading_mode
-    GlassSettingsSection.Display -> MR.strings.pref_category_general
-    GlassSettingsSection.Filters -> MR.strings.custom_filter
-    GlassSettingsSection.Ocr -> MR.strings.action_ocr
+    GlassSettingsSection.Mode -> MR.strings.glass_rset_sec_mode
+    GlassSettingsSection.Page -> MR.strings.glass_rset_sec_page
+    GlassSettingsSection.Display -> MR.strings.glass_rset_sec_display
+    GlassSettingsSection.Taps -> MR.strings.glass_rset_sec_taps
+    GlassSettingsSection.Filters -> MR.strings.glass_rset_sec_filters
+    GlassSettingsSection.Ocr -> MR.strings.glass_rset_sec_ocr
+    GlassSettingsSection.More -> MR.strings.glass_rset_sec_more
 }

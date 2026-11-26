@@ -2085,6 +2085,14 @@ class ReaderActivity : BaseActivity() {
      * viewer because each one implements its own touch and key events.
      */
     fun toggleMenu() {
+        // Glass settings panel is not modal: a page tap closes it and keeps the bars (else it floats alone).
+        when (viewModel.state.value.dialog) {
+            is ReaderViewModel.Dialog.Settings,
+            is ReaderViewModel.Dialog.ReadingModeSelect,
+            is ReaderViewModel.Dialog.OrientationModeSelect,
+            -> { viewModel.closeDialog(); setMenuVisibility(true); return }
+            else -> {}
+        }
         setMenuVisibility(!viewModel.state.value.menuVisible)
     }
 

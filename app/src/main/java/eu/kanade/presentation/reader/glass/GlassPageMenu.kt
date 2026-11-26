@@ -70,12 +70,15 @@ fun GlassPageMenu(
                 Image(it, null, Modifier.heightIn(max = 160.dp), contentScale = ContentScale.Fit, alignment = Alignment.CenterStart)
             }
             if (extraPage != null) {
-                Text(stringResource(MR.strings.glass_rset_which), color = Glass.secondary, fontSize = Glass.caption)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GlassChip(stringResource(MR.strings.glass_rset_p, page.number), choice == PageChoice.First, { choice = PageChoice.First })
-                    GlassChip(stringResource(MR.strings.glass_rset_p, extraPage.number), choice == PageChoice.Second, { choice = PageChoice.Second })
-                    GlassChip(stringResource(MR.strings.glass_rset_both), choice == PageChoice.Both, { choice = PageChoice.Both })
-                }
+                GlassCap(stringResource(MR.strings.glass_rset_which))
+                GlassSegmented(
+                    listOf(
+                        stringResource(MR.strings.glass_rset_p, page.number) to PageChoice.First,
+                        stringResource(MR.strings.glass_rset_p, extraPage.number) to PageChoice.Second,
+                        stringResource(MR.strings.glass_rset_both) to PageChoice.Both,
+                    ),
+                    choice,
+                ) { choice = it }
             }
             // a combined image has no cover action: Both sets the first page
             PageAction("book", stringResource(MR.strings.set_as_cover)) { confirmCover = true }
@@ -111,7 +114,7 @@ fun GlassPageMenu(
 @Composable
 private fun PageAction(icon: String, text: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

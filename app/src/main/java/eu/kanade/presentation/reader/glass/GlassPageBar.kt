@@ -1,6 +1,8 @@
 package eu.kanade.presentation.reader.glass
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,25 +38,45 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import eu.kanade.presentation.glass.Glass
+import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
+import eu.kanade.tachiyomi.ui.reader.viewer.Viewer
+import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerViewer
+import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
+import java.io.InputStream
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -91,11 +114,38 @@ private const val BACK_READ_ON = 3
 internal fun showBackPill(origin: Int?, landed: Int, current: Int, arrived: Boolean = true) =
     origin != null && current != origin && (!arrived || abs(current - landed) < BACK_READ_ON)
 
+
+/** The pages of the chapter on screen, from whichever viewer is active. */
+private fun chapterPages(viewer: Viewer?): List<ReaderPage>? {
+    val current = when (viewer) {
+        is PagerViewer -> viewer.currentPage
+        is WebtoonViewer -> viewer.currentPage
+        else -> null
+    }
+    return (current as? ReaderPage)?.chapter?.pages
+}
+
+/** A small decode (about 340 px tall) of a page for the drag preview; null when the page has no stream yet. */
+private suspend fun decodeThumb(open: (() -> InputStream)?): ImageBitmap? = withContext(Dispatchers.IO) {
+    if (open == null) return@withContext null
+    runCatching {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        open().use { BitmapFactory.decodeStream(it, null, bounds) }
+        var sample = 1
+        while (bounds.outHeight / (sample * 2) >= 340) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        open().use { BitmapFactory.decodeStream(it, null, opts) }?.asImageBitmap()
+    }.getOrNull()
+}
+
+private val barShape = RoundedCornerShape(Glass.r16)
+private val trackLine = Color.White.copy(alpha = 0.2f)
+
 /**
- * Glass bottom page bar: "p. 84 / 196", pages left, a thin track that fills in the reading direction, chapter skip
- * buttons, a bubble above the finger while dragging and a "Back to p. N" pill after a jump.
- * ponytail: the bubble shows page + chapter, not the page image (the viewer exposes no cheap thumbnail);
- * a chapter skip has no back pill (the old chapter's page is not reachable from here).
+ * Glass bottom page bar as in the round-2 mockup A: a floating panel, "12 left" / "84 / 196" / chapter on the top
+ * line, round skip buttons and the track below, a preview above the finger while dragging and a "Back to p. N" pill.
+ * ponytail: no volume skip, bookmark flags or chapter names under the track (the reader has no volume/bookmark data
+ * here); a chapter skip has no back pill (the old chapter's page is not reachable from here).
  */
 @Composable
 internal fun GlassPageBar(
@@ -108,6 +158,7 @@ internal fun GlassPageBar(
     totalPages: Int,
     chapterTitle: String?,
     onPageIndexChange: (Int) -> Unit,
+    viewer: Viewer? = null,
     chapterStarts: List<Int> = emptyList(),
     chapterLabel: String? = null,
     currentPageText: String = "",
@@ -130,97 +181,146 @@ internal fun GlassPageBar(
     val spreadText = currentPageText.takeIf { it.isNotBlank() && it != currentPage.toString() }
     val left = pagesLeft(spreadLastPage(currentPageText, currentPage), totalPages)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(
+        Box(
             Modifier
                 .fillMaxWidth()
-                .background(barColor)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .pointerInput(Unit) {},
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
         ) {
-            Row(Modifier.height(32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (spreadText != null) "$spreadText / $totalPages" else "p. $currentPage / $totalPages", color = Color.White, fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
-                Text(
-                    if (chapterLabel != null) stringResource(MR.strings.glass_rbar_left_in, left, chapterLabel) else stringResource(MR.strings.glass_rbar_left, left),
-                    color = Glass.secondary,
-                    fontSize = Glass.caption,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (showBackPill(origin, landed, currentPage, arrived)) {
-                    val back = origin ?: 1
-                    Box(
-                        Modifier
-                            .height(28.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Glass.ice, CircleShape)
-                            .clickable {
-                                origin = null
-                                landed = back
-                                arrived = false
-                                onPageIndexChange(back - 1)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(barShape)
+                    .background(barColor)
+                    .border(1.dp, Glass.line, barShape)
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)
+                    .pointerInput(Unit) {},
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(Modifier.fillMaxWidth().height(34.dp)) {
+                    val leftText = if (chapterLabel != null) stringResource(MR.strings.glass_rbar_left_in, left, chapterLabel) else stringResource(MR.strings.glass_rbar_left, left)
+                    Text(
+                        buildAnnotatedString {
+                            val i = leftText.indexOf(left.toString())
+                            if (i < 0) append(leftText) else {
+                                append(leftText.substring(0, i))
+                                withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Medium)) { append(left.toString()) }
+                                append(leftText.substring(i + left.toString().length))
                             }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(stringResource(MR.strings.glass_rbar_back, back), color = Glass.ice, fontSize = Glass.caption, fontWeight = FontWeight.SemiBold)
+                        },
+                        color = Glass.secondary,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.align(Alignment.CenterStart).fillMaxWidth(0.34f),
+                    )
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontFamily = FontFamily.Serif, fontSize = 26.sp, color = Color.White)) { append(spreadText ?: currentPage.toString()) }
+                            withStyle(SpanStyle(fontSize = 15.sp, color = Glass.secondary)) { append(" / $totalPages") }
+                        },
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                    if (showBackPill(origin, landed, currentPage, arrived)) {
+                        val back = origin ?: 1
+                        Box(
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .height(28.dp)
+                                .clip(CircleShape)
+                                .border(1.dp, Glass.ice, CircleShape)
+                                .clickable {
+                                    origin = null
+                                    landed = back
+                                    arrived = false
+                                    onPageIndexChange(back - 1)
+                                }
+                                .padding(horizontal = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(stringResource(MR.strings.glass_rbar_back, back), color = Glass.ice, fontSize = Glass.caption, fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        chapterTitle?.let {
+                            Text(
+                                it,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.align(Alignment.CenterEnd).fillMaxWidth(0.34f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            )
+                        }
                     }
                 }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SkipButton(
-                    next = false,
-                    enabled = if (isRtl) enabledNext else enabledPrevious,
-                    onClick = if (isRtl) onNextChapter else onPreviousChapter,
-                    description = stringResource(if (isRtl) MR.strings.action_next_chapter else MR.strings.action_previous_chapter),
-                )
-                if (totalPages > 1) {
-                    PageTrack(
-                        rtl = isRtl,
-                        page = dragPage ?: currentPage,
-                        total = totalPages,
-                        ticks = tickPositions(chapterStarts, totalPages, isRtl),
-                        dragging = dragPage != null,
-                        chapterTitle = chapterTitle,
-                        onDrag = { dragPage = it },
-                        onCommit = {
-                            dragPage = null
-                            jump(it)
-                        },
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                Row(Modifier.height(74.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                    SkipButton(
+                        next = false,
+                        enabled = if (isRtl) enabledNext else enabledPrevious,
+                        onClick = if (isRtl) onNextChapter else onPreviousChapter,
+                        label = stringResource(if (isRtl) MR.strings.glass_rbar_next else MR.strings.glass_rbar_prev),
+                        description = stringResource(if (isRtl) MR.strings.action_next_chapter else MR.strings.action_previous_chapter),
                     )
-                } else {
-                    Spacer(Modifier.weight(1f))
+                    if (totalPages > 1) {
+                        PageTrack(
+                            viewer = viewer,
+                            rtl = isRtl,
+                            page = dragPage ?: currentPage,
+                            total = totalPages,
+                            ticks = tickPositions(chapterStarts, totalPages, isRtl),
+                            dragging = dragPage != null,
+                            chapterTitle = chapterTitle,
+                            onDrag = { dragPage = it },
+                            onCommit = {
+                                dragPage = null
+                                jump(it)
+                            },
+                            modifier = Modifier.weight(1f).padding(horizontal = 18.dp),
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    SkipButton(
+                        next = true,
+                        enabled = if (isRtl) enabledPrevious else enabledNext,
+                        onClick = if (isRtl) onPreviousChapter else onNextChapter,
+                        label = stringResource(if (isRtl) MR.strings.glass_rbar_prev else MR.strings.glass_rbar_next),
+                        description = stringResource(if (isRtl) MR.strings.action_previous_chapter else MR.strings.action_next_chapter),
+                    )
                 }
-                SkipButton(
-                    next = true,
-                    enabled = if (isRtl) enabledPrevious else enabledNext,
-                    onClick = if (isRtl) onPreviousChapter else onNextChapter,
-                    description = stringResource(if (isRtl) MR.strings.action_previous_chapter else MR.strings.action_next_chapter),
-                )
             }
         }
     }
 }
 
+/** The mockup's `.tool`: a 44dp outlined round button with a 12sp label under it. */
 @Composable
-private fun SkipButton(next: Boolean, enabled: Boolean, onClick: () -> Unit, description: String) {
-    Box(
-        Modifier.size(Glass.chip).clip(CircleShape).clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            if (next) Icons.Outlined.SkipNext else Icons.Outlined.SkipPrevious,
-            contentDescription = description,
-            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.18f),
-        )
+private fun SkipButton(next: Boolean, enabled: Boolean, onClick: () -> Unit, label: String, description: String) {
+    Column(Modifier.width(58.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Glass.page)
+                .border(1.dp, Glass.line, CircleShape)
+                .clickable(enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (next) Icons.Outlined.SkipNext else Icons.Outlined.SkipPrevious,
+                contentDescription = description,
+                modifier = Modifier.size(18.dp),
+                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+            )
+        }
+        Text(label, color = Color.White.copy(alpha = if (enabled) 0.85f else 0.3f), fontSize = 12.sp, maxLines = 1)
     }
 }
 
 @Composable
 private fun PageTrack(
+    viewer: Viewer?,
     rtl: Boolean,
     page: Int,
     total: Int,
@@ -235,11 +335,20 @@ private fun PageTrack(
     val drag by rememberUpdatedState(onDrag)
     val commit by rememberUpdatedState(onCommit)
     LaunchedEffect(page) { if (dragging) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
-    val density = LocalDensity.current
     var widthPx by remember { mutableIntStateOf(0) }
+    // Previews by page number; a few pages at most, cleared when it grows. Missing = number bubble only.
+    val thumbs = remember { mutableStateMapOf<Int, ImageBitmap?>() }
+    LaunchedEffect(page, dragging) {
+        if (!dragging || thumbs.containsKey(page)) return@LaunchedEffect
+        delay(60) // not for every page the finger flies over
+        val open = chapterPages(viewer)?.getOrNull(page - 1)?.stream
+        val bmp = decodeThumb(open)
+        if (thumbs.size > 16) thumbs.clear()
+        thumbs[page] = bmp
+    }
     Box(
         modifier
-            .height(Glass.chip)
+            .height(46.dp)
             .pointerInput(total, rtl) {
                 detectTapGestures { commit(pageAt(it.x / size.width, total, rtl)) }
             }
@@ -260,33 +369,42 @@ private fun PageTrack(
             },
     ) {
         val pos = trackPosition(page, total, rtl)
-        Canvas(Modifier.fillMaxWidth().height(Glass.chip)) {
+        Canvas(Modifier.fillMaxWidth().height(46.dp)) {
             widthPx = size.width.roundToInt()
-            val y = size.height / 2
+            val y = 23.dp.toPx()
             val w = size.width
-            val stroke = 3.dp.toPx()
-            drawLine(Glass.line, Offset(0f, y), Offset(w, y), stroke)
+            val stroke = 6.dp.toPx()
+            drawLine(trackLine, Offset(0f, y), Offset(w, y), stroke, StrokeCap.Round)
             val edge = if (rtl) w else 0f
-            drawLine(Color.White, Offset(edge, y), Offset(pos * w, y), stroke)
-            ticks.forEach { drawLine(Color.White.copy(alpha = 0.4f), Offset(it * w, y - 6.dp.toPx()), Offset(it * w, y + 6.dp.toPx()), 1.5.dp.toPx()) }
-            drawCircle(Color.White, if (dragging) 10.dp.toPx() else 7.dp.toPx(), Offset(pos * w, y))
+            drawLine(Color.White, Offset(edge, y), Offset(pos * w, y), stroke, StrokeCap.Round)
+            ticks.forEach { drawLine(Color.White.copy(alpha = 0.75f), Offset(it * w, y - 13.dp.toPx()), Offset(it * w, y + 7.dp.toPx()), 2.dp.toPx()) }
+            drawCircle(Color.White, if (dragging) 13.dp.toPx() else 11.dp.toPx(), Offset(pos * w, y))
         }
         if (dragging) {
-            val bubbleW = 112.dp
-            val bubbleWpx = with(density) { bubbleW.roundToPx() }
-            val x = ((pos * widthPx) - bubbleWpx / 2f).roundToInt().coerceIn(0, (widthPx - bubbleWpx).coerceAtLeast(0))
-            Popup(alignment = Alignment.TopStart, offset = IntOffset(x, with(density) { -(76.dp).roundToPx() })) {
+            val fingerX = pos * widthPx
+            val above = object : PopupPositionProvider {
+                override fun calculatePosition(anchorBounds: IntRect, windowSize: IntSize, layoutDirection: LayoutDirection, popupContentSize: IntSize): IntOffset {
+                    val x = (anchorBounds.left + fingerX - popupContentSize.width / 2f).roundToInt()
+                        .coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+                    return IntOffset(x, anchorBounds.top - popupContentSize.height - 8)
+                }
+            }
+            Popup(popupPositionProvider = above) {
                 Column(
                     Modifier
-                        .width(bubbleW)
+                        .width(168.dp)
                         .clip(RoundedCornerShape(Glass.r12))
                         .background(Glass.panel)
                         .border(1.dp, Glass.line, RoundedCornerShape(Glass.r12))
-                        .padding(vertical = 8.dp),
+                        .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("p. $page", color = Color.White, fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
-                    chapterTitle?.let { Text(it, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 8.dp)) }
+                    thumbs[page]?.let {
+                        Image(it, null, Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(Glass.r8)), contentScale = ContentScale.Fit)
+                    }
+                    Text("p. $page", color = Color.White, fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
+                    chapterTitle?.let { Text(it, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
         }
