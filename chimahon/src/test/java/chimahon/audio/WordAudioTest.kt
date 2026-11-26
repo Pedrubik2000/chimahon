@@ -22,6 +22,14 @@ class WordAudioTest {
         assertFalse(WordAudioService.isNotAvailableClip(ByteArray(0)))
     }
 
+    @Test
+    fun docUnderTreeMatchesRootOrSlashPrefixOnly() {
+        assertTrue(WordAudioService.isDocUnderTree("primary:Chimahon dev/android.db", "primary:Chimahon dev"))
+        assertTrue(WordAudioService.isDocUnderTree("primary:Chimahon dev", "primary:Chimahon dev"))
+        assertFalse(WordAudioService.isDocUnderTree("primary:Chimahon dev2/android.db", "primary:Chimahon dev"))
+        assertFalse(WordAudioService.isDocUnderTree("primary:Other/android.db", "primary:Chimahon dev"))
+    }
+
     private class Fake<T>(private var v: T) : Preference<T> {
         override fun key() = "k"
         override fun get() = v

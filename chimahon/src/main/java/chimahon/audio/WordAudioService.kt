@@ -51,8 +51,39 @@ class WordAudioService(
 
         /** True when [uriStr] is a saved Uri whose persisted read grant is gone. */
         fun isGrantLost(context: Context, uriStr: String): Boolean =
-            uriStr.isNotBlank() &&
-                context.contentResolver.persistedUriPermissions.none { it.uri.toString() == uriStr && it.isReadPermission }
+            uriStr.isNotBlank() && resolveGrantedUri(context, uriStr) == null
+
+        /** Doc id [docId] is the tree root [treeDocId] itself or lies under it. */
+        fun isDocUnderTree(docId: String, treeDocId: String): Boolean =
+            docId == treeDocId || docId.startsWith("$treeDocId/")
+
+        /**
+         * The uri to open for the saved [uriStr]: itself when its own grant persists, else the same document
+         * through a persisted read TREE grant that contains it, else null (access lost).
+         */
+        fun resolveGrantedUri(context: Context, uriStr: String): android.net.Uri? {
+            val grants = context.contentResolver.persistedUriPermissions.filter { it.isReadPermission }
+            if (grants.any { it.uri.toString() == uriStr }) return android.net.Uri.parse(uriStr)
+            return try {
+                val doc = android.net.Uri.parse(uriStr)
+                val docId = android.provider.DocumentsContract.getDocumentId(doc)
+                grants.map { it.uri }.firstNotNullOfOrNull { tree ->
+                    if (tree.authority != doc.authority ||
+                        !android.provider.DocumentsContract.isTreeUri(tree)
+                    ) {
+                        return@firstNotNullOfOrNull null
+                    }
+                    val treeId = android.provider.DocumentsContract.getTreeDocumentId(tree)
+                    if (isDocUnderTree(docId, treeId)) {
+                        android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, docId)
+                    } else {
+                        null
+                    }
+                }
+            } catch (e: IllegalArgumentException) {
+                null // not a document uri
+            }
+        }
     }
 
     init {
@@ -138,16 +169,18 @@ class WordAudioService(
         // New path: SAF Uri
         val uriStr = preferences.wordAudioLocalUri().get()
         if (uriStr.isNotBlank()) {
-            if (isGrantLost(context, uriStr)) {
+            val openUri = resolveGrantedUri(context, uriStr)
+            if (openUri == null) {
                 localAccessLost = true
                 return emptyList()
             }
+            val openStr = openUri.toString() // the saved doc uri, or the same doc through a tree grant
             // SAF providers can invalidate or replace a descriptor while the
             // process is alive. Re-probe the schema before using a cached
             // native handle so we can reopen and use the stable-copy fallback.
-            if (!localDatabase.isOpenFor(uriStr) || !localDatabase.testConnection()) {
+            if (!localDatabase.isOpenFor(openStr) || !localDatabase.testConnection()) {
                 localDatabase.close()
-                if (!localDatabase.updateUri(android.net.Uri.parse(uriStr)) || !localDatabase.testConnection()) {
+                if (!localDatabase.updateUri(openUri) || !localDatabase.testConnection()) {
                     localAccessLost = localDatabase.accessLost
                     return emptyList()
                 }
