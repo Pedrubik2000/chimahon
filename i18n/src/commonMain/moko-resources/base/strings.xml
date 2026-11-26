@@ -973,6 +973,7 @@
     <string name="glass_setup_next_known">Next step: where kumahon learns which words you know.</string>
     <string name="glass_setup_known_row">Sources set</string>
     <string name="glass_setup_known_paired_row">kumapie paired</string>
+    <string name="glass_setup_known_none_row">No sources yet</string>
     <string name="glass_setup_known_skip_row">Skipped · change in Settings</string>
     <string name="glass_setup_colouring_why">Colour the words on the page by what you know, so new words stand out while you read.</string>
     <string name="glass_setup_colouring_switch">Colour words on manga pages</string>

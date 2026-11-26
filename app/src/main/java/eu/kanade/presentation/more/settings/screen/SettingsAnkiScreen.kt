@@ -25,6 +25,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import eu.kanade.presentation.glass.Glass
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
@@ -112,7 +121,12 @@ object SettingsAnkiScreen : SearchableSettings {
                         Column {
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             Text(stringResource(MR.strings.jiten_known_words), style = MaterialTheme.typography.titleMedium)
-                            JitenImportPanel(withTally = true)
+                            // always on a dark Glass surface: the panel is white-on-dark whatever the app theme
+                            CompositionLocalProvider(LocalContentColor provides Color.White) {
+                                Box(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(Glass.r12)).background(Glass.page).padding(16.dp)) {
+                                    JitenImportPanel(withTally = true)
+                                }
+                            }
                         }
                         AnkiKnownRow()
                         }

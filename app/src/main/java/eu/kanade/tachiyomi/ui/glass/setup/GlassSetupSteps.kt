@@ -26,7 +26,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import chimahon.srs.Cards
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -363,6 +369,10 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
         ),
         stringResource(if (model.paired) MR.strings.glass_setup_known_paired_row else MR.strings.glass_setup_known_row),
     )
+    // the sources of the Known words step: a Jiten import on disk, kumapie paired, the kuma3 layer on
+    var jitenImported by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { jitenImported = withContext(Dispatchers.IO) { Cards.store(context).jitenImport().time > 0 } }
+    val known = GlassSetupLogic.knownSourcesSet(jitenImported, model.paired, rememberAnkiKnown().on)
     val skipped = listOf(
         false,
         model.realDebridSkipped,
@@ -384,7 +394,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
     val notDone = stringResource(MR.strings.glass_setup_not_done)
     val notSet = stringResource(MR.strings.glass_setup_not_set)
     // "done" for 1, 3, 4, 5 and 6 includes skipped; a row is "ok" only when really set
-    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null, !model.colouringSkipped, !model.knownSkipped)
+    val ok = listOf(model.done(0), model.realDebridDone, model.done(2), model.notificationsAllowed, model.dictionary != null, !model.colouringSkipped, known)
     Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().glassPanel(Glass.r16).padding(start = 20.dp, end = 16.dp)) {
         names.forEachIndexed { i, n ->
             val fix = !ok[i] && GlassSetupLogic.needed(i)
@@ -408,6 +418,7 @@ internal fun SummaryStep(model: GlassSetupModel, names: List<String>, entries: L
                         i == 4 && model.dictionaryDownloading -> values[i]
                         fix -> notDone
                         skipped[i] -> skippedText[i]
+                        i == 6 -> stringResource(MR.strings.glass_setup_known_none_row)
                         else -> notSet
                     },
                     Modifier.weight(1f),

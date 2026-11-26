@@ -373,7 +373,8 @@ private fun KumapieSource(model: GlassSetupModel, phone: Boolean) {
             // a phone has no room for the word next to the switch
             if (state != null && !(phone && model.paired)) Text(state.first, color = state.second, fontSize = Glass.body, fontWeight = FontWeight.SemiBold, maxLines = 1)
             GlassIcon(if (open) "chevUp" else "chevDown", size = 20.dp, tint = if (open) Color.White else Glass.secondary)
-            GlassToggle(model.paired, { if (it) open = true })
+            // read-only: pairing is done in the section below, there is no unpair here
+            if (model.paired) GlassIcon("check", size = 20.dp, tint = Glass.ice)
         }
         if (open) {
             Column(

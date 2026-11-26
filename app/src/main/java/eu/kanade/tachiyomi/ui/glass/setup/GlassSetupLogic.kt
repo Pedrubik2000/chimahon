@@ -38,6 +38,9 @@ object GlassSetupLogic {
         return "Finish $list first"
     }
 
+    /** Known words has a source once a Jiten list was imported, kumapie is paired, or the kuma3 / AnkiDroid layer is on. */
+    fun knownSourcesSet(jitenImported: Boolean, kumapiePaired: Boolean, ankiOn: Boolean): Boolean = jitenImported || kumapiePaired || ankiOn
+
     /** The sample line of the Word colouring step (a manga line with a new, a mined and a due word in the mockup). */
     const val SAMPLE = "「この魔法学校に入学するには、試験に合格する必要がある」"
 

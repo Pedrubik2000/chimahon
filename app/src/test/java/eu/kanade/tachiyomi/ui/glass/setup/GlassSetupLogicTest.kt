@@ -90,4 +90,12 @@ class GlassSetupLogicTest {
         GlassSetupLogic.shortPath("/storage/emulated/01/x") shouldBe "/storage/emulated/01/x"
         GlassSetupLogic.shortPath("/storage/1A2B-3C4D/Manga") shouldBe "/storage/1A2B-3C4D/Manga"
     }
+
+    @Test
+    fun `known words has a source only with a Jiten import, a paired kumapie or the kuma3 layer`() {
+        GlassSetupLogic.knownSourcesSet(jitenImported = false, kumapiePaired = false, ankiOn = false) shouldBe false
+        GlassSetupLogic.knownSourcesSet(jitenImported = true, kumapiePaired = false, ankiOn = false) shouldBe true
+        GlassSetupLogic.knownSourcesSet(jitenImported = false, kumapiePaired = true, ankiOn = false) shouldBe true
+        GlassSetupLogic.knownSourcesSet(jitenImported = false, kumapiePaired = false, ankiOn = true) shouldBe true
+    }
 }

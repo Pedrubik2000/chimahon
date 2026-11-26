@@ -136,7 +136,9 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                 // a phone: the same steps in one narrow column, bars without their names
                 val phone = maxWidth < 600.dp
                 val edge = if (phone) 20.dp else 80.dp
-                val barsWidth = maxWidth - 96.dp // phone: from 76dp (after the bear) to the right margin
+                // seven bars of 96dp end at 884dp: below 900dp they share the width instead (no names), so a portrait tablet is not cut off
+                val weighted = maxWidth < 900.dp
+                val barsWidth = maxWidth - (if (phone) 96.dp else 152.dp + edge) // from the bars' start to the right margin
                 // portrait tablet: no room for the covers, the column keeps its width
                 val coversShown = maxWidth >= 1100.dp
                 // the left side ends 24dp before the covers (580 from the right edge), start 80
@@ -167,21 +169,21 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                     Modifier
                         // seven bars: 96dp and 10dp apart on a tablet so they end before 900dp
                         .offset(x = if (phone) 76.dp else 152.dp, y = if (phone) 22.dp else 36.dp)
-                        .then(if (phone) Modifier.width(barsWidth) else Modifier)
+                        .then(if (weighted) Modifier.width(barsWidth) else Modifier)
                         .semantics { contentDescription = stepsLabel },
-                    horizontalArrangement = Arrangement.spacedBy(if (phone) 6.dp else 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (weighted) 6.dp else 10.dp),
                 ) {
                     names.forEachIndexed { i, n ->
                         val on = i == step
                         val skipped = model.skipped(i)
                         val ok = model.done(i) && !skipped
                         Column(
-                            (if (phone) Modifier.weight(1f) else Modifier.width(96.dp))
-                                .height(48.dp).clickable { model.step = i }.padding(top = if (phone) 22.dp else 8.dp),
+                            (if (weighted) Modifier.weight(1f) else Modifier.width(96.dp))
+                                .height(48.dp).clickable { model.step = i }.padding(top = if (weighted) 22.dp else 8.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Box(
-                                (if (phone) Modifier.fillMaxWidth() else Modifier.width(96.dp)).height(4.dp).clip(CircleShape)
+                                (if (weighted) Modifier.fillMaxWidth() else Modifier.width(96.dp)).height(4.dp).clip(CircleShape)
                                     .background(
                                         when {
                                             on -> Glass.ice
@@ -192,7 +194,7 @@ class GlassSetupScreen(private val fromSettings: Boolean = false) : Screen() {
                                     ),
                             )
                             // a phone has no room for five names: the step's title below says which one it is
-                            if (!phone) {
+                            if (!weighted) {
                                 Text(
                                     n,
                                     color = if (on || ok) Color.White else Glass.secondary,
