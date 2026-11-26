@@ -193,7 +193,7 @@ internal fun StatusLegend(modifier: Modifier = Modifier, cover: Any? = null) {
                 SourceBoxCell(7, BoxState.HAVE, colours, Modifier.width(28.dp))
             }
             LegendItem(stringResource(MR.strings.glass_legend_box_gap)) {
-                SourceBoxCell(null, BoxState.NONE, colours, Modifier.width(96.dp), gapText = stringResource(MR.strings.glass_title_gap, "20–24"))
+                SourceBoxCell(null, BoxState.NONE, colours, Modifier.width(96.dp), gapRange = "20–24")
             }
         }
     }

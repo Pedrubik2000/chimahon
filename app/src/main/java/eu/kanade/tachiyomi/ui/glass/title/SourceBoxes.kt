@@ -60,10 +60,7 @@ internal fun SourceBoxes(boxes: List<BoxState>) {
                                 BoxState.NONE,
                                 colours,
                                 Modifier.weight(gapWeight(b.from, b.to)),
-                                gapText = stringResource(
-                                    MR.strings.glass_title_gap,
-                                    if (b.from == b.to) "${b.from}" else "${b.from}–${b.to}",
-                                ),
+                                gapRange = if (b.from == b.to) "${b.from}" else "${b.from}–${b.to}",
                             )
                         }
                     }
@@ -73,9 +70,12 @@ internal fun SourceBoxes(boxes: List<BoxState>) {
     }
 }
 
-/** One box: [number] inside; [gapText] instead for a merged run. A missing box is dashed (or solid) per the set. */
+/**
+ * One box: [number] inside, or for a merged run its [gapRange] ("20–24 missing" when it is wide enough, else just the
+ * range). A missing box is dashed (or solid) per the colour set.
+ */
 @Composable
-internal fun SourceBoxCell(number: Int?, state: BoxState, colours: StatusColours, modifier: Modifier, gapText: String? = null) {
+internal fun SourceBoxCell(number: Int?, state: BoxState, colours: StatusColours, modifier: Modifier, gapRange: String? = null) {
     val shape = RoundedCornerShape(3.dp)
     val (fill, ink) = when (state) {
         BoxState.HAVE -> colours.have to colours.haveInk
@@ -83,7 +83,7 @@ internal fun SourceBoxCell(number: Int?, state: BoxState, colours: StatusColours
         BoxState.QUEUED -> Glass.ice to Color.Black
         BoxState.NONE -> colours.missingFill to colours.missing.copy(alpha = 1f)
     }
-    Box(
+    BoxWithConstraints(
         modifier
             .height(22.dp)
             .clip(shape)
@@ -91,10 +91,15 @@ internal fun SourceBoxCell(number: Int?, state: BoxState, colours: StatusColours
             .dashedBorder(if (state == BoxState.NONE) colours.missing else null, 1.5.dp, colours.missingDashed, shape),
         contentAlignment = Alignment.Center,
     ) {
+        val label = when {
+            gapRange == null -> number?.toString().orEmpty()
+            maxWidth >= 84.dp -> stringResource(MR.strings.glass_title_gap, gapRange)
+            else -> gapRange
+        }
         Text(
-            gapText ?: number?.toString().orEmpty(),
+            label,
             color = ink,
-            fontSize = if (gapText != null) 10.sp else 9.sp,
+            fontSize = if (gapRange != null) 10.sp else 9.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             softWrap = false,
