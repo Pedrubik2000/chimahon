@@ -334,7 +334,7 @@ private fun PhoneCell(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(cell.number.toString(), color = ink, fontSize = Glass.label, fontWeight = FontWeight.Bold)
                 if (cell.state == VolState.DOWNLOADING) {
-                    cell.fraction?.let { Text("${(it * 100).toInt()}%", color = ink, fontSize = 10.sp) }
+                    cell.fraction?.let { Text("${(it * 100).toInt()}%", color = ink, fontSize = Glass.caption) }
                 }
             }
             val icon = when (cell.state) {

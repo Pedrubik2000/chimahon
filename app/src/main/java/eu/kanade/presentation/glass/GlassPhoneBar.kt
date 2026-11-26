@@ -75,7 +75,7 @@ fun GlassPhoneBar(
                             .padding(horizontal = 4.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(it, color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(it, color = Color.Black, fontSize = Glass.caption, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
                 if (dot) {

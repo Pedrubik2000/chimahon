@@ -145,12 +145,12 @@ internal fun ReviewShowButton(onClick: () -> Unit, modifier: Modifier, compact: 
         if (compact) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GlassIcon("eye", size = 24.dp, tint = Color.Black)
-                Text("Show", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Show", color = Color.Black, fontSize = Glass.heading, fontWeight = FontWeight.Bold)
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 GlassIcon("eye", size = 28.dp, tint = Color.Black)
-                Text("Show", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Show", color = Color.Black, fontSize = Glass.heading, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -279,7 +279,7 @@ private fun ColumnScope.ReviewCardBody(model: GlassReviewModel, wordRaw: String,
             if (meaning.isNotEmpty()) {
                 Text(
                     meaning,
-                    fontSize = if (phone) 14.sp else 17.sp,
+                    fontSize = if (phone) 14.sp else 16.sp,
                     lineHeight = if (phone) 21.sp else 25.sp,
                     modifier = Modifier.padding(top = 8.dp),
                 )
