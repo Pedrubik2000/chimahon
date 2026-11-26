@@ -354,7 +354,10 @@ private fun TimelineRow(
                     Text(title, Modifier.weight(1f, fill = false), fontSize = Glass.label, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(MR.strings.glass_rel_vol, row.vol), color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
                 }
-                Text(stateLine(item, today), color = stateColor(row.state), fontSize = Glass.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (row.state == VolState.ON_TABLET) GlassIcon("check", size = 16.dp, tint = stateColor(row.state))
+                    Text(stateLine(item, today), color = stateColor(row.state), fontSize = Glass.body, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
                 if (item.behind > 0) Text(stringResource(MR.strings.glass_rel_behind, item.behind), color = Glass.ice, fontSize = Glass.caption)
                 if (row.previousDate != null && row.date != null) {
                     Text(stringResource(MR.strings.glass_rel_date_changed), color = Glass.ice, fontSize = Glass.caption)
@@ -391,7 +394,7 @@ private fun stateLine(item: ReleaseItem, today: LocalDate): String {
         }
         row.state == VolState.ON_SOURCES -> row.fetchSource?.let { stringResource(MR.strings.glass_rel_on_source, it) } // the download source, never a date source
             ?: stringResource(MR.strings.glass_rel_on_sources)
-        row.state == VolState.ON_TABLET -> "✓ " + stringResource(MR.strings.glass_rel_on_tablet)
+        row.state == VolState.ON_TABLET -> stringResource(MR.strings.glass_rel_on_tablet)
         else -> {
             val ago = -GlassReleases.daysTo(today, date)
             val from = row.source // where the date came from (books.or.jp, NDL, Kodansha): not a place to fetch from
