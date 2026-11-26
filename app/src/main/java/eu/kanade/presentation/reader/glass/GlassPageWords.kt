@@ -181,6 +181,8 @@ private fun lookUp(
 ): LookupResult? = runCatching { lookUpExact(context, repository, word, lookup).result }.getOrNull()
 
 /** Plain text of a dictionary glossary (plain string, or Yomitan structured content as JSON); readings in <rt> dropped. */
+private const val SENSE = '\u0001' // a sense break while walking a glossary, "; " at the end
+
 internal fun glossaryText(raw: String): String {
     val parsed = runCatching { JSONTokener(raw).nextValue() }.getOrNull()
     if (parsed !is JSONArray && parsed !is JSONObject) return raw.trim()
@@ -188,18 +190,31 @@ internal fun glossaryText(raw: String): String {
         when (x) {
             is String -> sb.append(x)
             is JSONArray -> for (i in 0 until x.length()) walk(x.opt(i), sb)
-            is JSONObject -> if (x.optString("tag") !in setOf("rt", "rp")) {
+            is JSONObject -> if (x.optString("tag") !in setOf("rt", "rp") &&
+                // example sentences don't belong in a one-line gloss (Jitendex marks them data.content)
+                x.optJSONObject("data")?.optString("content")?.contains("example") != true
+            ) {
+                // one sense per li: "; " between them; other block tags a space, else senses run together
+                // (a private marker, so a ";" that is part of the text is left alone)
+                val tag = x.optString("tag")
+                val block = tag in setOf("div", "p", "br", "ul", "ol", "tr", "td")
+                if (tag == "li") sb.append(SENSE) else if (block) sb.append(' ')
                 walk(x.opt("content"), sb)
                 walk(x.opt("text"), sb)
+                if (block) sb.append(' ')
             }
         }
     }
     val parts = if (parsed is JSONArray) (0 until parsed.length()).map { parsed.opt(it) } else listOf(parsed)
-    return parts.map { StringBuilder().also { sb -> walk(it, sb) }.toString().trim() }
+    return parts.map {
+        StringBuilder().also { sb -> walk(it, sb) }.toString()
+            .replace(Regex("\\s+"), " ")
+            .trim(' ', SENSE)
+            .replace(Regex("\\s*$SENSE[\\s$SENSE]*"), "; ")
+    }
         .filter { it.isNotEmpty() }
         .joinToString("; ")
-        .replace(Regex("\\s+"), " ")
-        .replace(Regex("^\\S*【[^】]*】\\s*"), "") // a dictionary's own headword line ("まちじかん[3]【待ち時間】")
+        .replace(Regex("^\\S*【[^】]*】[\\s;]*"), "") // a dictionary's own headword line ("まちじかん[3]【待ち時間】")
 }
 
 /** Opens the normal lookup popup for [word] as a tap on it would (highlight + popup with the rating buttons). */
