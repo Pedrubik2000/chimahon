@@ -608,7 +608,7 @@ object AnkiCardCreator {
                         }
                         overwriteNoteId
                     } else {
-                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList, sentenceAudioSource, wordAudioSource)
+                        chimahon.ocr.KumapieColours.mine(context, effectiveDeck, fields, tagList)
                             // Anki off: kumapie did not take it, and AnkiDroid is not touched (the caller uses the own store).
                             ?: if (!ankiEnabled) return@withContext AnkiResult.NotConfigured else bridge.addNote(
                                 deckName = effectiveDeck,
