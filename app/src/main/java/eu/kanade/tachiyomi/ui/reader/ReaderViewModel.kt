@@ -203,6 +203,7 @@ class ReaderViewModel @JvmOverloads constructor(
     private var ocrScanJob: Job? = null
     private var ocrScanChapterId: Long? = null
     private val ocrScannedChapterIds = mutableSetOf<Long>()
+    private val ocrDiagLoggedChapters = mutableSetOf<Long>()
     private val maxOcrCacheEntries = 120
 
     private val mokuroChapterCache = mutableMapOf<Long, MokuroChapterData>()
@@ -1329,14 +1330,16 @@ class ReaderViewModel @JvmOverloads constructor(
         return true
     }
 
-    fun toggleOcrEnabled(): Boolean {
+    fun toggleOcrEnabled(caller: String): Boolean {
         val pref = readerPreferences.ocrOverlayEnabled()
         val enabled = !pref.get()
         if (enabled && !isOcrAllowedForCurrentManga()) {
+            logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: false (not allowed for this manga) caller=$caller" }
             cancelOcrScan()
             pref.set(false)
             return false
         }
+        logcat("KumahonOcr", LogPriority.INFO) { "OCR overlay pref written: $enabled caller=$caller" }
         pref.set(enabled)
         if (!enabled) {
             cancelOcrScan()
@@ -2312,6 +2315,16 @@ class ReaderViewModel @JvmOverloads constructor(
             chimahon.ocr.OcrLanguage.entries.find {
                 it.bcp47.equals(profile.languageCode, ignoreCase = true)
             } ?: chimahon.ocr.OcrLanguage.JAPANESE
+        }
+
+        if (ocrDiagLoggedChapters.add(chapterId)) {
+            logcat("KumahonOcr", LogPriority.INFO) {
+                "OCR setup: chapter=$chapterId ocrSource=$ocrSource engine=${dictionaryPreferences.ocrEngine().get()} " +
+                    "lang=${ocrLang.bcp47} modelsDownloaded=${Injekt.get<eu.kanade.tachiyomi.data.ocr.ModelDownloader>().isDownloaded} " +
+                    "localAvailable=${Injekt.get<eu.kanade.tachiyomi.data.ocr.LocalOcrBridge>().isAvailable} " +
+                    "overlay=${readerPreferences.ocrOverlayEnabled().get()} " +
+                    "twoFinger=${readerPreferences.ocrTwoFingerGestureEnabled().get()}"
+            }
         }
 
         if (

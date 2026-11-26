@@ -66,6 +66,7 @@ suspend fun recognizePage(
 
     val lensClient = Injekt.get<LensClient>()
     val debugResult = lensClient.getDebugOcrData(bytes = bytes, language = language)
+    logLensResult(language, debugResult)
     return debugResult.mergedResults
 }
 
@@ -110,7 +111,15 @@ suspend fun recognizePage(
 
     val lensClient = Injekt.get<LensClient>()
     val debugResult = lensClient.getDebugOcrData(bitmap = bitmap, language = language)
+    logLensResult(language, debugResult)
     return debugResult.mergedResults
+}
+
+private fun logLensResult(language: OcrLanguage, result: chimahon.ocr.OcrDebugResult) {
+    logcat("KumahonOcr", LogPriority.INFO) {
+        "OCR engine=cloud(lens) lang=${language.bcp47} chunks=${result.rawChunks.size} " +
+            "rawLines=${result.rawChunks.sumOf { it.lines.size }} merged=${result.mergedResults.size}"
+    }
 }
 
 private fun Bitmap.toJpegBytes(quality: Int): ByteArray {

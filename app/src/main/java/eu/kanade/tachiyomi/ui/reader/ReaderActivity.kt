@@ -1209,7 +1209,7 @@ class ReaderActivity : BaseActivity() {
                     event.eventTime - twoFingerTapStartTime <= ViewConfiguration.getDoubleTapTimeout().toLong() &&
                     event.isTwoFingerTapCandidate()
                 ) {
-                    toggleOcrFromReader()
+                    toggleOcrFromReader("two-finger")
                 }
                 twoFingerTapTracking = false
             }
@@ -1240,8 +1240,8 @@ class ReaderActivity : BaseActivity() {
         return kotlin.math.hypot(getX(0) - getX(1), getY(0) - getY(1))
     }
 
-    private fun toggleOcrFromReader() {
-        val enabled = viewModel.toggleOcrEnabled()
+    private fun toggleOcrFromReader(caller: String) {
+        val enabled = viewModel.toggleOcrEnabled(caller)
         if (enabled) {
             DictionaryPopupWebViewWarmup.warm(this, cachedActiveProfile?.languageCode.orEmpty())
             lifecycleScope.launchIO {
@@ -1531,7 +1531,7 @@ class ReaderActivity : BaseActivity() {
             ocrLoading = state.ocrScanProgress != null,
             ocrSource = state.ocrSource,
             mokuroAvailable = viewModel.isMokuroAvailable(),
-            onToggleOcr = ::toggleOcrFromReader,
+            onToggleOcr = { toggleOcrFromReader("button") },
             onSelectOcrSource = ::selectOcrSourceFromReader,
             onClickSettings = viewModel::openSettingsDialog,
             onClickMangaStats = viewModel::openMangaStatsSheet,
@@ -1588,7 +1588,7 @@ class ReaderActivity : BaseActivity() {
                             setMenuVisibility(false)
                             it.openLookup()
                         },
-                        onRunOcr = ::toggleOcrFromReader.takeIf { !ocrEnabled },
+                        onRunOcr = if (!ocrEnabled) ({ toggleOcrFromReader("run-ocr-sheet") }) else null,
                     )
                 }
             } else {

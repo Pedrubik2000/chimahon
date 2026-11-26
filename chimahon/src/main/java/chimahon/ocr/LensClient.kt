@@ -3,6 +3,7 @@
 package chimahon.ocr
 
 import android.graphics.Bitmap
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -287,9 +288,12 @@ class LensClient(
 
         client.newCall(httpRequest).execute().use { response ->
             if (!response.isSuccessful) {
+                Log.w("KumahonOcr", "Lens HTTP ${response.code} (request ${requestBytes.size}B)")
                 throw IOException("Glens API error ${response.code}: ${response.body.string()}")
             }
-            return response.body.bytes()
+            val body = response.body.bytes()
+            Log.i("KumahonOcr", "Lens HTTP ${response.code} request=${requestBytes.size}B response=${body.size}B")
+            return body
         }
     }
 
