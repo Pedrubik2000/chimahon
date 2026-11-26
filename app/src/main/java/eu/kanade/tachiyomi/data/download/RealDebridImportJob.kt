@@ -1069,6 +1069,9 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
         const val TAG_MEDIA = "al:"
         const val TAG_VOLUME = "vol:"
         const val TAG_SOURCE = "src:"
+
+        /** The unique-work chain the job runs in (WORK_LINKS / WORK_TORRENTS / WORK_AUTO); jobs queued before this tag have none. */
+        const val TAG_CHAIN = "chain:"
         const val WORK_LINKS = "RealDebridImport"
         const val WORK_TORRENTS = "RealDebridTorrent"
         /** Auto-fetch jobs (UNMETERED): their own chain, so one waiting for Wi-Fi never holds up a manual import. Listed and cancelled by TAG like the others. */
@@ -1258,13 +1261,15 @@ class RealDebridImportJob(context: Context, params: WorkerParameters) : Coroutin
             sourceId?.let { request.addTag(TAG_SOURCE + it) }
             // One at a time: links shared together often hold the same series (or the same file from two hosters).
             // Magnets (slow torrents) queue apart so they don't hold up hoster links.
+            val chain = when {
+                unmetered -> WORK_AUTO
+                link.startsWith("magnet:") -> WORK_TORRENTS
+                else -> WORK_LINKS
+            }
+            request.addTag(TAG_CHAIN + chain)
             val work = request.build()
             WorkManager.getInstance(context).enqueueUniqueWork(
-                when {
-                    unmetered -> WORK_AUTO
-                    link.startsWith("magnet:") -> WORK_TORRENTS
-                    else -> WORK_LINKS
-                },
+                chain,
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
                 work,
             )

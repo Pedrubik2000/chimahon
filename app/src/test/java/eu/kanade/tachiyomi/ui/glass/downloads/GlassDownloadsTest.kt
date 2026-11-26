@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.glass.downloads
 
+import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.download.RealDebridQueue.State
 import io.kotest.matchers.shouldBe
@@ -209,5 +210,28 @@ class GlassDownloadsTest {
         TitleGroup(7, emptyList()).doneVolumesOf(row(7, State.DONE, 1, 2, 3, delivered = listOf(3))) shouldBe listOf(3)
         // none of it on the tablet any more
         TitleGroup(7, emptyList(), here = setOf(9)).doneVolumesOf(old) shouldBe emptyList()
+    }
+
+    @Test
+    fun `a crawling running download is slow only when others of its own chain wait behind it`() {
+        val links = RealDebridImportJob.WORK_LINKS
+        val crawl = row(1, State.RUNNING, 1).copy(step = RealDebridImportJob.STEP_DOWNLOADING, speed = 180_000, chain = links)
+        val waiting = row(2, State.QUEUED, 3).copy(chain = links)
+        GlassDownloads.isSlow(crawl, listOf(crawl, waiting)) shouldBe true
+        GlassDownloads.isSlow(crawl, listOf(crawl)) shouldBe false
+        // another chain runs in parallel: nothing waits behind it; a job from before the tag has no chain
+        GlassDownloads.isSlow(crawl, listOf(crawl, waiting.copy(chain = RealDebridImportJob.WORK_TORRENTS))) shouldBe false
+        GlassDownloads.isSlow(crawl.copy(chain = null), listOf(crawl, waiting.copy(chain = null))) shouldBe false
+        GlassDownloads.isSlow(crawl.copy(speed = 9_000_000), listOf(crawl, waiting)) shouldBe false
+        GlassDownloads.isSlow(crawl.copy(speed = 0), listOf(crawl, waiting)) shouldBe false
+    }
+    @Test
+    fun `a queue moves a whole group to a place and keeps the inner order`() {
+        // (manga, chapter)
+        val q = listOf(1L to 1, 1L to 2, 2L to 1, 3L to 1, 3L to 2)
+        GlassDownloads.moveGroup(q, { it.first }, 3, 0).map { it.first } shouldBe listOf(3L, 3L, 1L, 1L, 2L)
+        GlassDownloads.moveGroup(q, { it.first }, 1, Int.MAX_VALUE).map { it.first } shouldBe listOf(2L, 3L, 3L, 1L, 1L)
+        GlassDownloads.moveGroup(q, { it.first }, 3, 0).filter { it.first == 3L } shouldBe listOf(3L to 1, 3L to 2)
+        GlassDownloads.moveGroup(q, { it.first }, 9, 0) shouldBe q
     }
 }

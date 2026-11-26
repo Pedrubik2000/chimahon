@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,11 +33,15 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State as ComposeState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,11 +50,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.WorkManager
@@ -78,9 +90,9 @@ import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.download.RealDebridQueue.State
+import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.ocr.OcrManager
 import eu.kanade.tachiyomi.data.ocr.OcrQueueStatus
-import eu.kanade.tachiyomi.ui.download.DownloadQueueScreen
 import eu.kanade.tachiyomi.ui.glass.GlassTitle
 import eu.kanade.tachiyomi.ui.glass.GlassTitlesModel
 import eu.kanade.tachiyomi.ui.glass.openTitle
@@ -89,6 +101,7 @@ import eu.kanade.tachiyomi.ui.glass.title.VolState
 import eu.kanade.tachiyomi.ui.glass.title.dashedBorder
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -97,6 +110,7 @@ import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.download.service.DownloadPreferences
+import tachiyomi.domain.manga.model.asMangaCover
 import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
@@ -104,6 +118,7 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+import kotlin.math.roundToInt
 
 /** Canvas `Downloads-12B.dc.html`: Real-Debrid jobs by title, the OCR and source queues, sources and storage. */
 @Composable
@@ -151,14 +166,66 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
         }
     }
 
-    val active = groups.filter { it.active }
-    val activeVolumes = active.sumOf { g ->
-        GlassDownloads.toAdd(g.rows.filter { it.state == State.RUNNING || it.state == State.QUEUED }, here[g.mediaId].orEmpty())
+    // Source downloads (Mihon's queue): one card per manga, in the queue's own order
+    val mangaGroups = remember(mangaQueue) { mangaQueue.groupBy { it.manga.id }.values.toList() }
+    // a running chapter's progress is not state: cards read it again twice a second while the queue has something
+    val tick = produceState(0, mangaQueue.isNotEmpty()) { if (mangaQueue.isNotEmpty()) while (true) { delay(500); value++ } }
+    // reorderQueue pauses, restarts the running chapter and resets failed chapters: never call it for a no-op move
+    fun moveManga(id: Long, to: Int) {
+        val from = mangaGroups.indexOfFirst { it.first().manga.id == id }
+        if (from < 0 || from == to.coerceIn(0, mangaGroups.lastIndex)) return
+        downloadManager.reorderQueue(GlassDownloads.moveGroup(mangaQueue, { it.manga.id }, id, to))
     }
+
+    // real-debrid titles still going or failed are the queue; the rest are in the library
+    val active = groups.filter { it.active }
+    val failedOnly = groups.filter { !it.active && it.failed.isNotEmpty() }
+    val library = groups.filter { !it.active && it.failed.isEmpty() }
     val speed = rows.filter { it.state == State.RUNNING }.sumOf { it.speed }
-    val summary = buildString {
-        append(stringResource(MR.strings.glass_dl_summary, active.size, activeVolumes))
-        if (speed > 0) append(" · ").append(stringResource(MR.strings.glass_dl_speed, Formatter.formatShortFileSize(context, speed)))
+
+    // queues the running job's volumes again (the new job goes to the end of its chain), then cancels it; nothing cached: it keeps going
+    var letGoBusy by remember { mutableStateOf(false) } // a second tap would queue the volumes twice
+    fun letOthersGo(g: TitleGroup) {
+        val r = g.running ?: return
+        val title = titleOf(g.mediaId) ?: return
+        letGoBusy = true
+        scope.launch {
+            try {
+                // links only (torrents and auto-fetch jobs can't be re-queued this way); the old job goes only if every
+                // one of its volumes is queued again, else it keeps running (its undo would delete what it wrote)
+                val queued = withContext(Dispatchers.IO) {
+                    val cached = cachedCoverage(context, title.mediaId)
+                    // all or nothing: a partial re-queue would leave duplicate jobs next to the kept one
+                    val allLinked = r.volumes.isNotEmpty() &&
+                        r.volumes.all { eu.kanade.tachiyomi.data.coverage.CoverageMatch.links(it, cached).isNotEmpty() }
+                    if (!allLinked) emptySet() else queue.enqueueAll(title.entry, r.volumes, cached)
+                }
+                if (queued.containsAll(r.volumes)) queue.cancel(r.workId)
+            } finally {
+                letGoBusy = false
+            }
+        }
+    }
+
+    val rdCard: @Composable (TitleGroup, Int?) -> Unit = { g, position ->
+        val k = groupKey(g)
+        TitleCard(
+            group = g,
+            title = titleOf(g.mediaId),
+            colours = colours,
+            here = here[g.mediaId].orEmpty(),
+            sourceNames = sourceNames,
+            position = position,
+            slow = g.running?.let { GlassDownloads.isSlow(it, rows) } == true,
+            expanded = k in expanded,
+            onToggle = { open = if (k in expanded) expanded - k else expanded + k },
+            // not cancelWorkById: that also cancels every job queued behind this one
+            onCancel = { row -> queue.cancel(row.workId) },
+            onTryAgain = { tryAgain(g) },
+            // a torrent job (own chain, own engine) has no re-queue: Slow pill only
+            onLetOthersGo = { letOthersGo(g) }.takeIf { g.running?.chain == RealDebridImportJob.WORK_LINKS && !letGoBusy },
+            onOpen = { t -> openTitle(navigator, t) },
+        )
     }
 
     val wide = LocalConfiguration.current.screenWidthDp >= 900
@@ -175,54 +242,51 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
             contentPadding = PaddingValues(bottom = if (phone) GlassPhoneBarRoom else 24.dp),
         ) {
             item {
-                Row(
+                Text(
+                    stringResource(MR.strings.glass_dl_title),
                     Modifier.padding(bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Text(
-                        stringResource(MR.strings.glass_dl_title),
-                        Modifier.weight(1f),
-                        fontSize = Glass.title,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (active.isNotEmpty()) {
-                        // phone: the summary goes under the heading, or it squeezes "Downloads" to a letter per line
-                        if (!phone) Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
-                        Pill(stringResource(MR.strings.glass_dl_cancel_all), onClick = { confirmCancel = true }, icon = "close")
-                    }
-                }
+                    fontSize = Glass.title,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            if (phone && active.isNotEmpty()) {
-                item { Text(summary, color = Glass.secondary, fontSize = Glass.body, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            item {
+                val inQueue = active.size + mangaGroups.size
+                QueueStrip(
+                    count = inQueue,
+                    speed = if (speed > 0) Formatter.formatShortFileSize(context, speed) else null,
+                    phone = phone,
+                    // pausing is Mihon's downloader only: Real-Debrid jobs have no pause
+                    paused = if (mangaQueue.isEmpty()) null else tick.value >= 0 && !downloadManager.isRunning,
+                    onCancelAll = { confirmCancel = true },
+                    onTogglePause = { if (downloadManager.isRunning) downloadManager.pauseDownloads() else downloadManager.startDownloads() },
+                )
             }
-            if (groups.isEmpty()) {
-                item {
-                    Text(
-                        stringResource(MR.strings.glass_dl_nothing),
-                        Modifier.padding(vertical = 24.dp),
-                        color = Glass.secondary,
-                        fontSize = Glass.label,
-                    )
-                }
-            }
-            items(groups, key = { groupKey(it) }) { g ->
-                val k = groupKey(g)
-                TitleCard(
-                    group = g,
-                    title = titleOf(g.mediaId),
-                    colours = colours,
-                    here = here[g.mediaId].orEmpty(),
-                    sourceNames = sourceNames,
+            itemsIndexed(active, key = { _, g -> groupKey(g) }) { i, g -> rdCard(g, i + 1) }
+            itemsIndexed(mangaGroups, key = { _, d -> "manga${d.first().manga.id}" }) { i, downloads ->
+                val id = downloads.first().manga.id
+                val k = "manga$id"
+                MangaCard(
+                    downloads = downloads,
+                    position = active.size + i + 1,
+                    tick = tick,
                     expanded = k in expanded,
                     onToggle = { open = if (k in expanded) expanded - k else expanded + k },
-                    // not cancelWorkById: that also cancels every job queued behind this one
-                    onCancel = { row -> queue.cancel(row.workId) },
-                    onTryAgain = { tryAgain(g) },
-                    onOpen = { t -> openTitle(navigator, t) },
+                    onTop = { moveManga(id, 0) },
+                    onMove = { places -> moveManga(id, i + places) },
+                    onCancel = { d -> downloadManager.cancelQueuedDownloads(listOf(d)) },
+                    // just this chapter: back to the queue; the downloader is started only if it is stopped (that also resumes the paused rest)
+                    onTryAgain = { d ->
+                        d.status = Download.State.QUEUE
+                        if (!downloadManager.isRunning) downloadManager.startDownloads()
+                    },
                 )
+            }
+            items(failedOnly, key = { groupKey(it) }) { g -> rdCard(g, null) }
+            if (library.isNotEmpty()) {
+                item { Label(stringResource(MR.strings.glass_dl_in_library).uppercase(), Modifier.padding(top = 10.dp)) }
+                items(library, key = { groupKey(it) }) { g -> rdCard(g, null) }
             }
             if (ocrQueue.isNotEmpty()) {
                 item {
@@ -236,18 +300,15 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                                 append(" · ").append(current.currentPage).append('/').append(current.totalPages)
                             }
                         },
-                        onOpen = { navigator.push(DownloadQueueScreen) },
                     )
                 }
             }
-            if (mangaQueue.isNotEmpty() || animeQueue.isNotEmpty()) {
+            if (animeQueue.isNotEmpty()) {
                 item {
                     QueueSection(
                         title = stringResource(MR.strings.glass_dl_sources_queue),
-                        count = mangaQueue.size + animeQueue.size,
-                        current = mangaQueue.firstOrNull()?.let { "${it.manga.title} · ${it.chapter.name}" }
-                            ?: animeQueue.firstOrNull()?.let { "${it.anime.title} · ${it.episode.name}" },
-                        onOpen = { navigator.push(DownloadQueueScreen) },
+                        count = animeQueue.size,
+                        current = animeQueue.first().let { "${it.anime.title} · ${it.episode.name}" },
                     )
                 }
             }
@@ -267,6 +328,7 @@ fun GlassDownloadsPage(model: GlassTitlesModel, navigator: Navigator) {
                             // flagged first: each job then removes what it wrote (RealDebridImportJob.undo)
                             rows.filter { it.state == State.RUNNING || it.state == State.QUEUED }.forEach { queue.cancel(it.workId) }
                             WorkManager.getInstance(context).cancelAllWorkByTag(RealDebridImportJob.TAG)
+                            if (mangaQueue.isNotEmpty()) downloadManager.clearQueue()
                             confirmCancel = false
                         },
                     ) { Text(stringResource(MR.strings.glass_dl_cancel_all)) }
@@ -286,10 +348,13 @@ private fun TitleCard(
     colours: StatusColours,
     here: Set<Int>,
     sourceNames: Map<Long, String>,
+    position: Int?,
+    slow: Boolean,
     expanded: Boolean,
     onToggle: () -> Unit,
     onCancel: (RealDebridQueue.Row) -> Unit,
     onTryAgain: () -> Unit,
+    onLetOthersGo: (() -> Unit)?,
     onOpen: (GlassTitle) -> Unit,
 ) {
     val shape = RoundedCornerShape(if (expanded) Glass.r16 else Glass.r12)
@@ -305,12 +370,19 @@ private fun TitleCard(
         title != null -> title.name
         else -> "AniList ${group.mediaId}"
     }
+    // real-debrid jobs run in the order they were queued: no move to top, pause or drag (WorkManager's chain)
+    val pill = when {
+        running != null -> stringResource(if (slow) MR.strings.glass_dl_slow else MR.strings.glass_dl_now)
+        group.queued.isNotEmpty() -> stringResource(MR.strings.glass_dl_waiting)
+        else -> null
+    }
 
     Column(
         Modifier.fillMaxWidth().clip(shape).background(Glass.panel).then(border).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            position?.let { PositionNumber(it, now = running != null) }
             val coverW = if (expanded) 48.dp else 40.dp
             AsyncImage(
                 model = title?.entry?.cover,
@@ -321,37 +393,28 @@ private fun TitleCard(
                     .then(if (title != null && group.mediaId != null) Modifier.clickable { onOpen(title) } else Modifier),
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val phone = !isTabletUi()
                 val stateLine = if (expanded) null else titleLine(group, sourceNames, here)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         name,
-                        Modifier.weight(1f),
+                        Modifier.weight(1f, fill = false),
                         fontSize = Glass.label,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    pill?.let { Tag(it, ice = running != null) }
+                    if (failed.isNotEmpty()) {
+                        val n = group.failedVolumes.size.takeIf { it > 0 } ?: failed.size
+                        Tag(stringResource(MR.strings.glass_dl_n_failed, n), ice = true)
+                    }
                     if (expanded) {
                         running?.let { r -> (r.servedBy ?: r.sourceId)?.let(sourceNames::get) }?.let {
-                            Text(stringResource(MR.strings.glass_dl_from, it), color = Glass.secondary, fontSize = Glass.caption)
+                            Text(stringResource(MR.strings.glass_dl_from, it), color = Glass.secondary, fontSize = Glass.caption, maxLines = 1)
                         }
-                    } else if (!phone && stateLine != null) {
-                        val (line, color) = stateLine
-                        Text(
-                            line,
-                            // shares the row with the name and ellipsizes; clear of the Try again pill
-                            Modifier.weight(1f, fill = false)
-                                .then(if (failed.isNotEmpty() && group.mediaId != null) Modifier.padding(end = 14.dp) else Modifier),
-                            color = color,
-                            fontSize = Glass.caption,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                 }
-                // phone: the state line goes under the name, so the name keeps the row's whole width
-                if (phone && stateLine != null) {
+                if (stateLine != null) {
                     Text(stateLine.first, color = stateLine.second, fontSize = Glass.caption, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 if (group.mediaId != null) {
@@ -368,7 +431,7 @@ private fun TitleCard(
                     )
                 }
             }
-            if (failed.isNotEmpty() && group.mediaId != null) {
+            if (failed.isNotEmpty() && group.mediaId != null && !expanded) {
                 Pill(stringResource(MR.strings.glass_dl_try_again), onClick = onTryAgain, primary = true, small = true)
             }
             GlassRoundButton(
@@ -377,6 +440,16 @@ private fun TitleCard(
                 description = stringResource(if (expanded) MR.strings.glass_dl_collapse else MR.strings.glass_dl_expand),
                 tint = Glass.secondary,
             )
+        }
+        if (slow && running != null) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = if (position != null) 42.dp else 0.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Meter(if (running.total > 0) running.bytes.toFloat() / running.total else 0f, Modifier.weight(1f), color = Color.White.copy(alpha = 0.45f))
+                if (onLetOthersGo != null) Pill(stringResource(MR.strings.glass_dl_let_go), onClick = onLetOthersGo, icon = "arrowDown", small = true)
+            }
         }
         if (expanded) {
             val order = listOf(State.RUNNING, State.QUEUED, State.FAILED, State.DONE)
@@ -393,14 +466,20 @@ private fun TitleCard(
                         r.state == State.DONE && !gone -> done
                         else -> r.volumes
                     }
-                    VolumeRow(r, vols, gone, onCancel)
+                    VolumeRow(r, vols, gone, onCancel, onTryAgain.takeIf { r.state == State.FAILED && group.mediaId != null })
                 }
         }
     }
 }
 
 @Composable
-private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolean, onCancel: (RealDebridQueue.Row) -> Unit) {
+private fun VolumeRow(
+    row: RealDebridQueue.Row,
+    volumes: List<Int>,
+    gone: Boolean,
+    onCancel: (RealDebridQueue.Row) -> Unit,
+    onTryAgain: (() -> Unit)?,
+) {
     val context = LocalContext.current
     Row(
         Modifier
@@ -437,12 +516,229 @@ private fun VolumeRow(row: RealDebridQueue.Row, volumes: List<Int>, gone: Boolea
         }
         if (row.state == State.RUNNING || row.state == State.QUEUED) {
             GlassRoundButton("close", { onCancel(row) }, description = stringResource(MR.strings.glass_dl_cancel), outlined = true, iconSize = 16.dp)
+        } else if (onTryAgain != null) {
+            // ponytail: no "Other source" (nothing picks another source for a failed row yet); Try again takes the next one in order
+            Pill(stringResource(MR.strings.glass_dl_try_again), onClick = onTryAgain, primary = true, small = true)
         } else {
             Spacer(Modifier.size(Glass.button))
         }
     }
 }
 
+/** The queue position, ice while that title is the one running. */
+@Composable
+private fun PositionNumber(n: Int, now: Boolean) {
+    Text(
+        "$n",
+        Modifier.width(28.dp),
+        color = if (now) Glass.ice else Glass.secondary,
+        fontSize = Glass.heading,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
+}
+
+/** A small outlined state word next to a title: Now / Slow / Waiting, "2 failed" (ice = running or failed). */
+@Composable
+private fun Tag(text: String, ice: Boolean = false) {
+    Text(
+        text,
+        Modifier.border(1.dp, if (ice) Glass.ice else Glass.line, CircleShape).padding(horizontal = 12.dp, vertical = 4.dp),
+        color = if (ice) Glass.ice else Color.White.copy(alpha = 0.85f),
+        fontSize = Glass.caption,
+        maxLines = 1,
+    )
+}
+
+/** The strip over the cards: how many are queued and how fast, Cancel all, Pause all / Resume all ([paused] null = nothing to pause). */
+@Composable
+private fun QueueStrip(count: Int, speed: String?, phone: Boolean, paused: Boolean?, onCancelAll: () -> Unit, onTogglePause: () -> Unit) {
+    val text: @Composable (Modifier) -> Unit = { m ->
+        Text(
+            if (count == 0) {
+                stringResource(MR.strings.glass_dl_nothing)
+            } else {
+                stringResource(MR.strings.glass_dl_summary, count) +
+                    (speed?.let { " · " + stringResource(MR.strings.glass_dl_speed, it) } ?: "")
+            },
+            m,
+            fontSize = Glass.label,
+            color = if (count == 0) Glass.secondary else Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    val buttons: @Composable () -> Unit = {
+        if (count > 0) {
+            Pill(stringResource(MR.strings.glass_dl_cancel_all), onClick = onCancelAll, icon = "close", small = true)
+            paused?.let {
+                Pill(
+                    stringResource(if (it) MR.strings.glass_dl_resume_all else MR.strings.glass_dl_pause_all),
+                    onClick = onTogglePause,
+                    primary = true,
+                    icon = if (it) "play" else "pause",
+                    small = true,
+                )
+            }
+        }
+    }
+    Column(
+        Modifier.fillMaxWidth().glassPanel(Glass.r12).padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            GlassIcon(if (count == 0) "check" else "download", size = 22.dp, tint = if (count == 0) Glass.secondary else Glass.ice)
+            text(Modifier.weight(1f))
+            if (!phone) buttons()
+        }
+        if (phone && count > 0) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { buttons() }
+    }
+}
+
+/**
+ * One manga of Mihon's source downloads: its chapters queued, the queue position, move to top and a drag handle
+ * (the queue is [DownloadManager.reorderQueue]). Pausing is the downloader's, so only the strip has it.
+ */
+@Composable
+private fun MangaCard(
+    downloads: List<Download>,
+    position: Int,
+    tick: ComposeState<Int>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onTop: () -> Unit,
+    onMove: (Int) -> Unit,
+    onCancel: (Download) -> Unit,
+    onTryAgain: (Download) -> Unit,
+) {
+    tick.value // read again twice a second: the running chapter's pages
+    val phone = !isTabletUi()
+    val manga = downloads.first().manga
+    val current = downloads.firstOrNull { it.status == Download.State.DOWNLOADING }
+    val failed = downloads.count { it.status == Download.State.ERROR }
+    val shape = RoundedCornerShape(if (expanded) Glass.r16 else Glass.r12)
+
+    // drag: the handle moves the card, on release it jumps as many places as it was dragged (one place = this card's height)
+    var dy by remember { mutableFloatStateOf(0f) }
+    // one place = a collapsed card and the list's gap; an expanded card would make every drag round to 0
+    val density = LocalDensity.current
+    val gap = with(density) { 10.dp.toPx() }
+    var place by remember { mutableIntStateOf(with(density) { 98.dp.toPx().toInt() }) }
+    val move by rememberUpdatedState(onMove)
+    val grip = Modifier.pointerInput(Unit) {
+        detectDragGestures(
+            onDragEnd = { move((dy / place).roundToInt()); dy = 0f },
+            onDragCancel = { dy = 0f },
+        ) { change, drag ->
+            change.consume()
+            dy += drag.y
+        }
+    }
+    val controls: @Composable () -> Unit = {
+        GlassRoundButton("arrowUp", onTop, description = stringResource(MR.strings.glass_dl_to_top), tint = Glass.secondary)
+        Box(grip.size(Glass.button), contentAlignment = Alignment.Center) {
+            GlassIcon("grip", size = 22.dp, tint = Glass.secondary, contentDescription = stringResource(MR.strings.glass_dl_drag))
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .onSizeChanged { if (!expanded) place = (it.height + gap).toInt().coerceAtLeast(1) }
+            .graphicsLayer { translationY = dy }
+            .zIndex(if (dy != 0f) 1f else 0f)
+            .clip(shape)
+            .background(Glass.panel)
+            .border(if (expanded) 2.dp else 1.dp, if (expanded) Glass.ice else Glass.line, shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            PositionNumber(position, now = current != null)
+            val coverW = if (expanded) 48.dp else 40.dp
+            AsyncImage(
+                model = manga.asMangaCover(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(coverW, coverW * 1.5f).clip(RoundedCornerShape(Glass.r8)).background(Glass.page),
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        manga.title,
+                        Modifier.weight(1f, fill = false),
+                        fontSize = Glass.label,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Tag(stringResource(if (current != null) MR.strings.glass_dl_now else MR.strings.glass_dl_waiting), ice = current != null)
+                    if (failed > 0) Tag(stringResource(MR.strings.glass_dl_n_failed, failed), ice = true)
+                }
+                Text(
+                    buildString {
+                        append(downloads.first().source.name).append(" · ")
+                        append(stringResource(MR.strings.glass_dl_chapters, downloads.size))
+                        current?.let { c ->
+                            append(" · ").append(c.chapter.name)
+                            c.pages?.let { append(" · ").append(stringResource(MR.strings.glass_dl_page_of, c.downloadedImages, it.size)) }
+                        }
+                    },
+                    color = if (current != null) Glass.ice else Glass.secondary,
+                    fontSize = Glass.caption,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Meter((current?.progress ?: 0) / 100f, color = Glass.ice)
+            }
+            if (!phone) controls()
+            GlassRoundButton(
+                icon = if (expanded) "chevUp" else "chevDown",
+                onClick = onToggle,
+                description = stringResource(if (expanded) MR.strings.glass_dl_collapse else MR.strings.glass_dl_expand),
+                tint = Glass.secondary,
+            )
+        }
+        if (expanded) {
+            // phone: the header has no room for the two buttons
+            if (phone) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { controls() }
+            downloads.forEach { d -> MangaRow(d, onCancel, onTryAgain) }
+        }
+    }
+}
+
+@Composable
+private fun MangaRow(d: Download, onCancel: (Download) -> Unit, onTryAgain: (Download) -> Unit) {
+    val error = d.status == Download.State.ERROR
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Glass.r12))
+            .background(Glass.page)
+            .padding(start = 62.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(d.chapter.name, Modifier.widthIn(min = 88.dp, max = 140.dp), fontSize = Glass.body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Meter(d.progress / 100f, color = Glass.ice)
+            Text(
+                when {
+                    error -> stringResource(MR.strings.glass_dl_failed)
+                    d.status == Download.State.DOWNLOADING ->
+                        d.pages?.let { stringResource(MR.strings.glass_dl_page_of, d.downloadedImages, it.size) } ?: stringResource(MR.strings.rd_step_downloading)
+                    else -> stringResource(MR.strings.glass_dl_queued)
+                },
+                color = if (error) Color.White else Glass.secondary,
+                fontSize = Glass.caption,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (error) Pill(stringResource(MR.strings.glass_dl_try_again), onClick = { onTryAgain(d) }, primary = true, small = true)
+        GlassRoundButton("close", { onCancel(d) }, description = stringResource(MR.strings.glass_dl_cancel), outlined = true, iconSize = 16.dp)
+    }
+}
 /** The collapsed card's state line and its colour (ice running, white failed, else 62%). */
 @Composable
 private fun titleLine(g: TitleGroup, sourceNames: Map<Long, String>, here: Set<Int>): Pair<String, Color> {
@@ -559,9 +855,9 @@ internal fun Modifier.hatched(line: Color = Glass.have) = drawBehind {
     }
 }
 
-/** OCR queue / source download queue: count, the current item, and the way to the classic queue screen. */
+/** OCR queue / anime download queue: count and the current item (read-only). */
 @Composable
-private fun QueueSection(title: String, count: Int, current: String?, onOpen: () -> Unit) {
+private fun QueueSection(title: String, count: Int, current: String?) {
     Row(
         Modifier.fillMaxWidth().glassPanel(Glass.r12).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -571,7 +867,6 @@ private fun QueueSection(title: String, count: Int, current: String?, onOpen: ()
             Text("$title · $count", fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
             current?.let { Text(it, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
-        Pill(stringResource(MR.strings.glass_dl_open_classic), onClick = onOpen, small = true)
     }
 }
 

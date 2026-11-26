@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.glass.downloads
 
+import eu.kanade.tachiyomi.data.download.RealDebridImportJob
 import eu.kanade.tachiyomi.data.download.RealDebridQueue
 import eu.kanade.tachiyomi.data.download.RealDebridQueue.State
 import eu.kanade.tachiyomi.data.track.TrackerManager
@@ -184,6 +185,25 @@ object GlassDownloads {
         }
     }
 
+    // ponytail: a fixed floor (about 0.5 MB/s), not "far slower than the rest"; a ratio to the other running jobs if it flags wrongly
+    private const val SLOW_BPS = 512_000L
+
+    /** A running download crawling while others of its own chain wait behind it ("Let others go first" is offered on it). */
+    fun isSlow(row: RealDebridQueue.Row, rows: List<RealDebridQueue.Row>): Boolean =
+        row.state == State.RUNNING && row.step == RealDebridImportJob.STEP_DOWNLOADING && row.speed in 1 until SLOW_BPS &&
+            row.chain != null && rows.any { it.state == State.QUEUED && it.chain == row.chain }
+
+    /**
+     * [items] (a queue, one entry per chapter) with the group of [id] (all entries sharing [key]) moved to group place
+     * [to] (0 = top, past the end = last); the groups keep their inner order. Not found: [items] as it is.
+     */
+    fun <T> moveGroup(items: List<T>, key: (T) -> Long, id: Long, to: Int): List<T> {
+        val groups = items.groupBy(key).values.toMutableList()
+        val from = groups.indexOfFirst { key(it.first()) == id }
+        if (from < 0) return items
+        groups.add(to.coerceIn(0, groups.size - 1), groups.removeAt(from))
+        return groups.flatten()
+    }
     /**
      * [current] = the sources in their shown order (pref order merged with the built-in one, new ones included);
      * moves [id] by [delta] places. The result is the whole new order, so stale ids drop out of the pref.

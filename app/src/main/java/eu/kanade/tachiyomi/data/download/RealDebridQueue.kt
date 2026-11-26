@@ -52,6 +52,8 @@ class RealDebridQueue(private val app: Application) {
         val delivered: List<Int> = emptyList(),
         /** Of [volumes], those none of the job's links held: the row is failed for these. */
         val missing: List<Int> = emptyList(),
+        /** The job's chain ([RealDebridImportJob.WORK_LINKS] ...): only jobs of one chain wait for each other; null = queued before the tag. */
+        val chain: String? = null,
     )
 
     private val workManager get() = WorkManager.getInstance(app)
@@ -175,6 +177,7 @@ class RealDebridQueue(private val app: Application) {
             failures = out.getStringArray(RealDebridImportJob.KEY_FAILURES)?.toList().orEmpty(),
             delivered = out.getIntArray(RealDebridImportJob.KEY_DELIVERED)?.toList().orEmpty(),
             missing = missing,
+            chain = tag(RealDebridImportJob.TAG_CHAIN),
         )
     }
 
