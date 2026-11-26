@@ -18,8 +18,11 @@ object PopupRating {
         val place = chimahon.ocr.KumapieColours.place
         val rev = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") } ?: return null
         // where it happened is a context of the card (local only, never synced), as the rating row has always saved
-        if (place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
-        chimahon.ocr.KumapieColours.clear() // the page's colours follow the new state
+        // the rating is committed: a failure from here on must not report "not saved" (a second tap would rate twice)
+        runCatching {
+            if (place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
+            chimahon.ocr.KumapieColours.clear() // the page's colours follow the new state
+        }.onFailure { android.util.Log.w("KumahonPopup", "rating saved, context/colours failed", it) }
         return "${card.id}:$rev"
     }
 
