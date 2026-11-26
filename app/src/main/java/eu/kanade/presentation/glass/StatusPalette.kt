@@ -47,7 +47,6 @@ object StatusPalette {
     private val amber = Color(0xFFF2B45A)
     private val white = Color(0xFFF2F3F5)
     private val ink = Color(0xFF07090D)
-    private val faint = Color.White.copy(alpha = 0.18f)
 
     private fun tiles(
         here: TileStyle,
@@ -84,7 +83,7 @@ object StatusPalette {
             here = TileStyle(1f, Color(0xFF4FAF6E), 3.dp, false, "phone", Color(0xFF07120B), badgeFill = Color(0xFF4FAF6E)),
             queued = TileStyle(0.5f, ice, 2.dp, true, "clock", ice),
             failed = TileStyle(0.3f, Color(0xFFE0626B), 2.dp, false, "bang", Color(0xFFFF8A92)),
-            none = TileStyle(0.2f, faint, 1.5.dp, false, null, Color.White),
+            none = TileStyle(0.22f, Color.White.copy(alpha = 0.45f), 1.5.dp, true, "plus", Color(0xFFC9CDD4)), // "not asked for": dashed + a plus in every set (Pedro 2026-11-26)
         ),
         have = Color(0xFF4FAF6E),
         haveInk = Color(0xFF07120B),
@@ -99,7 +98,7 @@ object StatusPalette {
             here = TileStyle(1f, ice, 3.dp, false, "phone", ink, badgeFill = ice),
             queued = TileStyle(0.5f, ice, 2.dp, true, "clock", ice),
             failed = TileStyle(0.3f, amber, 2.dp, false, "bang", amber),
-            none = TileStyle(0.2f, faint, 1.5.dp, false, null, Color.White),
+            none = TileStyle(0.22f, Color.White.copy(alpha = 0.45f), 1.5.dp, true, "plus", Color(0xFFC9CDD4)),
         ),
         have = ice,
         haveInk = ink,
