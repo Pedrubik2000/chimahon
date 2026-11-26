@@ -1,5 +1,6 @@
 package eu.kanade.presentation.glass
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,9 +29,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 
 /** kumapie's "Glass" look for chimahon (canvas rules in plans/chimahon_ui_plan.md). Panels are solid, no blur. */
@@ -118,18 +124,76 @@ fun dueBadge(n: Int): String? = if (n <= 0) null else if (n > 99) "99+" else "$n
 /** Root of every glass screen: the page colour behind the system bars, white sans-serif text whatever the app theme's font is. */
 @Composable
 fun GlassPage(content: @Composable BoxScope.() -> Unit) {
-    CompositionLocalProvider(
-        LocalContentColor provides Color.White,
-        LocalTextStyle provides TextStyle(fontFamily = FontFamily.SansSerif, color = Color.White),
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Glass.page)
-                .windowInsetsPadding(WindowInsets.systemBars),
-            content = content,
-        )
+    GlassMaterialTheme {
+        CompositionLocalProvider(
+            LocalContentColor provides Color.White,
+            LocalTextStyle provides TextStyle(fontFamily = FontFamily.SansSerif, color = Color.White),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Glass.page)
+                    .windowInsetsPadding(WindowInsets.systemBars),
+                content = content,
+            )
+        }
     }
+}
+
+/** Light clock/icons on the dark page; the previous look returns when the glass screen leaves (classic screens keep their own). */
+@Composable
+private fun LightStatusBarIcons() {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+    DisposableEffect(view) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val was = controller?.isAppearanceLightStatusBars
+        controller?.isAppearanceLightStatusBars = false
+        onDispose { if (was != null) controller.isAppearanceLightStatusBars = was }
+    }
+}
+
+/** The one dark Material3 scheme built from the Glass tokens: stock sheets, dialogs, menus, progress, dividers and switches inside the glass UI and the reader inherit it. */
+private val GlassColorScheme = darkColorScheme(
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color.White,
+    onPrimaryContainer = Color.Black,
+    secondary = Glass.ice,
+    onSecondary = Glass.page,
+    secondaryContainer = Color.White.copy(alpha = 0.12f),
+    onSecondaryContainer = Color.White,
+    tertiary = Glass.ice,
+    onTertiary = Glass.page,
+    background = Glass.page,
+    onBackground = Color.White,
+    surface = Glass.panel,
+    onSurface = Color.White,
+    surfaceVariant = Glass.panel,
+    onSurfaceVariant = Glass.secondary,
+    surfaceTint = Glass.panel,
+    surfaceBright = Glass.panel,
+    surfaceDim = Glass.page,
+    surfaceContainerLowest = Glass.page,
+    surfaceContainerLow = Glass.panel,
+    surfaceContainer = Glass.panel,
+    surfaceContainerHigh = Glass.panel,
+    surfaceContainerHighest = Glass.panel,
+    outline = Glass.line,
+    outlineVariant = Color.White.copy(alpha = 0.08f),
+    inverseSurface = Color.White,
+    inverseOnSurface = Color.Black,
+)
+
+@Composable
+fun GlassMaterialTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = GlassColorScheme,
+        shapes = MaterialTheme.shapes.copy(extraLarge = RoundedCornerShape(Glass.r16)),
+        typography = MaterialTheme.typography,
+        content = content,
+    )
 }
 
 @Composable

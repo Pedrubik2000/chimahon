@@ -505,6 +505,8 @@ class ReaderActivity : BaseActivity() {
         ) {
             val context = LocalContext.current
             // KMK <--
+            // chimahon: stock sheets, dialogs and menus of the glass reader inherit the dark Glass scheme (closed after the dialog `when`)
+            GlassReaderTheme(glassUi) {
             val state by viewModel.state.collectAsState()
             val showPageNumber by readerPreferences.showPageNumber().collectAsState()
             val settingsScreenModel = remember {
@@ -731,6 +733,7 @@ class ReaderActivity : BaseActivity() {
                 )
                 // SY <--
                 null -> {}
+            }
             }
         }
 
