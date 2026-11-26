@@ -64,13 +64,27 @@ import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
 
+/** Tells [model] the Review page is really seen: composed AND the app in the foreground (Home = stop the sound, no autoplay). */
+@Composable
+internal fun ReviewPageVisible(model: GlassReviewModel) {
+    val owner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(model, owner) {
+        val lc = owner.lifecycle
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, _ ->
+            model.pageVisible(lc.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+        }
+        lc.addObserver(obs) // calls back at once with the current state
+        onDispose { lc.removeObserver(obs); model.pageVisible(false) }
+    }
+}
+
 /**
  * Review, tablet (mockup option C, "Two thumbs, swipe stack"): Again/Hard under the left thumb, Good/Easy under the
  * right, the card in the middle as a stack whose contexts you swipe.
  */
 @Composable
 fun GlassReviewPage(model: GlassReviewModel) {
-    DisposableEffect(model) { model.pageVisible(true); onDispose { model.pageVisible(false) } }
+    ReviewPageVisible(model)
     LaunchedEffect(Unit) { model.start() }
     Box(Modifier.fillMaxSize()) {
         when {

@@ -113,7 +113,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
         if (card == null) return
         shown = true
         stopAudio()
-        if (sound == "auto" && visible) playWord()
+        if (autoplay()) playWord()
     }
 
     private var visible = false // main thread: the Review page is on screen (the model outlives it)
@@ -135,11 +135,15 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
     var sound by mutableStateOf("auto")
         private set
     private var soundTouched = false
+    private var soundLoaded = false // no autoplay before the saved choice is known (it may be tap / off)
+
+    private fun autoplay() = soundLoaded && sound == "auto" && visible
 
     init {
         screenModelScope.launch {
             val saved = withContext(Dispatchers.IO) { ReviewLogic.normalSound(prefs.getString("sound", null)) }
             if (!soundTouched) sound = saved
+            soundLoaded = true
         }
     }
 
@@ -151,7 +155,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
 
     /** Blocking on the first call (one TTS init), cached after. IO thread. */
     private fun phoneVoiceAvailable(): Boolean =
-        synchronized(phoneLock) { phoneVoiceCache ?: SentenceTts.available(app).also { phoneVoiceCache = it } }
+        synchronized(phoneLock) { phoneVoiceCache ?: SentenceTts.available(app)?.also { phoneVoiceCache = it } ?: false } // null = engine too slow to start: ask again next time
     var voice by mutableStateOf(Voice.None)
         private set
 
@@ -170,8 +174,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
         soundTouched = true
         sound = ReviewLogic.nextSound(sound)
         if (sound == "off") stopAudio()
-        val saved = sound
-        screenModelScope.launch(Dispatchers.IO) { prefs.edit().putString("sound", saved).apply() }
+        prefs.edit().putString("sound", sound).apply() // apply() doesn't block; on main, so fast taps save in order
     }
 
     /** A tap on the sentence text: plays it, unless Sound is off (then the front still means Show). */
@@ -404,7 +407,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
                         l.due.forEach { cards[it.id] = it }
                         val keep = ReviewLogic.keepFace(card?.id, l.due.first().id) // same card, same face: no restart
                         session = ReviewLogic.Session.start(l.due.map { it.id }, l.due.filter { it.due == null }.map { it.id }.toSet())
-                        if (!keep) showCurrent()
+                        if (!keep) showCurrent() else card = cards[card!!.id] // same face, the synced copy of the card
                     }
                 } else {
                     storeEmpty = l.noCards
@@ -461,7 +464,7 @@ class GlassReviewModel(private val app: Application = Injekt.get()) : ScreenMode
                 intervals = read.second
             }
             // auto: the front reads its sentence once the card opens (never over a Show that came first)
-            if (sound == "auto" && visible && !shown) playSentence(currentSentence())
+            if (autoplay() && !shown) playSentence(currentSentence())
         }
     }
 }

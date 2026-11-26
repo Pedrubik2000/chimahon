@@ -26,7 +26,7 @@ import eu.kanade.presentation.glass.Pill
 /** Review, phone (mockup option C): progress, counts and Undo on top, the card, a 2x2 answer grid above the bar. */
 @Composable
 fun GlassPhoneReviewPage(model: GlassReviewModel) {
-    DisposableEffect(model) { model.pageVisible(true); onDispose { model.pageVisible(false) } }
+    ReviewPageVisible(model)
     LaunchedEffect(Unit) { model.start() }
     Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
         when {
