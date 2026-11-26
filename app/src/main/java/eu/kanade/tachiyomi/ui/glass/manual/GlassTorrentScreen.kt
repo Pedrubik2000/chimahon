@@ -115,6 +115,7 @@ class GlassTorrentScreen(
                                     stringResource(MR.strings.glass_torrent_get),
                                     { model.look(option) },
                                     Modifier.fillMaxWidth(),
+                                    fontSize = Glass.label,
                                     primary = true,
                                     icon = "chevRight",
                                 )
@@ -124,6 +125,7 @@ class GlassTorrentScreen(
                                     stringResource(MR.strings.glass_torrent_start),
                                     { model.start(option) },
                                     Modifier.fillMaxWidth(),
+                                    fontSize = Glass.label,
                                     primary = true,
                                 )
                             }
@@ -133,6 +135,7 @@ class GlassTorrentScreen(
                                         stringResource(MR.strings.glass_torrent_pick_another),
                                         { model.reset(); model.step = TorrentStep.PICK },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                     )
                                 }
                                 if (finished) {
@@ -140,10 +143,11 @@ class GlassTorrentScreen(
                                         stringResource(MR.strings.glass_manual_back_title),
                                         { navigator.pop() },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                         primary = !failed,
                                     )
                                 } else if (model.workId != null) {
-                                    GlassWideButton(stringResource(MR.strings.glass_torrent_cancel), model::cancel, Modifier.fillMaxWidth())
+                                    GlassWideButton(stringResource(MR.strings.glass_torrent_cancel), model::cancel, Modifier.fillMaxWidth(), fontSize = Glass.label)
                                 }
                             }
                         }

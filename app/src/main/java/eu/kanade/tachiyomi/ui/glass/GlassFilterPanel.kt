@@ -158,6 +158,7 @@ fun TagChip(name: String, state: TagState, count: Int?, onClick: () -> Unit) {
             TagState.OUT -> "minus"
         },
         strike = state == TagState.OUT,
+        borderColor = if (state == TagState.OUT) Color.White.copy(alpha = 0.7f) else Glass.line,
     )
 }
 

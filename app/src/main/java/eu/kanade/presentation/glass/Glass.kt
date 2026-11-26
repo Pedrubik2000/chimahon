@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -96,8 +97,8 @@ fun Modifier.glassPanel(radius: Dp = Glass.r16): Modifier {
     return clip(shape).background(Glass.panel).border(1.dp, Glass.line, shape)
 }
 
-private fun Modifier.outlined(shape: Shape) =
-    clip(shape).background(Glass.glass).border(1.dp, Glass.line, shape)
+private fun Modifier.outlined(shape: Shape, border: Color = Glass.line) =
+    clip(shape).background(Glass.glass).border(1.dp, border, shape)
 
 val GlassRailItems = listOf(
     Triple("home", "Home", "home"),
@@ -152,8 +153,8 @@ private fun TrackGlassPage() {
 
 /** The one dark Material3 scheme built from the Glass tokens: stock sheets, dialogs, menus, progress, dividers and switches inside the glass UI and the reader inherit it. */
 private val GlassColorScheme = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
+    primary = Glass.ice, // seek bar, switches, sliders, checkboxes, dialog buttons; the white Pills use Glass colours directly
+    onPrimary = Glass.page,
     primaryContainer = Color.White,
     onPrimaryContainer = Color.Black,
     secondary = Glass.ice,
@@ -305,6 +306,8 @@ fun Pill(
     enabled: Boolean = true,
     trailingIcon: String? = null,
     centered: Boolean = false,
+    /** unspecified = 14 for small and centered pills, 16 otherwise */
+    fontSize: TextUnit = TextUnit.Unspecified,
 ) {
     val ink = when {
         !enabled -> Glass.secondary
@@ -339,7 +342,7 @@ fun Pill(
         Text(
             text,
             color = ink,
-            fontSize = if (small || centered) Glass.body else Glass.label,
+            fontSize = fontSize.takeIf { it != TextUnit.Unspecified } ?: if (small || centered) Glass.body else Glass.label,
             fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -413,12 +416,14 @@ fun GlassChip(
     /** leading icon ("plus" on a tag chip) */
     leading: String? = null,
     strike: Boolean = false,
+    /** the outline of an unselected chip */
+    borderColor: Color = Glass.line,
 ) {
     val ink = if (selected) Color.Black else Color.White
     Row(
         modifier
             .height(Glass.chip)
-            .then(if (selected) Modifier.clip(CircleShape).background(Color.White) else Modifier.outlined(CircleShape))
+            .then(if (selected) Modifier.clip(CircleShape).background(Color.White) else Modifier.outlined(CircleShape, borderColor))
             .clickable(onClick = onClick)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -558,4 +563,5 @@ fun GlassWideButton(
     modifier: Modifier = Modifier,
     primary: Boolean = false,
     icon: String? = null,
-) = Pill(text, onClick, modifier, primary = primary, icon = icon, centered = true)
+    fontSize: TextUnit = TextUnit.Unspecified,
+) = Pill(text, onClick, modifier, primary = primary, icon = icon, centered = true, fontSize = fontSize)

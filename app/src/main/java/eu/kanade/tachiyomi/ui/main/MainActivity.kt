@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -263,7 +264,8 @@ class MainActivity : BaseActivity() {
                 else -> MaterialTheme.colorScheme.surface
             }
             // chimahon: dark glass pages need light status bar icons (a banner keeps its own colour)
-            val glassUp = glassPagesOnScreen.intValue > 0 && statusBarBackgroundColor == MaterialTheme.colorScheme.surface
+            val glassOpen by remember { derivedStateOf { glassPagesOnScreen.intValue > 0 } } // only a 0/1 flip recomposes
+            val glassUp = glassOpen && statusBarBackgroundColor == MaterialTheme.colorScheme.surface
             LaunchedEffect(isSystemInDarkTheme, statusBarBackgroundColor, glassUp) {
                 // Draw edge-to-edge and set system bars color to transparent
                 val lightStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.BLACK)

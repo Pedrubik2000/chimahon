@@ -145,6 +145,7 @@ class GlassManualScreen(
                                         stringResource(MR.strings.glass_manual_get_from, option.sourceName),
                                         { model.opened = false; model.step = Step.STEPS },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                         primary = true,
                                         icon = "chevRight",
                                     )
@@ -154,6 +155,7 @@ class GlassManualScreen(
                                         stringResource(MR.strings.glass_torrent_instead),
                                         { navigator.replace(GlassTorrentScreen(mediaId, volumes, here)) },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                     )
                                 }
                             }
@@ -163,6 +165,7 @@ class GlassManualScreen(
                                         stringResource(if (model.opened) MR.strings.glass_manual_open_again else MR.strings.glass_manual_open_browser),
                                         { model.opened = true; context.openInBrowser(option.files.first().link, forceDefaultBrowser = true) },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                         primary = true,
                                         icon = "external",
                                     )
@@ -171,6 +174,7 @@ class GlassManualScreen(
                                     stringResource(if (many) MR.strings.glass_manual_pick_files else MR.strings.glass_manual_pick_file),
                                     { launcher.launch(arrayOf("*/*")) },
                                     Modifier.fillMaxWidth(),
+                                    fontSize = Glass.label,
                                     primary = many,
                                     icon = "folder",
                                 )
@@ -180,8 +184,9 @@ class GlassManualScreen(
                                     stringResource(MR.strings.glass_manual_not_this),
                                     { model.picks = emptyList(); model.step = Step.STEPS },
                                     Modifier.weight(1f),
+                                    fontSize = Glass.label,
                                 )
-                                GlassWideButton(stringResource(MR.strings.glass_manual_import), model::import, Modifier.weight(2f), primary = true)
+                                GlassWideButton(stringResource(MR.strings.glass_manual_import), model::import, Modifier.weight(2f), primary = true, fontSize = Glass.label)
                             }
                             Step.DONE -> {
                                 val row = model.row
@@ -191,6 +196,7 @@ class GlassManualScreen(
                                         stringResource(MR.strings.glass_manual_pick_another),
                                         { model.releaseGrants(); model.reset(); model.step = Step.STEPS },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                     )
                                 }
                                 if (failed || row?.state == RealDebridQueue.State.DONE) {
@@ -198,6 +204,7 @@ class GlassManualScreen(
                                         stringResource(MR.strings.glass_manual_back_title),
                                         { navigator.pop() },
                                         Modifier.fillMaxWidth(),
+                                        fontSize = Glass.label,
                                         primary = !failed,
                                     )
                                 }
