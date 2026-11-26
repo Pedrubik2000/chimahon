@@ -64,6 +64,9 @@
         <package android:name="com.ichi2.anki" />
         <package android:name="io.github.pedrubik2000.kumapie.mobile" />
         <package android:name="io.github.pedrubik2000.kumapie.mobile.debug" />
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
     </queries>
 
     <application

@@ -495,9 +495,9 @@ object AnkiCardCreator {
                         android.util.Log.w(TAG, "addToAnki: failed to prepare sentence audio", e)
                         null
                     }
-                    // No recording (manga, novels): kumapie's ずんだもん reads the sentence.
+                    // No recording (manga, novels): Android's own Japanese TTS reads the sentence.
                     lazySource ?: (sentenceAudioBytes?.let { it to sentenceAudioExtension }
-                        ?: withContext(Dispatchers.IO) { chimahon.ocr.KumapieColours.say(context, sentence) }?.let { it to "wav" })?.let { (bytes, extension) ->
+                        ?: withContext(Dispatchers.IO) { SentenceTts.say(context, sentence) }?.let { it to "wav" })?.let { (bytes, extension) ->
                         val filename = generateSentenceAudioFilename(bytes, extension)
                         AnkiMediaSource.Bytes(
                             data = bytes,

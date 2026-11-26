@@ -476,15 +476,4 @@ object KumapieColours {
         }.onFailure { Log.w("KumapieColours", "kumapie didn't answer: $it") }.getOrNull() ?: return null
         return entry(text, rows)
     }
-
-    /**
-     * [text] read by kumapie's ずんだもん (its provider's `say`), as WAV bytes; null when it has no Japanese, or kumapie
-     * can't (not installed, no permission, voice not downloaded). Blocking: call it off the UI thread.
-     */
-    fun say(context: Context, text: String): ByteArray? = runCatching {
-        if (text.none { it.code in 0x3040..0x30FF || it.code in 0x4E00..0x9FFF }) return null
-        val authority = authority(context) ?: return null
-        val uri = Uri.parse("content://$authority/say").buildUpon().appendQueryParameter("text", text.trim()).build()
-        context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-    }.onFailure { Log.w("KumapieColours", "kumapie didn't say it: $it") }.getOrNull()
 }
