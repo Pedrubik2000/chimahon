@@ -57,6 +57,8 @@ fun ReaderAppBars(
     navigateUp: () -> Unit,
     onClickTopAppBar: () -> Unit,
     bookmarked: Boolean,
+    /** Glass: the bookmarked pages (1-based) of the chapter, flagged on the page bar. */
+    pageBookmarks: Set<Int> = emptySet(),
     onToggleBookmarked: () -> Unit,
     onOpenInWebView: (() -> Unit)?,
     onOpenInBrowser: (() -> Unit)?,
@@ -121,7 +123,7 @@ fun ReaderAppBars(
     if (glass) {
         GlassReaderAppBars(
             visible = visible, mangaTitle = mangaTitle, chapterTitle = chapterTitle, navigateUp = navigateUp,
-            onClickTopAppBar = onClickTopAppBar, bookmarked = bookmarked, onToggleBookmarked = onToggleBookmarked,
+            onClickTopAppBar = onClickTopAppBar, bookmarked = bookmarked, pageBookmarks = pageBookmarks, onToggleBookmarked = onToggleBookmarked,
             onOpenInWebView = onOpenInWebView, onOpenInBrowser = onOpenInBrowser, onShare = onShare,
             viewer = viewer, onNextChapter = onNextChapter, enabledNext = enabledNext,
             onPreviousChapter = onPreviousChapter, enabledPrevious = enabledPrevious, currentPage = currentPage,

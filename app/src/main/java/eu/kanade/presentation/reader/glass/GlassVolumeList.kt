@@ -54,18 +54,30 @@ import java.io.File
 
 enum class VolumeFilter { All, OnTablet, Unread, Bookmarks }
 
-/** The chapters [filter] keeps; [onTablet] is asked only for [VolumeFilter.OnTablet] (it can hit the disk). */
-fun <T> List<T>.filterVolumes(filter: VolumeFilter, chapter: (T) -> Chapter, onTablet: (T) -> Boolean): List<T> =
+/**
+ * The chapters [filter] keeps; [onTablet] is asked only for [VolumeFilter.OnTablet] (it can hit the disk). Bookmarks = the
+ * old chapter bookmark or a bookmarked page ([hasPageBookmarks]).
+ */
+fun <T> List<T>.filterVolumes(
+    filter: VolumeFilter,
+    chapter: (T) -> Chapter,
+    hasPageBookmarks: (T) -> Boolean = { false },
+    onTablet: (T) -> Boolean,
+): List<T> =
     when (filter) {
         VolumeFilter.All -> this
         VolumeFilter.OnTablet -> filter(onTablet)
         VolumeFilter.Unread -> filter { !chapter(it).read }
-        VolumeFilter.Bookmarks -> filter { chapter(it).bookmark }
+        VolumeFilter.Bookmarks -> filter { chapter(it).bookmark || hasPageBookmarks(it) }
     }
 
 /** How many chapters each filter chip shows ("All 25", "On tablet 5"). */
-fun <T> List<T>.volumeCounts(chapter: (T) -> Chapter, onTablet: (T) -> Boolean): Map<VolumeFilter, Int> =
-    VolumeFilter.entries.associateWith { filterVolumes(it, chapter, onTablet).size }
+fun <T> List<T>.volumeCounts(
+    chapter: (T) -> Chapter,
+    hasPageBookmarks: (T) -> Boolean = { false },
+    onTablet: (T) -> Boolean,
+): Map<VolumeFilter, Int> =
+    VolumeFilter.entries.associateWith { filterVolumes(it, chapter, hasPageBookmarks, onTablet).size }
 
 /** The number on a cover: the chapter's own number when the source gave one ("04", "10.5"), else its place in the list. */
 fun volumeNumber(chapter: Chapter, index: Int): String {
@@ -85,6 +97,8 @@ fun GlassVolumeList(
     chapters: List<ReaderChapterItem>,
     /** ids of the chapters on the device, worked out once off the main thread */
     tablet: Set<Long>,
+    /** ids of the chapters that have bookmarked pages */
+    pageBookmarked: Set<Long>,
     currentPage: String,
     totalPages: Int,
     onClose: () -> Unit,
@@ -93,8 +107,9 @@ fun GlassVolumeList(
 ) {
     var filter by remember { mutableStateOf(VolumeFilter.All) }
     val onTablet: (ReaderChapterItem) -> Boolean = { it.chapter.id in tablet }
-    val counts = remember(chapters, tablet) { chapters.volumeCounts({ it.chapter }, onTablet) }
-    val shown = remember(chapters, filter) { chapters.filterVolumes(filter, { it.chapter }, onTablet) }
+    val hasPages: (ReaderChapterItem) -> Boolean = { it.chapter.id in pageBookmarked }
+    val counts = remember(chapters, tablet, pageBookmarked) { chapters.volumeCounts({ it.chapter }, hasPages, onTablet) }
+    val shown = remember(chapters, filter, pageBookmarked) { chapters.filterVolumes(filter, { it.chapter }, hasPages, onTablet) }
     val current = chapters.firstOrNull { it.isCurrent }
 
     // a local series has its own cover per volume (the title page's); any other shows the series cover
@@ -184,6 +199,10 @@ fun GlassVolumeList(
                         }
                         if (chapter.bookmark) {
                             GlassIcon("bookmark", Modifier.align(Alignment.TopEnd).padding(4.dp).size(16.dp), tint = Glass.ice)
+                        }
+                        // a small ice flag under the cover's corner when pages of the volume are bookmarked
+                        if (chapter.id in pageBookmarked) {
+                            GlassIcon("bookmarkFilled", Modifier.align(Alignment.BottomStart).padding(start = 4.dp, bottom = 30.dp).size(14.dp), tint = Glass.ice)
                         }
                         if (item.chapter.id in tablet && item.manga.isLocal().not()) {
                             GlassIcon(

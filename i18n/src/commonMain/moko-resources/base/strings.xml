@@ -855,6 +855,8 @@
     <string name="glass_stats_today">Today</string>
     <string name="glass_stats_all_time">All time</string>
     <string name="glass_vol_page">p. %1$s</string>
+    <string name="glass_page_bookmarked">Page %1$d bookmarked</string>
+    <string name="glass_page_bookmark_removed">Bookmark removed</string>
     <string name="glass_stats_pause">Pause timer</string>
     <string name="glass_stats_resume">Resume timer</string>
     <string name="glass_stats_timer_running">Timer running</string>

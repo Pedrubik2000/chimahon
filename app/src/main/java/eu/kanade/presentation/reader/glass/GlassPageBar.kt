@@ -164,6 +164,8 @@ internal fun GlassPageBar(
     chapterStarts: List<Int> = emptyList(),
     chapterLabel: String? = null,
     currentPageText: String = "",
+    /** pages with a bookmark: ice flags on the track, a tap on one jumps there */
+    bookmarkedPages: Set<Int> = emptySet(),
 ) {
     // Keyed on the chapter only: totalPages can change while pages load and must not reset the pill.
     var origin by remember(chapterTitle) { mutableStateOf<Int?>(null) }
@@ -270,6 +272,7 @@ internal fun GlassPageBar(
                             page = dragPage ?: currentPage,
                             total = totalPages,
                             ticks = tickPositions(chapterStarts, totalPages, isRtl),
+                            bookmarks = bookmarkedPages,
                             dragging = dragPage != null,
                             chapterTitle = chapterTitle,
                             onDrag = { dragPage = it },
@@ -323,6 +326,7 @@ private fun PageTrack(
     page: Int,
     total: Int,
     ticks: List<Float>,
+    bookmarks: Set<Int>,
     dragging: Boolean,
     chapterTitle: String?,
     onDrag: (Int) -> Unit,
@@ -364,7 +368,13 @@ private fun PageTrack(
         modifier
             .height(46.dp)
             .pointerInput(total, rtl) {
-                detectTapGestures { commit(pageAt(it.x / size.width, total, rtl)) }
+                detectTapGestures { tap ->
+                    // a tap within 14dp of a bookmark flag lands on that page
+                    val flag = bookmarks.filter { it in 1..total }
+                        .minByOrNull { abs(trackPosition(it, total, rtl) * size.width - tap.x) }
+                        ?.takeIf { abs(trackPosition(it, total, rtl) * size.width - tap.x) <= 14.dp.toPx() }
+                    commit(flag ?: pageAt(tap.x / size.width, total, rtl))
+                }
             }
             .pointerInput(total, rtl) {
                 var last = 1
@@ -392,6 +402,19 @@ private fun PageTrack(
             val edge = if (rtl) w else 0f
             drawLine(Color.White, Offset(edge, y), Offset(pos * w, y), stroke, StrokeCap.Round)
             ticks.forEach { drawLine(Color.White.copy(alpha = 0.75f), Offset(it * w, y - 13.dp.toPx()), Offset(it * w, y + 7.dp.toPx()), 2.dp.toPx()) }
+            bookmarks.forEach { p ->
+                if (p !in 1..total) return@forEach
+                val x = trackPosition(p, total, rtl) * w
+                val flag = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(x - 4.dp.toPx(), y - 23.dp.toPx())
+                    lineTo(x + 4.dp.toPx(), y - 23.dp.toPx())
+                    lineTo(x + 4.dp.toPx(), y - 10.dp.toPx())
+                    lineTo(x, y - 14.dp.toPx())
+                    lineTo(x - 4.dp.toPx(), y - 10.dp.toPx())
+                    close()
+                }
+                drawPath(flag, Glass.ice)
+            }
             drawCircle(Color.White, if (dragging) 13.dp.toPx() else 11.dp.toPx(), Offset(pos * w, y))
         }
         if (dragging) {

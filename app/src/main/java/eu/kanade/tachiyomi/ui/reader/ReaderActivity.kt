@@ -749,6 +749,7 @@ class ReaderActivity : BaseActivity() {
                         )
                     }
                     var onTablet by remember { mutableStateOf(emptySet<Long>()) }
+                    val pageBookmarkedChapters = PageBookmarks.all.collectAsState().value.filterValues { it.isNotEmpty() }.keys
                     var volumesLoaded by remember { mutableStateOf(!glassUi) }
                     if (glassUi) {
                         LaunchedEffect(Unit) {
@@ -776,6 +777,7 @@ class ReaderActivity : BaseActivity() {
                         if (volumesLoaded) GlassVolumeList(
                             chapters = chapters,
                             tablet = onTablet,
+                            pageBookmarked = pageBookmarkedChapters,
                             currentPage = state.currentPageText,
                             totalPages = state.currentChapter?.pages?.size ?: 0,
                             onClose = onDismissRequest,
@@ -1368,6 +1370,15 @@ class ReaderActivity : BaseActivity() {
         return kotlin.math.hypot(getX(0) - getX(1), getY(0) - getY(1))
     }
 
+    private fun togglePageBookmark(chapterId: Long, shown: List<Int>) {
+        if (chapterId < 0 || shown.isEmpty()) return
+        val added = PageBookmarks.toggle(chapterId, shown)
+        menuToggleToast?.cancel()
+        menuToggleToast = toast(
+            if (added != null) stringResource(MR.strings.glass_page_bookmarked, added) else stringResource(MR.strings.glass_page_bookmark_removed),
+        )
+    }
+
     private fun toggleOcrFromReader(caller: String) {
         val enabled = viewModel.toggleOcrEnabled(caller)
         if (enabled) {
@@ -1615,6 +1626,12 @@ class ReaderActivity : BaseActivity() {
         val ocrOverlayEnabled by readerPreferences.ocrOverlayEnabled().collectAsState()
         val ocrEnabled = ocrOverlayEnabled && viewModel.isOcrAllowedForCurrentManga()
         val glassUi by remember { Injekt.get<UiPreferences>().glassUi() }.collectAsState()
+        val allPageBookmarks by PageBookmarks.all.collectAsState()
+        val chapterId = state.currentChapter?.chapter?.id ?: -1L
+        val pageBookmarks = allPageBookmarks[chapterId].orEmpty()
+        // the pages on screen: "84" or "84-85" / "85-84"; the lowest is the first in reading order
+        val spreadPages = Regex("\\d+").findAll(state.currentPageText).mapNotNull { it.value.toIntOrNull() }.toList()
+            .ifEmpty { listOfNotNull(state.currentPage.takeIf { it > 0 }) }
 
         ReaderAppBars(
             visible = state.menuVisible,
@@ -1623,8 +1640,14 @@ class ReaderActivity : BaseActivity() {
             chapterTitle = state.currentChapter?.chapter?.name,
             navigateUp = onBackPressedDispatcher::onBackPressed,
             onClickTopAppBar = ::openMangaScreen,
-            bookmarked = state.bookmarked,
-            onToggleBookmarked = viewModel::toggleChapterBookmark,
+            // glass: the button bookmarks the PAGE (a spread: either of its pages makes it show as bookmarked)
+            bookmarked = if (glassUi) spreadPages.any { it in pageBookmarks } else state.bookmarked,
+            pageBookmarks = if (glassUi) pageBookmarks else emptySet(),
+            onToggleBookmarked = if (glassUi) {
+                { togglePageBookmark(chapterId, spreadPages) }
+            } else {
+                viewModel::toggleChapterBookmark
+            },
             onOpenInWebView = ::openChapterInWebView.takeIf { isHttpSource },
             onOpenInBrowser = ::openChapterInBrowser.takeIf { isHttpSource },
             onShare = ::shareChapter.takeIf { isHttpSource },

@@ -92,6 +92,7 @@ fun GlassReaderAppBars(
     navigateUp: () -> Unit,
     onClickTopAppBar: () -> Unit,
     bookmarked: Boolean,
+    pageBookmarks: Set<Int>,
     onToggleBookmarked: () -> Unit,
     onOpenInWebView: (() -> Unit)?,
     onOpenInBrowser: (() -> Unit)?,
@@ -171,6 +172,7 @@ fun GlassReaderAppBars(
                 onPageIndexChange = onPageIndexChange,
                 viewer = viewer,
                 currentPageText = currentPageText,
+                bookmarkedPages = pageBookmarks,
             )
         }
     }
@@ -356,7 +358,7 @@ private fun GlassReaderHeader(
                     }
                 }
                 GlassRoundButton(
-                    "bookmark",
+                    if (bookmarked) "bookmarkFilled" else "bookmark",
                     onToggleBookmarked,
                     glassRound,
                     description = stringResource(if (bookmarked) MR.strings.action_remove_bookmark else MR.strings.action_bookmark),

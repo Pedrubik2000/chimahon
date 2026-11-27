@@ -35,6 +35,14 @@ class GlassVolumeListTest {
     }
 
     @Test
+    fun `bookmarks chip counts page bookmarks too`() {
+        // chapters 2 and 4 have the old bookmark; 3 has bookmarked pages
+        val counts = all.volumeCounts({ it }, { it.id == 3L }) { false }
+        counts[VolumeFilter.Bookmarks] shouldBe 3
+        all.filterVolumes(VolumeFilter.Bookmarks, { it }, { it.id == 3L }) { false }.map { it.id } shouldBe listOf(2L, 3L, 4L)
+    }
+
+    @Test
     fun `volume number is the chapter number, else its place`() {
         volumeNumber(ch(1).copy(chapterNumber = 4.0), 9) shouldBe "04"
         volumeNumber(ch(1).copy(chapterNumber = 10.5), 9) shouldBe "10.5"
