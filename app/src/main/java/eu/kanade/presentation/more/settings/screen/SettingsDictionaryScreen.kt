@@ -401,7 +401,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                                 withContext(Dispatchers.Main) {
                                     val err = db.lastError ?: "Selected file is not a valid audio database"
                                     if (err.contains("EACCES") || err.contains("Permission denied") || err.contains("SecurityException")) {
-                                        errorDialogText = "Failed to load audio database.\n\nReason: Storage permission is not granted. Please grant All Files Access to Chimahon."
+                                        errorDialogText = "Failed to load audio database.\n\nReason: Storage permission is not granted. Please grant All Files Access to kumahon."
                                     } else {
                                         context.toast(err)
                                     }
@@ -413,7 +413,7 @@ object SettingsDictionaryScreen : SearchableSettings {
                             withContext(Dispatchers.Main) {
                                 val msg = e.message ?: ""
                                 if (msg.contains("EACCES") || msg.contains("Permission denied") || msg.contains("SecurityException")) {
-                                    errorDialogText = "Failed to load audio database.\n\nReason: Storage permission is not granted. Please grant All Files Access to Chimahon."
+                                    errorDialogText = "Failed to load audio database.\n\nReason: Storage permission is not granted. Please grant All Files Access to kumahon."
                                 } else {
                                     context.toast("Failed: ${e.message}")
                                 }

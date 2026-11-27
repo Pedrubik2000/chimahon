@@ -256,8 +256,8 @@
     <string name="anki_scene_committing">Saving card to AnkiDroid…</string>
     <string name="anki_scene_busy">A scene card is already being prepared</string>
     <string name="anki_scene_cancel">Cancel scene export</string>
-    <string name="anki_scene_fallback_generation">The animated scene could not be created. Chimahon used the captured still screenshot when available.</string>
-    <string name="anki_scene_fallback_storage">AnkiDroid could not store the animated scene. Chimahon used the captured still screenshot when available.</string>
+    <string name="anki_scene_fallback_generation">The animated scene could not be created. kumahon used the captured still screenshot when available.</string>
+    <string name="anki_scene_fallback_storage">AnkiDroid could not store the animated scene. kumahon used the captured still screenshot when available.</string>
     <string name="anki_scene_still_storage_failed">The screenshot could not be stored. The card was created without it.</string>
     <string name="pref_settings_section_media">Media</string>
     <string name="pref_settings_section_learning">Learning</string>
@@ -346,7 +346,7 @@
     <string name="stats_calendar_span">Calendar span</string>
     <string name="stats_capture_enabled">Capture event-backed statistics</string>
     <string name="stats_capture_enabled_summary">Record new event-backed sessions. Turning this off leaves existing statistics untouched.</string>
-    <string name="stats_capture_title_error_summary">Chimahon could not save this title\'s capture preference. Existing statistics were not changed; try again.</string>
+    <string name="stats_capture_title_error_summary">kumahon could not save this title\'s capture preference. Existing statistics were not changed; try again.</string>
     <string name="stats_capture_title_toggle">Exclude this title from future capture</string>
     <string name="stats_capture_title_toggle_summary">Existing statistics remain. New sessions for this title are stopped before entering a capture queue.</string>
     <string name="stats_cards_created">New cards</string>
@@ -618,7 +618,7 @@
     <string name="stats_range_thirty_days">30 days</string>
     <string name="stats_range_today">Today</string>
     <string name="stats_range_year">365 days</string>
-    <string name="stats_raw_text_disclosure_message">Chimahon can keep passages, OCR, and subtitles on this device to build character statistics and let you jump back to where you read something. Nothing is retained until you choose. You can change this later, including 30-day and one-year options, in Stats data and privacy.</string>
+    <string name="stats_raw_text_disclosure_message">kumahon can keep passages, OCR, and subtitles on this device to build character statistics and let you jump back to where you read something. Nothing is retained until you choose. You can change this later, including 30-day and one-year options, in Stats data and privacy.</string>
     <string name="stats_raw_text_disclosure_title">Choose source-text privacy</string>
     <string name="stats_raw_text_storage">Retained source text</string>
     <string name="stats_raw_text_storage_value">%1$s · %2$s</string>

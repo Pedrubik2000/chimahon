@@ -2518,9 +2518,7 @@
     <string name="glass_rel_never">%1$d watched titles · not checked yet</string>
     <string name="glass_inbox_new">%1$d new in your sources</string>
     <string name="glass_inbox_all">%1$d in your sources</string>
-    <string name="glass_inbox_sub">since you last looked · checked %1$s</string>
     <string name="glass_inbox_none">Nothing new in your sources</string>
-    <string name="glass_inbox_none_sub">checked %1$s</string>
     <string name="glass_inbox_since">since you last looked</string>
     <string name="glass_inbox_checked">checked %1$s</string>
     <string name="glass_inbox_filters_on">Classic Updates filters are on</string>
