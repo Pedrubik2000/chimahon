@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -35,6 +36,7 @@ object PageBookmarkLogic {
 /**
  * Page bookmarks per chapter id (1-based page numbers), kept in the app's own SharedPreferences (key = chapter id, value =
  * "3,17,84"): no database change, survives restarts. [all] is what the Glass UI observes.
+ * Stored by chapter id only: not in backups, and lost when a chapter is re-created or migrated.
  */
 object PageBookmarks {
 
@@ -54,6 +56,11 @@ object PageBookmarks {
 
     val all: StateFlow<Map<Long, Set<Int>>> get() = state
 
+    /** Reads the file once; call off the main thread so the first composition does not. */
+    fun warm() {
+        state.value
+    }
+
     fun pages(chapterId: Long): Set<Int> = state.value[chapterId].orEmpty()
 
     /** Toggles the bookmark of [shown] in the chapter; returns the page added, or null when removed. */
@@ -62,7 +69,7 @@ object PageBookmarks {
         val e = prefs.edit()
         if (pages.isEmpty()) e.remove(chapterId.toString()) else e.putString(chapterId.toString(), PageBookmarkLogic.encode(pages))
         e.apply()
-        state.value = if (pages.isEmpty()) state.value - chapterId else state.value + (chapterId to pages)
+        state.update { if (pages.isEmpty()) it - chapterId else it + (chapterId to pages) }
         return added
     }
 }

@@ -246,9 +246,10 @@ class ReaderViewModel @JvmOverloads constructor(
     private var currentMangaStatsPage: ReaderPage? = null
     private val consumedMangaStatsPages = mutableSetOf<Int>()
 
-    var mangaStatsSessionCharacters: Int = 0
+    // state: the Glass title shows them live
+    var mangaStatsSessionCharacters by androidx.compose.runtime.mutableIntStateOf(0)
         private set
-    var mangaStatsSessionTimeMs: Long = 0
+    var mangaStatsSessionTimeMs by androidx.compose.runtime.mutableLongStateOf(0L)
         private set
     var mangaStatsTracking by mutableStateOf(true)
         private set
@@ -467,6 +468,8 @@ class ReaderViewModel @JvmOverloads constructor(
     private val downloadAheadAmount = downloadPreferences.autoDownloadWhileReading().get()
 
     init {
+        viewModelScope.launchIO { PageBookmarks.warm() }
+
         // To save state
         state.map { it.viewerChapters?.currChapter }
             .distinctUntilChanged()
@@ -866,7 +869,7 @@ class ReaderViewModel @JvmOverloads constructor(
         }
 
         // SY -->
-        mutableState.update { it.copy(currentPageText = currentPageText) }
+        mutableState.update { it.copy(currentPageText = currentPageText, currentPageChapterId = page.chapter.chapter.id ?: -1L) }
         // SY <--
 
         val selectedChapter = page.chapter
@@ -2697,6 +2700,8 @@ class ReaderViewModel @JvmOverloads constructor(
         // SY -->
         /** for display page number in double-page mode */
         val currentPageText: String = "",
+        /** the chapter of the page [currentPageText] is about (set with it, so a bookmark never lands in the neighbouring volume) */
+        val currentPageChapterId: Long = -1L,
         val meta: RaisedSearchMetadata? = null,
         val mergedManga: Map<Long, Manga>? = null,
         val ehUtilsVisible: Boolean = false,
@@ -2787,8 +2792,11 @@ class ReaderViewModel @JvmOverloads constructor(
                 }
                 com.canopus.chimareader.data.MangaStatsStorage.addStats(application, chars, timeSpent, manga?.id ?: 0)
                 if (mangaStatsTracking) {
-                    mangaStatsSessionCharacters += chars
-                    mangaStatsSessionTimeMs += timeSpent
+                    // on the main thread: page turns run in parallel here and would lose a page's numbers
+                    withUIContext {
+                        mangaStatsSessionCharacters += chars
+                        mangaStatsSessionTimeMs += timeSpent
+                    }
                 }
                 if (showMangaStats) {
                     refreshMangaStatsEstimate()

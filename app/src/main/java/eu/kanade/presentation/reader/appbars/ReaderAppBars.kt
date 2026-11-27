@@ -112,6 +112,10 @@ fun ReaderAppBars(
     mokuroAvailable: Boolean = false,
     onToggleOcr: (() -> Unit)? = null,
     onSelectOcrSource: (ReaderOcrSource) -> Unit = {},
+    /** Glass: the live session numbers under the title. */
+    sessionChars: Int = 0,
+    sessionTimeMs: Long = 0,
+    statsTracking: Boolean = false,
     /** Glass: the "Auto ▾" half of the OCR pill opens the OCR side panel. */
     onClickOcrSource: () -> Unit = {},
     // Chimahon <--
@@ -142,6 +146,7 @@ fun ReaderAppBars(
             onClickShiftPage = onClickShiftPage, ocrEnabled = ocrEnabled, ocrLoading = ocrLoading,
             ocrSource = ocrSource, onToggleOcr = onToggleOcr,
             onClickOcrSource = onClickOcrSource, ocrProgress = ocrProgress, pagePanel = pagePanel,
+            sessionChars = sessionChars, sessionTimeMs = sessionTimeMs, statsTracking = statsTracking,
         )
         return
     }

@@ -109,6 +109,7 @@ import eu.kanade.presentation.reader.glass.GlassPageIndicator
 import eu.kanade.presentation.reader.glass.GlassPageMenu
 import eu.kanade.presentation.reader.glass.GlassReaderSettingsPanel
 import eu.kanade.presentation.reader.glass.GlassReaderTheme
+import eu.kanade.presentation.reader.glass.GlassSettingsExtras
 import eu.kanade.presentation.reader.glass.GlassSettingsSection
 import eu.kanade.presentation.reader.glass.GlassSheetBorder
 import eu.kanade.presentation.reader.glass.GlassVolumeList
@@ -628,6 +629,7 @@ class ReaderActivity : BaseActivity() {
                         onClose = { onDismissRequest(); setMenuVisibility(true) },
                         onShowMenus = { setMenuVisibility(true) },
                         onHideMenus = { setMenuVisibility(false) },
+                        extras = glassSettingsExtras(),
                     )
                 } else {
                     GlassReaderTheme(glassUi) {
@@ -649,6 +651,7 @@ class ReaderActivity : BaseActivity() {
                         onClose = { onDismissRequest(); setMenuVisibility(true) },
                         onShowMenus = { setMenuVisibility(true) },
                         onHideMenus = { setMenuVisibility(false) },
+                        extras = glassSettingsExtras(),
                     )
                 } else if (state.dialog is ReaderViewModel.Dialog.ReadingModeSelect) {
                     ReadingModeSelectDialog(
@@ -1370,6 +1373,17 @@ class ReaderActivity : BaseActivity() {
         return kotlin.math.hypot(getX(0) - getX(1), getY(0) - getY(1))
     }
 
+    /** The old "more" menu's items, now in the Glass settings panel; web view / browser / share only for an online source. */
+    private fun glassSettingsExtras(): GlassSettingsExtras {
+        val http = viewModel.getSource() is HttpSource
+        return GlassSettingsExtras(
+            onAutoScroll = { viewModel.showEhUtils(true) },
+            onWebView = ::openChapterInWebView.takeIf { http },
+            onBrowser = ::openChapterInBrowser.takeIf { http },
+            onShare = ::shareChapter.takeIf { http },
+        )
+    }
+
     private fun togglePageBookmark(chapterId: Long, shown: List<Int>) {
         if (chapterId < 0 || shown.isEmpty()) return
         val added = PageBookmarks.toggle(chapterId, shown)
@@ -1627,7 +1641,8 @@ class ReaderActivity : BaseActivity() {
         val ocrEnabled = ocrOverlayEnabled && viewModel.isOcrAllowedForCurrentManga()
         val glassUi by remember { Injekt.get<UiPreferences>().glassUi() }.collectAsState()
         val allPageBookmarks by PageBookmarks.all.collectAsState()
-        val chapterId = state.currentChapter?.chapter?.id ?: -1L
+        // the chapter of the page on screen, from the same update as spreadPages below
+        val chapterId = state.currentPageChapterId.takeIf { it >= 0 } ?: state.currentChapter?.chapter?.id ?: -1L
         val pageBookmarks = allPageBookmarks[chapterId].orEmpty()
         // the pages on screen: "84" or "84-85" / "85-84"; the lowest is the first in reading order
         val spreadPages = Regex("\\d+").findAll(state.currentPageText).mapNotNull { it.value.toIntOrNull() }.toList()
@@ -1687,6 +1702,9 @@ class ReaderActivity : BaseActivity() {
             onClickOcrSource = viewModel::openOcrSourceDialog,
             onClickSettings = viewModel::openSettingsDialog,
             onClickMangaStats = viewModel::openMangaStatsSheet,
+            sessionChars = viewModel.mangaStatsSessionCharacters,
+            sessionTimeMs = viewModel.mangaStatsSessionTimeMs,
+            statsTracking = viewModel.mangaStatsTracking,
             // SY -->
             isExhToolsVisible = state.ehUtilsVisible,
             onSetExhUtilsVisibility = viewModel::showEhUtils,

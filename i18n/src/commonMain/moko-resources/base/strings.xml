@@ -857,6 +857,11 @@
     <string name="glass_vol_page">p. %1$s</string>
     <string name="glass_page_bookmarked">Page %1$d bookmarked</string>
     <string name="glass_page_bookmark_removed">Bookmark removed</string>
+    <string name="glass_bookmark_page">Bookmark page</string>
+    <string name="glass_remove_page_bookmark">Remove page bookmark</string>
+    <string name="glass_live_stats">%1$d chars · %2$s/h · %3$s</string>
+    <string name="glass_live_stats_short">%1$d · %2$s</string>
+    <string name="glass_settings_auto_scroll">Auto-scroll</string>
     <string name="glass_stats_pause">Pause timer</string>
     <string name="glass_stats_resume">Resume timer</string>
     <string name="glass_stats_timer_running">Timer running</string>

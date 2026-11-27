@@ -42,6 +42,14 @@ import tachiyomi.presentation.core.i18n.stringResource
 /** The sections of the Glass settings panel (A: the tabs of the classic dialog, with OCR pulled out of General). */
 enum class GlassSettingsSection { Mode, Page, Display, Taps, Filters, Ocr, More }
 
+/** What the top bar's old "more" menu held, now at the end of the settings: auto-scroll (More) and the web view / browser / share row. */
+class GlassSettingsExtras(
+    val onAutoScroll: (() -> Unit)? = null,
+    val onWebView: (() -> Unit)? = null,
+    val onBrowser: (() -> Unit)? = null,
+    val onShare: (() -> Unit)? = null,
+)
+
 /** The panel is this wide on a tablet (over the page); on a phone it covers the screen width. */
 private val PanelWidth = 380.dp
 private val PanelGap = 12.dp
@@ -103,6 +111,7 @@ fun GlassReaderSettingsPanel(
     onClose: () -> Unit,
     onShowMenus: () -> Unit,
     onHideMenus: () -> Unit,
+    extras: GlassSettingsExtras = GlassSettingsExtras(),
 ) {
     var section by remember { mutableStateOf(initial) }
     LaunchedEffect(section) { if (section == GlassSettingsSection.Filters) onHideMenus() else onShowMenus() }
@@ -124,7 +133,21 @@ fun GlassReaderSettingsPanel(
                 GlassSettingsSection.Taps -> GlassTapsSection(screenModel)
                 GlassSettingsSection.Filters -> GlassFiltersSection(screenModel)
                 GlassSettingsSection.Ocr -> GlassOcrSection(screenModel)
-                GlassSettingsSection.More -> GlassMoreSection(screenModel)
+                GlassSettingsSection.More -> {
+                    GlassMoreSection(screenModel)
+                    extras.onAutoScroll?.let {
+                        GlassDivider()
+                        GlassChip(stringResource(MR.strings.glass_settings_auto_scroll), selected = false, onClick = { onClose(); it() }, leading = "play")
+                    }
+                }
+            }
+        }
+        if (extras.onWebView != null || extras.onBrowser != null || extras.onShare != null) {
+            // web view / browser / share: the actions of the old "more" menu, only those this source has
+            FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                extras.onWebView?.let { GlassChip(stringResource(MR.strings.action_open_in_web_view), selected = false, onClick = { onClose(); it() }, leading = "external") }
+                extras.onBrowser?.let { GlassChip(stringResource(MR.strings.action_open_in_browser), selected = false, onClick = { onClose(); it() }, leading = "external") }
+                extras.onShare?.let { GlassChip(stringResource(MR.strings.action_share), selected = false, onClick = { onClose(); it() }, leading = "external") }
             }
         }
     }

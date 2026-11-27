@@ -336,6 +336,7 @@ private fun PageTrack(
     val haptic = LocalHapticFeedback.current
     val drag by rememberUpdatedState(onDrag)
     val commit by rememberUpdatedState(onCommit)
+    val marks by rememberUpdatedState(bookmarks) // read inside the gesture block: the flags change while it lives
     LaunchedEffect(page) { if (dragging) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
     var widthPx by remember { mutableIntStateOf(0) }
     // Previews by page number; a few pages at most, cleared when it grows. Missing = number bubble only.
@@ -369,10 +370,10 @@ private fun PageTrack(
             .height(46.dp)
             .pointerInput(total, rtl) {
                 detectTapGestures { tap ->
-                    // a tap within 14dp of a bookmark flag lands on that page
-                    val flag = bookmarks.filter { it in 1..total }
+                    // a tap right on a bookmark flag (within 7dp) lands exactly on that page
+                    val flag = marks.filter { it in 1..total }
                         .minByOrNull { abs(trackPosition(it, total, rtl) * size.width - tap.x) }
-                        ?.takeIf { abs(trackPosition(it, total, rtl) * size.width - tap.x) <= 14.dp.toPx() }
+                        ?.takeIf { abs(trackPosition(it, total, rtl) * size.width - tap.x) <= 7.dp.toPx() }
                     commit(flag ?: pageAt(tap.x / size.width, total, rtl))
                 }
             }
