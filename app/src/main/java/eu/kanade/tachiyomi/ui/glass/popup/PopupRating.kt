@@ -12,7 +12,7 @@ import chimahon.srs.SyncTrigger
 object PopupRating {
     /** Rates the word's card (1 Again .. 4 Easy); answers the undo token (`card:revlogId`), or null = not saved (no card of it). Blocking. */
     fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long): String? {
-        val card = Cards.find(context, word, reading) ?: return null
+        val card = Cards.shownCard(context, word, reading) ?: return null
         val srs = Cards.store(context)
         val sentence = chimahon.ocr.KumapieColours.sentence
         val place = chimahon.ocr.KumapieColours.place

@@ -284,6 +284,15 @@ object KumapieColours {
     fun callOwn(context: Context, bodyJson: String): String = runCatching { own(context, JSONObject(bodyJson), withMarked = true) }
         .onFailure { Log.w("KumapieColours", "own call failed: $it") }.getOrDefault("null")
 
+    private fun pageState(context: Context, body: JSONObject): String? = runCatching {
+        body.optString("word").takeIf { it.isNotBlank() }?.let { colourer(context).state(it, body.optString("text").ifBlank { it }) }
+    }.getOrNull()
+
+    /** The own card that colours [word] (or [text], the form on the page) there, by any key the page colours with; null = none. Blocking. */
+    fun cardOf(context: Context, word: String, text: String = ""): chimahon.srs.Srs.Card? = runCatching {
+        if (word.isBlank()) null else colourer(context).cardId(word, text.ifBlank { word })?.let { Cards.store(context).card(it) }
+    }.getOrNull()
+
     /** kumapie's provider can be reached (its app is installed); false = kumahon's own store answers ratings. */
     fun present(context: Context): Boolean = authority(context) != null
 
@@ -303,9 +312,11 @@ object KumapieColours {
             if (withMarked) SyncTrigger.request(context, "mark") else Cards.later { Cards.sync(context) } // Glass: coalesced with the ratings; classic as ever
             return JSONObject().put("marked", known).toString()
         }
-        val card = Cards.find(context, body.optString("word"), body.optString("reading"))
+        val card = Cards.shownCard(context, body.optString("word"), body.optString("reading"), body.optString("text"))
             // no card: nothing rated, as before; but a word on kumapie's known list (synced) answers "k"
             ?: return if (action == "state" && srs.isKnown(body.optString("word"), body.optString("reading"))) (if (withMarked) """{"state":"k","marked":true}""" else """{"state":"k"}""")
+            // mined on another device (no card here): the page draws it blue or green, and the popup says the same
+            else if (action == "state" && withMarked && pageState(context, body) in setOf("b", "d")) JSONObject().put("state", pageState(context, body)).put("marked", false).toString()
             else if (action == "state" && withMarked) """{"marked":false}""" // the provider's shape for a new word: the Mark known button shows
             else "null"
         val out = JSONObject()

@@ -29,6 +29,17 @@ class WordColourerTest {
 
     @Test fun unknownIsRed() = assertEquals("u", state(word("猫")))
 
+    @Test fun thePopupAsksTheSameColourAndCardAsThePage() {
+        val c = store.addCard("罠[わな]", "<b>ワナ</b>だ", "m", null, null, null, JSONObject().put("Reading", "わな").toString())
+        val colourer = WordColourer({ store }, { listOf(word("ワナ")) }, { false })
+        assertEquals("b", colourer.rows("ワナ").single().state) // the page: blue by the tapped form
+        assertEquals("b", colourer.state("ワナ"))
+        assertEquals(c.id, colourer.cardId("ワナ"))
+        assertEquals(c.id, colourer.cardId("わな", "ワナ")) // by the form on the page when the dictionary form has no card
+        assertEquals("u", colourer.state("犬"))
+        assertEquals(null, colourer.cardId("犬"))
+    }
+
     @Test fun aCardCutInPiecesColoursItsPieces() {
         card("怪奇現象", "かいきげんしょう") // blue
         store.replaceKnown(setOf("現象"))

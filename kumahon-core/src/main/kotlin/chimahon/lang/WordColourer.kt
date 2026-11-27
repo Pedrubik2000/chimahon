@@ -23,7 +23,7 @@ class WordColourer(
     data class Row(val start: Int, val length: Int, val state: String)
 
     /** Card states by lower-cased spelling and "spelling\treading" key, and the marks, read from the store at most once a minute (kumapie's refresh). */
-    private class Index(val cards: Map<String, List<String>>, val marks: Set<String>, val time: Long)
+    private class Index(val cards: Map<String, List<String>>, val ids: Map<String, Long>, val marks: Set<String>, val time: Long)
     @Volatile private var index: Index? = null
 
     /** After a sync or a rating: the next [rows] reads the store again. */
@@ -32,10 +32,14 @@ class WordColourer(
     @Synchronized private fun index(srs: Srs): Index = index?.takeIf { System.currentTimeMillis() - it.time < MAX_AGE_MS } ?: run {
         val now = System.currentTimeMillis()
         val cards = HashMap<String, MutableList<String>>()
+        val ids = HashMap<String, Long>() // the lowest card id of each key: the card the popup shows and rates
         val ready = split("") != null
         for (c in srs.cards()) {
             val state = Srs.state(c.due, now)
-            for (k in keysOf(c, ready)) cards.getOrPut(k.lowercase()) { ArrayList() } += state
+            for (k in keysOf(c, ready)) {
+                cards.getOrPut(k.lowercase()) { ArrayList() } += state
+                ids[k.lowercase()] = minOf(ids[k.lowercase()] ?: c.id, c.id)
+            }
         }
         // Words carded on another device (the hub's `carded`): mined, blue until a card here says more. One already in kumapie's list
         // as its `spelling<TAB>reading` was reviewed there: known, so it colours nothing itself (the list decides) and its forms are known
@@ -48,7 +52,7 @@ class WordColourer(
             else for (w in listOf(k) + (if (bare in reviewedBare) emptyList() else listOf(bare)) + forms) cards.getOrPut(w.lowercase()) { ArrayList() } += "b"
         }
         if (keys.size > 20_000) keys.clear()
-        Index(cards, srs.markedWords(), now).also { index = it }
+        Index(cards, ids, srs.markedWords(), now).also { index = it }
     }
 
     private val keys = HashMap<Triple<Long, Long, Boolean>, List<String>>()
@@ -108,6 +112,13 @@ class WordColourer(
         val joined = text.substring(toks[i].begin, last.begin + last.surface.length)
         return cardState(ix, joined)?.let { if (joined in ix.marks) "k" else it }
     }
+
+    /** The colour the page gives a word (dictionary form [base], written [surface]): the lookup popup shows the same. Null = no store. */
+    fun state(base: String, surface: String = base): String? = store()?.let { shown(it, index(it), base, surface) }
+
+    /** The own card that colours [base] (else [surface]) on the page, by any of its keys (another spelling, the tapped form); null = none. */
+    fun cardId(base: String, surface: String = base): Long? =
+        store()?.let { index(it) }?.let { it.ids[base.lowercase()] ?: it.ids[surface.lowercase()] }
 
     /** kumapie's `CardIndex.state`: due beats the rest, all never-reviewed is blue, else known; null = no card of its own. */
     private fun cardState(ix: Index, form: String): String? = ix.cards[form.lowercase()]?.let { s ->

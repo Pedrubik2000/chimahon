@@ -115,10 +115,10 @@ internal fun GlassLookupCard(
     val shownAt = remember(expression, reading) { SystemClock.elapsedRealtime() }
     val once = remember(expression, reading) { RateOnce() }
 
-    // loading (word == null): no state shown yet, no bar. Loaded: the card exists only when kumahon's own store has it (preview); else the word is
-    // New (or Known), and the bar is Mark known + Mine as before.
+    // loading (word == null): no state shown yet, no bar. Loaded: the state is the page's colour. The card exists only when kumahon's own
+    // store has it (preview); without one (new, known, or mined on another device: blue) the bar is Mark known + Mine as before.
     val hasCard = word?.preview != null
-    val state = word?.let { if (hasCard || it.state == "k") it.state else "u" }
+    val state = word?.state
     val bar = if (state == null || !hasCard) PopupLogic.Bar.MINE else PopupLogic.bar(state, true)
     var dictionary by remember(expression) { mutableIntStateOf(0) }
 

@@ -39,12 +39,19 @@ object Cards {
         return store(context).cards().sortedBy { it.id }.firstOrNull { keyOf(it) == want }
     }
 
+    /**
+     * The card the lookup popup shows and rates for a word: [find]'s, else the own card that colours it on the page by another key
+     * (another spelling, the form tapped when it was mined), so the popup never calls a blue word new. [text] = the form on the page.
+     */
+    fun shownCard(context: Context, word: String, reading: String, text: String = ""): Srs.Card? =
+        find(context, word, reading) ?: chimahon.ocr.KumapieColours.cardOf(context, word, text)
+
     /** A card of this store and the interval label of each answer (Again, Hard, Good, Easy) it would get now: the step [Srs.rate] takes, without writing. */
     class Preview(val card: Srs.Card, val labels: List<String>)
 
     /** [find]'s card with its four answer intervals from the real FSRS state; null when kumahon's own store has no card of the word. Blocking (SQLite). */
     fun preview(context: Context, word: String, reading: String, now: Long = System.currentTimeMillis()): Preview? {
-        val card = find(context, word, reading) ?: return null
+        val card = shownCard(context, word, reading) ?: return null
         val fsrs = store(context).fsrs
         val before = card.stability?.let { Fsrs6.State(it, card.difficulty!!) }
         val days = card.lastReview?.let { Srs.elapsedDays(it, now) } ?: 0
