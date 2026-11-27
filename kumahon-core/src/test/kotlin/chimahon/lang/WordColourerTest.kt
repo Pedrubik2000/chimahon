@@ -29,6 +29,15 @@ class WordColourerTest {
 
     @Test fun unknownIsRed() = assertEquals("u", state(word("猫")))
 
+    @Test fun aCardCutInPiecesColoursItsPieces() {
+        card("怪奇現象", "かいきげんしょう") // blue
+        store.replaceKnown(setOf("現象"))
+        val toks = listOf(word("怪奇"), word("現象", begin = 2), word("とか", begin = 4), word("怪奇", begin = 7))
+        val rows = WordColourer({ store }, { toks }, { false }).rows("怪奇現象とか、怪奇")
+        assertEquals(listOf("b", "b", "u", "u"), rows.map { it.state }) // the pieces apart (the last 怪奇) keep their own colour
+        assertEquals(listOf(0, 2, 4, 7), rows.map { it.start })
+    }
+
     @Test fun newCardIsBlue() { card("猫", "ねこ"); assertEquals("b", state(word("猫"))) }
 
     @Test fun reviewedAndDueIsGreen() {

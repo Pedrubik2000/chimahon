@@ -79,7 +79,34 @@ class WordColourer(
         val srs = store() ?: return emptyList()
         val words = split(text) ?: return emptyList()
         val ix = index(srs)
-        return words.filter { it.isWord }.map { Row(it.begin, it.surface.length, shown(srs, ix, it.base, it.surface)) }
+        val toks = words.filter { it.isWord }
+        val states = toks.mapTo(ArrayList()) { shown(srs, ix, it.base, it.surface) }
+        // A card whose word the splitter cuts in pieces (怪奇現象 = 怪奇 + 現象): the pieces written together take the card's
+        // colour, the longest run first. Not in kumapie's `WordColours` (yet).
+        var i = 0
+        while (i < toks.size) {
+            var step = 1
+            for (n in minOf(MAX_RUN, toks.size - i) downTo 2) {
+                val state = if (touching(toks, i, n)) run(ix, text, toks, i, n) else null
+                if (state != null) {
+                    for (k in i until i + n) states[k] = state
+                    step = n
+                    break
+                }
+            }
+            i += step
+        }
+        return toks.mapIndexed { k, it -> Row(it.begin, it.surface.length, states[k]) }
+    }
+
+    private fun touching(toks: List<JapaneseModel.Token>, i: Int, n: Int): Boolean =
+        (i until i + n - 1).all { toks[it].begin + toks[it].surface.length == toks[it + 1].begin }
+
+    /** The colour of the card (or mark) whose word is [n] pieces from [i] written together; null = there is none. */
+    private fun run(ix: Index, text: String, toks: List<JapaneseModel.Token>, i: Int, n: Int): String? {
+        val last = toks[i + n - 1]
+        val joined = text.substring(toks[i].begin, last.begin + last.surface.length)
+        return cardState(ix, joined)?.let { if (joined in ix.marks) "k" else it }
     }
 
     /** kumapie's `CardIndex.state`: due beats the rest, all never-reviewed is blue, else known; null = no card of its own. */
@@ -97,6 +124,7 @@ class WordColourer(
 
     companion object {
         private const val MAX_AGE_MS = 60_000L
+        private const val MAX_RUN = 4 // pieces of one card's word
         private val BOLD = Regex("""<b>([^<\[]+)""")
     }
 }
