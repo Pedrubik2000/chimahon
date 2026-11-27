@@ -2610,15 +2610,6 @@
     <string name="glass_stats_no_goals">No goal for today.</string>
     <string name="glass_stats_new_goal">New goal</string>
     <string name="glass_stats_anki">Anki · cards from reading</string>
-    <string name="glass_cats_edit">Edit categories</string>
-    <string name="glass_cats_heading">EDIT CATEGORIES</string>
-    <string name="glass_cats_done">Done</string>
-    <string name="glass_cats_new">New category</string>
-    <string name="glass_cats_rename">Rename</string>
-    <string name="glass_cats_delete">Delete</string>
-    <string name="glass_cats_hide">Hide category</string>
-    <string name="glass_cats_show">Show category</string>
-    <string name="glass_cats_empty">No categories yet.</string>
     <string name="glass_backup_never">No automatic backup yet.</string>
     <string name="glass_backup_now">Back up now</string>
     <string name="glass_backup_restore">Restore</string>
