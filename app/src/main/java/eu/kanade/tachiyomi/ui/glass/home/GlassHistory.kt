@@ -98,12 +98,20 @@ fun GlassHistoryList(model: HistoryScreenModel, titles: List<GlassTitle>, naviga
     val state by model.state.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf(false) }
     var rows by remember { mutableStateOf(50) } // the list draws this many; Show more adds 50
+    // the title whose Resume was tapped last: with no next chapter (finished) its title page opens instead
+    var resumed by remember { mutableStateOf<Long?>(null) }
+    val currentTitles by androidx.compose.runtime.rememberUpdatedState(titles) // the event loop below starts once
 
     LaunchedEffect(Unit) {
         model.events.collect { e ->
             if (e is HistoryScreenModel.Event.OpenChapter) {
                 val chapter = e.chapter
-                if (chapter != null) context.startActivity(ReaderActivity.newIntent(context, chapter.mangaId, chapter.id)) else context.toast(MR.strings.no_next_chapter)
+                if (chapter != null) {
+                    context.startActivity(ReaderActivity.newIntent(context, chapter.mangaId, chapter.id))
+                } else {
+                    context.toast(MR.strings.no_next_chapter)
+                    resumed?.let { openHistoryTitle(it, currentTitles, navigator) }
+                }
             }
         }
     }
@@ -182,7 +190,7 @@ fun GlassHistoryList(model: HistoryScreenModel, titles: List<GlassTitle>, naviga
                     color = Glass.secondary,
                     fontSize = Glass.caption,
                 )
-                is HistoryUiModel.Item -> HistoryRow(row.item, state.selectionMode, row.item.chapterId in state.selection, model, titles, navigator)
+                is HistoryUiModel.Item -> HistoryRow(row.item, state.selectionMode, row.item.chapterId in state.selection, model, titles, navigator) { resumed = it }
             }
         }
         if (all.size > rows) Pill(stringResource(MR.strings.glass_hist_show_more), onClick = { rows += 50 }, small = true)
@@ -198,6 +206,7 @@ private fun HistoryRow(
     model: HistoryScreenModel,
     titles: List<GlassTitle>,
     navigator: Navigator,
+    onResume: (Long) -> Unit,
 ) {
     val shape = RoundedCornerShape(Glass.r12)
     Row(
@@ -206,7 +215,13 @@ private fun HistoryRow(
             .clip(shape)
             .border(if (selected) 2.dp else 1.dp, if (selected) Glass.ice else Glass.line, shape)
             .combinedClickable(
-                onClick = { if (selectionMode) model.toggleSelection(item, HistoryScreenModel.HistorySelectionOptions(!selected)) },
+                onClick = {
+                    if (selectionMode) {
+                        model.toggleSelection(item, HistoryScreenModel.HistorySelectionOptions(!selected))
+                    } else {
+                        openHistoryTitle(item.mangaId, titles, navigator)
+                    }
+                },
                 onLongClick = { model.toggleSelection(item, HistoryScreenModel.HistorySelectionOptions(!selected, fromLongPress = true)) },
             )
             .padding(8.dp),
@@ -217,10 +232,6 @@ private fun HistoryRow(
         Column(Modifier.weight(1f)) {
             Text(
                 item.title,
-                Modifier.clickable(enabled = !selectionMode) {
-                    // the title's Glass page when it is on the tablet, else the classic title page
-                    titles.firstOrNull { it.localMangaId == item.mangaId }?.let { openTitle(navigator, it) } ?: navigator.push(MangaScreen(item.mangaId))
-                },
                 fontSize = Glass.body,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -237,7 +248,7 @@ private fun HistoryRow(
         if (!selectionMode) {
             Pill(
                 stringResource(MR.strings.glass_hist_resume),
-                onClick = { model.getNextChapterForManga(item.mangaId, item.chapterId) },
+                onClick = { onResume(item.mangaId); model.getNextChapterForManga(item.mangaId, item.chapterId) },
                 small = true,
                 primary = true,
                 icon = "play",
@@ -248,4 +259,9 @@ private fun HistoryRow(
             ) { GlassIcon("close", size = 14.dp, contentDescription = stringResource(MR.strings.glass_hist_remove)) }
         }
     }
+}
+
+/** The title's Glass page when it is on the device, else the classic title page. */
+private fun openHistoryTitle(mangaId: Long, titles: List<GlassTitle>, navigator: Navigator) {
+    titles.firstOrNull { it.localMangaId == mangaId }?.let { openTitle(navigator, it) } ?: navigator.push(MangaScreen(mangaId))
 }
