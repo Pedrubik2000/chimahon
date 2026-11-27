@@ -48,7 +48,11 @@ import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsModel
 import eu.kanade.tachiyomi.ui.glass.problems.GlassProblemsPanel
 import eu.kanade.tachiyomi.ui.glass.problems.ProblemAction
 import eu.kanade.tachiyomi.ui.glass.releases.GlassReleasesPage
-import eu.kanade.tachiyomi.ui.glass.releases.ReleasesBadgeEffect
+import eu.kanade.tachiyomi.ui.glass.releases.InboxLogic
+import eu.kanade.tachiyomi.ui.glass.releases.InboxSeen
+import eu.kanade.presentation.glass.glassReleasesNew
+import eu.kanade.tachiyomi.ui.history.HistoryScreenModel
+import eu.kanade.tachiyomi.ui.updates.UpdatesScreenModel
 import eu.kanade.tachiyomi.ui.glass.review.GlassPhoneReviewPage
 import eu.kanade.tachiyomi.ui.glass.review.GlassReviewModel
 import eu.kanade.tachiyomi.ui.glass.review.GlassReviewPage
@@ -98,7 +102,18 @@ object GlassHomeScreen : Screen() {
         // the green badge on the Review item: the due count, read once when the shell starts (the Review page keeps it current)
         LaunchedEffect(Unit) { refreshReviewDue(context) }
         // the ice badge on the Releases item: volumes out since the page was last opened (the page clears it); read again when leaving the page
-        ReleasesBadgeEffect(page)
+        // the ice badge on the Releases item: what the library update found and he has not marked seen (the inbox band)
+        val updatesModel = rememberScreenModel { UpdatesScreenModel() }
+        val historyModel = rememberScreenModel { HistoryScreenModel() }
+        val updatesState by updatesModel.state.collectAsStateWithLifecycle()
+        LaunchedEffect(Unit) { InboxSeen.load(context) }
+        // first run: what the update already holds is not "new"
+        LaunchedEffect(updatesState.isLoading) {
+            if (!updatesState.isLoading) InboxSeen.initIfFirst(context, updatesState.items.maxOfOrNull { it.update.dateFetch } ?: System.currentTimeMillis())
+        }
+        LaunchedEffect(updatesState.items, InboxSeen.ts.longValue) {
+            glassReleasesNew.intValue = InboxLogic.band(updatesState.items, InboxSeen.ts.longValue, false, { it.update.dateFetch }, { it.update.read }).size
+        }
 
         // canvas `PhoneHero-2`: on a phone (pref glassPhone) the pages are the phone ones and the rail is a bar
         val phone = !isTabletUi()
@@ -108,12 +123,13 @@ object GlassHomeScreen : Screen() {
                 page == "home" -> GlassPhoneHomePage(
                     model,
                     navigator,
+                    historyModel,
                     problems = problems.size,
                     onProblems = { problemsOpen = true },
                     onSeeAll = { page = "library" },
                 )
                 page == "discover" -> GlassPhoneDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
-                page == "releases" -> GlassReleasesPage(navigator)
+                page == "releases" -> GlassReleasesPage(navigator, updatesModel)
                 page == "review" -> GlassPhoneReviewPage(rememberScreenModel { GlassReviewModel() })
                 // the tablet pages' own narrow layouts, with phone margins
                 page == "library" -> GlassLibraryPage(model, navigator)
@@ -121,11 +137,11 @@ object GlassHomeScreen : Screen() {
                 page == "settings" -> GlassPhoneSettingsPage(navigator)
             }
             if (!phone) when (page) {
-                "home" -> GlassHomePage(model, navigator)
+                "home" -> GlassHomePage(model, navigator, historyModel)
                 "library" -> GlassLibraryPage(model, navigator)
                 // created on the first Discover visit, then kept with the shell (no AniList call before that)
                 "discover" -> GlassDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
-                "releases" -> GlassReleasesPage(navigator)
+                "releases" -> GlassReleasesPage(navigator, updatesModel)
                 "review" -> GlassReviewPage(rememberScreenModel { GlassReviewModel() })
                 "downloads" -> GlassDownloadsPage(model, navigator)
                 "settings" -> GlassSettingsPage(navigator)

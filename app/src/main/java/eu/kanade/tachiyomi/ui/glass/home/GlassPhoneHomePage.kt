@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,6 +70,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 fun GlassPhoneHomePage(
     model: GlassTitlesModel,
     navigator: Navigator,
+    historyModel: eu.kanade.tachiyomi.ui.history.HistoryScreenModel,
     problems: Int,
     onProblems: () -> Unit,
     onSeeAll: () -> Unit,
@@ -148,7 +150,7 @@ fun GlassPhoneHomePage(
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp),
             )
         }
-        Shelf(stringResource(MR.strings.glass_row_reading), reading, isReading = true, navigator, onSeeAll)
+        Shelf(stringResource(MR.strings.glass_row_reading), reading, isReading = true, navigator, onSeeAll, historyModel, list)
         Shelf(stringResource(MR.strings.glass_row_planning), planning, isReading = false, navigator, onSeeAll)
 
         Row(Modifier.padding(start = 16.dp, top = 32.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -275,8 +277,17 @@ private fun posterLine(t: GlassTitle, isReading: Boolean): String {
 }
 
 @Composable
-private fun Shelf(name: String, titles: List<GlassTitle>, isReading: Boolean, navigator: Navigator, onSeeAll: () -> Unit) {
+private fun Shelf(
+    name: String,
+    titles: List<GlassTitle>,
+    isReading: Boolean,
+    navigator: Navigator,
+    onSeeAll: () -> Unit,
+    historyModel: eu.kanade.tachiyomi.ui.history.HistoryScreenModel? = null,
+    all: List<GlassTitle> = emptyList(),
+) {
     if (titles.isEmpty()) return
+    var history by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     Row(
         Modifier.padding(top = 24.dp).fillMaxWidth().height(48.dp).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -289,6 +300,7 @@ private fun Shelf(name: String, titles: List<GlassTitle>, isReading: Boolean, na
             modifier = Modifier.padding(start = 8.dp).alignByBaseline(),
         )
         Spacer(Modifier.weight(1f))
+        if (historyModel != null) CoversHistorySwitch(history) { history = it }
         Row(
             Modifier.height(48.dp).clip(CircleShape).clickable(onClick = onSeeAll).padding(start = 12.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -296,6 +308,10 @@ private fun Shelf(name: String, titles: List<GlassTitle>, isReading: Boolean, na
             Text(stringResource(MR.strings.glass_phone_see_all), color = Glass.ice, fontSize = Glass.body)
             GlassIcon("chevRight", size = 18.dp, tint = Glass.ice)
         }
+    }
+    if (history && historyModel != null) {
+        GlassHistoryList(historyModel, all, navigator, Modifier.padding(horizontal = 16.dp))
+        return
     }
     LazyRow(
         Modifier.padding(top = 4.dp),
@@ -310,6 +326,7 @@ private fun Shelf(name: String, titles: List<GlassTitle>, isReading: Boolean, na
                 modifier = Modifier.width(112.dp),
                 progress = t.readFraction.takeIf { isReading },
                 meter = {
+                    if (isReading) ReadCaption(t)
                     Text(
                         posterLine(t, isReading),
                         color = Glass.secondary,

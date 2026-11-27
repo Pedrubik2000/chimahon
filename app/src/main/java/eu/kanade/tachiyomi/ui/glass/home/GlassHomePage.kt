@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -60,7 +61,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 
 /** Canvas `Main.dc.html` without the language pills and known meters. */
 @Composable
-fun GlassHomePage(model: GlassTitlesModel, navigator: Navigator) {
+fun GlassHomePage(model: GlassTitlesModel, navigator: Navigator, historyModel: eu.kanade.tachiyomi.ui.history.HistoryScreenModel) {
     val titles by model.titles.collectAsStateWithLifecycle()
     val list = titles ?: return
     val hero = remember(list) { GlassTitles.hero(list) }
@@ -80,7 +81,7 @@ fun GlassHomePage(model: GlassTitlesModel, navigator: Navigator) {
             }
         }
         Spacer(Modifier.height(10.dp))
-        Shelf(stringResource(MR.strings.glass_row_reading), reading, navigator)
+        Shelf(stringResource(MR.strings.glass_row_reading), reading, navigator, historyModel, list)
         Spacer(Modifier.height(24.dp))
         Shelf(stringResource(MR.strings.glass_row_planning), planning, navigator)
         Spacer(Modifier.height(32.dp))
@@ -210,12 +211,28 @@ internal fun heroLine(hero: Hero): String {
 }
 
 @Composable
-private fun Shelf(name: String, titles: List<GlassTitle>, navigator: Navigator) {
+private fun Shelf(
+    name: String,
+    titles: List<GlassTitle>,
+    navigator: Navigator,
+    historyModel: eu.kanade.tachiyomi.ui.history.HistoryScreenModel? = null,
+    all: List<GlassTitle> = emptyList(),
+) {
     if (titles.isEmpty()) return
+    // the Reading shelf can flip to the full history list (Covers | History)
+    var history by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     Column(Modifier.padding(start = 108.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(end = 32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
             Text(titles.size.toString(), color = Glass.secondary, fontSize = Glass.body)
+            if (historyModel != null) {
+                Spacer(Modifier.weight(1f))
+                CoversHistorySwitch(history) { history = it }
+            }
+        }
+        if (history && historyModel != null) {
+            GlassHistoryList(historyModel, all, navigator, Modifier.padding(end = 32.dp))
+            return@Column
         }
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -228,8 +245,20 @@ private fun Shelf(name: String, titles: List<GlassTitle>, navigator: Navigator) 
                     onClick = { openTitle(navigator, t) },
                     modifier = Modifier.width(110.dp),
                     progress = t.readFraction,
+                    meter = if (historyModel != null) ({ ReadCaption(t) }) else null,
                 )
             }
         }
     }
+}
+
+/** Under a Reading cover: the time it was last read ("21:44"), or "Caught up" when every volume here is read. */
+@Composable
+internal fun ReadCaption(t: GlassTitle) {
+    val text = when {
+        GlassTitles.isCaughtUp(t) -> stringResource(MR.strings.glass_hist_caught_up)
+        t.lastRead != null -> readTime(t.lastRead!!)
+        else -> return
+    }
+    Text(text, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1)
 }

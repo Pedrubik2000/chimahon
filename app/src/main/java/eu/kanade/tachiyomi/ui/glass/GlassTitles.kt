@@ -25,6 +25,8 @@ data class GlassTitle(
     val countSoFar: Int? = null,
     /** the local chapters' numbers ([GlassTitles.volumesHere]); null = not read, [volumesHere] is the raw count */
     val localNumbers: List<Double>? = null,
+    /** per local chapter (same order as [localNumbers]): read here? For "caught up", chapter by chapter */
+    val localReadFlags: List<Boolean>? = null,
 ) {
     val mediaId: Long get() = entry.mediaId
     val name: String get() = entry.native ?: entry.romaji ?: entry.english ?: ""
@@ -186,8 +188,35 @@ object GlassTitles {
         )
     }
 
+    /**
+     * Order for the Home Reading shelf: series with something left to read first, last read first; then the caught-up ones
+     * (nothing unread left), also last read first. A new volume gives a series an unread item again and it moves back up.
+     */
+    fun <T> List<T>.caughtUpLast(lastRead: (T) -> Long, unread: (T) -> Int): List<T> {
+        val (open, done) = partition { unread(it) > 0 }
+        return open.sortedByDescending(lastRead) + done.sortedByDescending(lastRead)
+    }
+
+    /** Volumes here not read yet; a title with nothing here has nothing to read (never "caught up": 1 stands for "not started"). */
+    fun unreadHere(t: GlassTitle): Int {
+        if (t.localMangaId == null || t.volumesHere == 0) return 1
+        val numbers = t.localNumbers ?: return (t.volumesHere - t.volumesRead).coerceAtLeast(0)
+        return unreadLocal(numbers, t.localReadFlags.orEmpty(), t.entry.progressVolumes)
+    }
+
+    /**
+     * Local chapters still unread, chapter by chapter: one is read when it is read here ([readHere], same order as
+     * [numbers]) or its number is within 1..[progress] (the AniList progress: read on paper, elsewhere). A file with no
+     * number (-1), a duplicate edition or a number past the volume count each count by themselves.
+     */
+    fun unreadLocal(numbers: List<Double>, readHere: List<Boolean>, progress: Int): Int =
+        numbers.indices.count { i -> !(readHere.getOrElse(i) { false } || numbers[i] >= 1 && numbers[i] <= progress) }
+
+    /** Every volume here is read. */
+    fun isCaughtUp(t: GlassTitle) = t.localMangaId != null && t.volumesHere > 0 && unreadHere(t) == 0
+
     /** Home rows: most recently read/updated first. */
-    fun reading(list: List<GlassTitle>) = sort(list.filter { ListFilter.READING.matches(it) }, GlassSort.LAST_READ)
+    fun reading(list: List<GlassTitle>) = list.filter { ListFilter.READING.matches(it) }.caughtUpLast({ it.lastTouched }, ::unreadHere)
     fun planning(list: List<GlassTitle>) = sort(list.filter { ListFilter.PLANNING.matches(it) }, GlassSort.LAST_READ)
 
     /**
@@ -196,7 +225,9 @@ object GlassTitles {
      */
     fun hero(list: List<GlassTitle>): Hero? {
         heroes(list).firstOrNull()?.let { return Hero(it, resume = true) }
-        return list.filter { ListFilter.READING.matches(it) }
+        // never a caught-up series while another still has something to read
+        val reading = list.filter { ListFilter.READING.matches(it) }
+        return reading.filterNot(::isCaughtUp).ifEmpty { reading }
             .maxByOrNull { it.entry.updatedAt }
             ?.let { Hero(it, resume = false) }
     }
@@ -231,6 +262,7 @@ object GlassTitles {
                     volumesRead = maxOf(l.read, e.progressVolumes),
                     lastRead = l.lastRead.takeIf { it > 0 },
                     localNumbers = l.numbers,
+                    localReadFlags = l.numbers?.let { l.readFlags },
                 )
             }
         }
@@ -275,7 +307,7 @@ object GlassTitles {
             .map { it.entry }
 
     /** A local-source manga as [build] needs it; [numbers] = its chapters' numbers (null: count [volumes] as is). */
-    data class Local(val mangaId: Long, val volumes: Int, val read: Int, val lastRead: Long, val numbers: List<Double>? = null)
+    data class Local(val mangaId: Long, val volumes: Int, val read: Int, val lastRead: Long, val numbers: List<Double>? = null, val readFlags: List<Boolean> = emptyList())
 
     /** Volume label for the hero line: the number when the chapter has one ("3", "3.5"), else its name. */
     fun volumeLabel(next: NextVolume): String = when {

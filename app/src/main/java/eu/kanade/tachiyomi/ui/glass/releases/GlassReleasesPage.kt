@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.ui.glass.releases
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,7 +66,6 @@ import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.GlassPhoneBarRoom
 import eu.kanade.presentation.glass.GlassToggle
 import eu.kanade.presentation.glass.Pill
-import eu.kanade.presentation.glass.glassReleasesNew
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.data.anilist.AniListLibrary
 import eu.kanade.tachiyomi.data.releases.ReleasesPlan
@@ -95,37 +93,6 @@ private val MONTH_DAY_YEAR = DateTimeFormatter.ofPattern("MMM d, yyyy")
 private fun monthDay(d: LocalDate, today: LocalDate): String = (if (d.year == today.year) MONTH_DAY else MONTH_DAY_YEAR).format(d)
 private val TIME = DateTimeFormatter.ofPattern("MMM d, HH:mm")
 
-/** Keeps the rail badge current while the shell is up: when it is shown, comes back to the front, or a Releases job (now / daily / weekly) ends. Not while the page itself is open. */
-@Composable
-fun ReleasesBadgeEffect(page: String) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val wm = WorkManager.getInstance(context)
-    val running = listOf(ReleasesWorker.WORK_NOW, ReleasesWorker.WORK_DAILY, ReleasesWorker.WORK_WEEKLY).map { name ->
-        val infos by remember(name) { wm.getWorkInfosForUniqueWorkFlow(name) }.collectAsStateWithLifecycle(emptyList())
-        infos.any { it.state == androidx.work.WorkInfo.State.RUNNING }
-    }
-    LaunchedEffect(page, running) { if (page != "releases") refreshReleasesNew(context) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { if (page != "releases") scope.launch { refreshReleasesNew(context) } }
-}
-
-private fun prefs(context: Context) = context.getSharedPreferences("glass_releases", Context.MODE_PRIVATE)
-
-/** The rail badge: [GlassReleases.newCount] against the day the page was last opened. Reads off the main thread; call from a coroutine. */
-suspend fun refreshReleasesNew(context: Context) {
-    val n = withContext(Dispatchers.IO) {
-        val seen = prefs(context).getLong("seen", -1L).takeIf { it >= 0 }?.let(LocalDate::ofEpochDay)
-        GlassReleases.newCount(ReleasesWorker.store(context).get(), LocalDate.now(JST), seen)
-    }
-    glassReleasesNew.intValue = n
-}
-
-/** Opening the page: everything out so far counts as seen. */
-private fun markSeen(context: Context) {
-    prefs(context).edit().putLong("seen", LocalDate.now(JST).toEpochDay()).apply()
-    glassReleasesNew.intValue = 0
-}
-
 private sealed interface Entry {
     data class Head(val kind: Int) : Entry // 0 out, 1 announced, 2 no date
     data object Today : Entry
@@ -134,7 +101,7 @@ private sealed interface Entry {
 
 /** Canvas `releases-a`: a timeline of volume days, TODAY in the middle, announced below, a No date lane; the bell opens the title's popover. */
 @Composable
-fun GlassReleasesPage(navigator: Navigator) {
+fun GlassReleasesPage(navigator: Navigator, updates: eu.kanade.tachiyomi.ui.updates.UpdatesScreenModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val phone = !isTabletUi()
@@ -156,8 +123,6 @@ fun GlassReleasesPage(navigator: Navigator) {
         .collectAsStateWithLifecycle(emptyList())
     val checking = work.any { !it.state.isFinished }
     LaunchedEffect(checking) { reload() }
-    // the page is open: what is out counts as seen (the badge shows again for whatever comes out after)
-    LaunchedEffect(Unit) { markSeen(context) }
 
     val timeline = remember(state, filter, today, showUnwatched) { GlassReleases.build(state, today, filter, showUnwatched) }
     val library = remember { Injekt.get<AniListLibrary>() }
@@ -184,6 +149,7 @@ fun GlassReleasesPage(navigator: Navigator) {
             small = true,
         )
     }
+    Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize().padding(start = if (phone) 16.dp else 108.dp, top = 24.dp, end = if (phone) 16.dp else 32.dp),
     ) {
@@ -211,7 +177,9 @@ fun GlassReleasesPage(navigator: Navigator) {
             }
             if (!(loaded && state.series.isEmpty())) checkNow()
         }
-        Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // mockup D: what the library update found, until it is marked seen
+        Box(Modifier.padding(top = 12.dp)) { GlassInboxBand(updates, phone) }
+        Row(Modifier.padding(top = 0.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             GlassChip(stringResource(MR.strings.glass_rel_all), filter == ReleasesFilter.ALL, { filter = ReleasesFilter.ALL })
             GlassChip(stringResource(MR.strings.glass_rel_up_to_date), filter == ReleasesFilter.UP_TO_DATE, { filter = ReleasesFilter.UP_TO_DATE })
             if (timeline.unwatched > 0) { // series switched off in the bell: hidden, one line brings them back (dimmed)
@@ -266,6 +234,11 @@ fun GlassReleasesPage(navigator: Navigator) {
                 }
             }
         }
+    }
+    GlassInboxSelectionBar(
+        updates,
+        Modifier.align(Alignment.BottomCenter).padding(start = if (phone) 12.dp else 108.dp, end = if (phone) 12.dp else 32.dp, bottom = if (phone) GlassPhoneBarRoom else 16.dp),
+    )
     }
 }
 
