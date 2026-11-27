@@ -682,7 +682,23 @@ class MainActivity : BaseActivity() {
             Constants.SHORTCUT_MANGA -> {
                 val idToOpen = intent.extras?.getLong(Constants.MANGA_EXTRA) ?: return false
                 navigator.popUntilRoot()
-                HomeScreen.Tab.Library(idToOpen)
+                if (navigator.items.firstOrNull() == GlassHomeScreen) {
+                    // the new look (the reader's title, a shortcut): the title's glass page when the series is on the
+                    // AniList list, else the classic title page over the glass shell; never the classic tabs
+                    lifecycleScope.launch {
+                        val mediaId = tachiyomi.core.common.util.lang.withIOContext {
+                            Injekt.get<tachiyomi.domain.track.interactor.GetTracks>().await(idToOpen)
+                        }.firstOrNull { it.trackerId == eu.kanade.tachiyomi.data.track.TrackerManager.ANILIST }?.remoteId
+                        val onList = mediaId != null &&
+                            Injekt.get<eu.kanade.tachiyomi.data.anilist.AniListLibrary>().entries.value.any { it.mediaId == mediaId }
+                        navigator.push(
+                            if (onList) eu.kanade.tachiyomi.ui.glass.title.GlassTitleScreen(mediaId!!) else MangaScreen(idToOpen),
+                        )
+                    }
+                    null
+                } else {
+                    HomeScreen.Tab.Library(idToOpen)
+                }
             }
             Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Updates
             Constants.SHORTCUT_HISTORY -> HomeScreen.Tab.History
