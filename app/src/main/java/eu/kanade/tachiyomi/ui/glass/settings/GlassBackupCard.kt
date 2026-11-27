@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -18,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,9 +96,11 @@ internal fun GlassBackupCard() {
         }
     }
 
+    // the card's own width decides: the chip row (five intervals) plus its label need about 760dp
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val narrow = maxWidth < 760.dp
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // status row: last backup, Back up now, Restore
-        val narrow = LocalConfiguration.current.screenWidthDp < 600
         val statusText: @Composable (Modifier) -> Unit = { m ->
             Column(m, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(stringResource(MR.strings.label_backup), fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
@@ -134,7 +136,7 @@ internal fun GlassBackupCard() {
                 pills()
             }
         }
-        BackupRow("clock", stringResource(MR.strings.pref_backup_interval)) {
+        BackupRow(narrow, "clock", stringResource(MR.strings.pref_backup_interval)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 IntervalHours.forEach { h ->
                     GlassChip(intervalLabel(h), selected = interval == h, onClick = {
@@ -144,7 +146,7 @@ internal fun GlassBackupCard() {
                 }
             }
         }
-        BackupRow("folder", stringResource(MR.strings.pref_storage_location)) {
+        BackupRow(narrow, "folder", stringResource(MR.strings.pref_storage_location)) {
             Text(location, Modifier.weight(1f, fill = false), color = Glass.secondary, fontSize = Glass.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Pill(stringResource(MR.strings.glass_backup_change), {
                 try {
@@ -156,7 +158,7 @@ internal fun GlassBackupCard() {
         }
         // only when the app has sync set up
         if (syncService != 0) {
-            BackupRow("restore", stringResource(MR.strings.glass_backup_sync)) {
+            BackupRow(narrow, "restore", stringResource(MR.strings.glass_backup_sync)) {
                 if (lastSync > 0L) {
                     Text(
                         stringResource(SYMR.strings.last_synchronization, relativeTimeSpanString(lastSync)),
@@ -172,6 +174,7 @@ internal fun GlassBackupCard() {
                 }, small = true)
             }
         }
+    }
     }
 }
 
@@ -189,8 +192,8 @@ private fun intervalLabel(hours: Int): String = stringResource(
 /** Icon + label on the left, [content] on the right, in a 56dp hairline row. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BackupRow(icon: String, label: String, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
-    if (LocalConfiguration.current.screenWidthDp < 600) {
+private fun BackupRow(narrow: Boolean, icon: String, label: String, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    if (narrow) {
         // narrow: the label on top, the controls under it, so a wrapping chip row cannot squeeze the label
         Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
