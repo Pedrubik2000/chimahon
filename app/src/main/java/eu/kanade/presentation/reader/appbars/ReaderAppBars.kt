@@ -110,6 +110,8 @@ fun ReaderAppBars(
     mokuroAvailable: Boolean = false,
     onToggleOcr: (() -> Unit)? = null,
     onSelectOcrSource: (ReaderOcrSource) -> Unit = {},
+    /** Glass: the "Auto ▾" half of the OCR pill opens the OCR side panel. */
+    onClickOcrSource: () -> Unit = {},
     // Chimahon <--
     // Chimahon glass (pref glassUi): the A3 controls instead; with it off nothing below changes.
     glass: Boolean = false,
@@ -136,8 +138,8 @@ fun ReaderAppBars(
             currentReadingMode = currentReadingMode, dualPageSplitEnabled = dualPageSplitEnabled,
             doublePages = doublePages, onClickChapterList = onClickChapterList, onClickPageLayout = onClickPageLayout,
             onClickShiftPage = onClickShiftPage, ocrEnabled = ocrEnabled, ocrLoading = ocrLoading,
-            ocrSource = ocrSource, mokuroAvailable = mokuroAvailable, onToggleOcr = onToggleOcr,
-            onSelectOcrSource = onSelectOcrSource, ocrProgress = ocrProgress, pagePanel = pagePanel,
+            ocrSource = ocrSource, onToggleOcr = onToggleOcr,
+            onClickOcrSource = onClickOcrSource, ocrProgress = ocrProgress, pagePanel = pagePanel,
         )
         return
     }

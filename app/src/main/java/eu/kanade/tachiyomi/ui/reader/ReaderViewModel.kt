@@ -431,6 +431,38 @@ class ReaderViewModel @JvmOverloads constructor(
             .map(::ReaderChapter)
     }
 
+    /** Chapters opened from the Glass volume list that [chapterList] (skip-read / skip-filtered) leaves out: one object each. */
+    private val chapterCache = java.util.concurrent.ConcurrentHashMap<Long, ReaderChapter>()
+
+    @Volatile
+    private var fullChapters: List<Chapter>? = null
+
+    /**
+     * Every chapter of the manga in reading order, read from the database now: [chapterList] without the two skip steps
+     * (skip read, skip filtered); excluded scanlators, duplicates and downloaded-only still apply.
+     */
+    private suspend fun loadAllChapters(): List<Chapter> {
+        val manga = manga ?: return emptyList()
+        val merged = manga.source == MERGED_SOURCE_ID
+        val mangaMap = if (merged) state.value.mergedManga else null
+        val chapters = if (merged) {
+            getMergedChaptersByMangaId.await(manga.id, dedupe = true, applyFilter = true)
+        } else {
+            getChaptersByMangaId.await(manga.id, applyFilter = true)
+        }
+        val selected = chapters.find { it.id == chapterId } ?: chapters.firstOrNull() ?: return emptyList()
+        return chapters
+            .sortedWith(getChapterSort(manga, sortDescending = false))
+            .run { if (readerPreferences.skipDupe().get()) removeDuplicates(selected) else this }
+            .run { if (basePreferences.downloadedOnly().get()) filterDownloaded(manga, mangaMap) else this }
+            .also { fullChapters = it }
+    }
+
+    private suspend fun fullChapterList(): List<Chapter> = fullChapters ?: loadAllChapters()
+
+    private fun resolveChapter(chapter: Chapter): ReaderChapter =
+        resolveCached(chapter.id, chapterList, { it.chapter.id }, chapterCache) { ReaderChapter(chapter) }
+
     val incognitoMode: Boolean by lazy { getIncognitoState.await(manga?.source) }
     private val downloadAheadAmount = downloadPreferences.autoDownloadWhileReading().get()
 
@@ -610,6 +642,32 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     // SY -->
+    /**
+     * The Glass volume list, read fresh each time it opens: every chapter (read ones too) with the live read / bookmark /
+     * page of the chapters the reader holds, and the ids that are on the device. Call on IO.
+     */
+    suspend fun getAllChapters(): Pair<List<ReaderChapterItem>, Set<Long>> = withIOContext {
+        val manga = manga ?: return@withIOContext emptyList<ReaderChapterItem>() to emptySet()
+        val mangaList = state.value.mergedManga?.takeIf { it.isNotEmpty() } ?: mapOf(manga.id to manga)
+        val currentId = getCurrentChapter()?.chapter?.id
+        val live = (chapterList + chapterCache.values).associateBy { it.chapter.id }
+        val items = loadAllChapters().map { c ->
+            val l = live[c.id]?.chapter
+            ReaderChapterItem(
+                chapter = if (l != null) c.copy(read = l.read, bookmark = l.bookmark, lastPageRead = l.last_page_read.toLong()) else c,
+                manga = mangaList[c.mangaId] ?: manga,
+                isCurrent = c.id == currentId,
+                dateFormat = UiPreferences.dateFormat(uiPreferences.dateFormat().get()),
+            )
+        }
+        val tablet = items.filter {
+            it.manga.isLocal() || downloadManager.isChapterDownloaded(
+                it.chapter.name, it.chapter.scanlator, it.chapter.url, it.manga.ogTitle, it.manga.source,
+            )
+        }.mapTo(hashSetOf()) { it.chapter.id }
+        items to tablet
+    }
+
     fun getChapters(): List<ReaderChapterItem> {
         // KMK -->
         val manga = manga ?: return emptyList()
@@ -645,11 +703,18 @@ class ReaderViewModel @JvmOverloads constructor(
         loader.loadChapter(chapter /* SY --> */, page/* SY <-- */)
 
         val chapterPos = chapterList.indexOf(chapter)
-        val newChapters = ViewerChapters(
-            chapter,
-            chapterList.getOrNull(chapterPos - 1),
-            chapterList.getOrNull(chapterPos + 1),
-        )
+        val newChapters = if (chapterPos >= 0) {
+            ViewerChapters(chapter, chapterList.getOrNull(chapterPos - 1), chapterList.getOrNull(chapterPos + 1))
+        } else {
+            // not in the reader's list (skipped read / filtered volume): its neighbours come from the full list
+            val all = fullChapterList()
+            val at = all.indexOfFirst { it.id == chapter.chapter.id }
+            ViewerChapters(
+                chapter,
+                all.getOrNull(at - 1)?.takeIf { at > 0 }?.let(::resolveChapter),
+                all.getOrNull(at + 1)?.takeIf { at >= 0 }?.let(::resolveChapter),
+            )
+        }
 
         withUIContext {
             mutableState.update {
@@ -700,7 +765,10 @@ class ReaderViewModel @JvmOverloads constructor(
 
     fun loadNewChapterFromDialog(chapter: Chapter) {
         viewModelScope.launchIO {
-            val newChapter = chapterList.firstOrNull { it.chapter.id == chapter.id } ?: return@launchIO
+            // a volume the reader's skip-read / filters left out of chapterList is loaded from the full list
+            val newChapter = chapterList.firstOrNull { it.chapter.id == chapter.id }
+                ?: fullChapterList().firstOrNull { it.id == chapter.id }?.let(::resolveChapter)
+                ?: return@launchIO
             loadAdjacent(newChapter)
         }
     }
@@ -1110,8 +1178,8 @@ class ReaderViewModel @JvmOverloads constructor(
 
     // SY -->
     fun toggleBookmark(chapterId: Long, bookmarked: Boolean) {
-        val chapter = chapterList.find { it.chapter.id == chapterId }?.chapter ?: return
-        chapter.bookmark = bookmarked
+        // a volume opened from the Glass list may not be in chapterList: the database write still happens
+        (chapterList.find { it.chapter.id == chapterId } ?: chapterCache[chapterId])?.chapter?.bookmark = bookmarked
         viewModelScope.launchNonCancellable {
             updateChapter.await(
                 ChapterUpdate(
@@ -1254,7 +1322,12 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(dialog = Dialog.ChapterList) }
     }
 
+    fun openOcrSourceDialog() {
+        mutableState.update { it.copy(dialog = Dialog.OcrSource) }
+    }
+
     fun openMangaStatsSheet() {
+        if (state.value.dialog != null) closeDialog()
         showMangaStats = true
         refreshMangaStatsEstimate()
     }
@@ -1373,8 +1446,8 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(dialog = Dialog.OrientationModeSelect) }
     }
 
-    fun openPageDialog(page: ReaderPage/* SY --> */, extraPage: ReaderPage? = null/* SY <-- */) {
-        mutableState.update { it.copy(dialog = Dialog.PageActions(page, extraPage)) }
+    fun openPageDialog(page: ReaderPage/* SY --> */, extraPage: ReaderPage? = null/* SY <-- */, bubbleText: String? = null) {
+        mutableState.update { it.copy(dialog = Dialog.PageActions(page, extraPage, bubbleText)) }
     }
 
     fun openSettingsDialog() {
@@ -1469,7 +1542,8 @@ class ReaderViewModel @JvmOverloads constructor(
 
     // SY -->
     fun saveImages() {
-        val (firstPage, secondPage) = (state.value.dialog as? Dialog.PageActions ?: return)
+        // The long-press panel puts the pressed page first; stitching needs the spread in reading order.
+        val (firstPage, secondPage) = (state.value.dialog as? Dialog.PageActions ?: return).inSpreadOrder()
         val viewer = state.value.viewer as? PagerViewer ?: return
         val isLTR = (viewer !is R2LPagerViewer) xor (viewer.config.invertDoublePages)
         val bg = viewer.config.pageCanvasColor
@@ -1583,7 +1657,8 @@ class ReaderViewModel @JvmOverloads constructor(
 
     // SY -->
     fun shareImages(copyToClipboard: Boolean) {
-        val (firstPage, secondPage) = (state.value.dialog as? Dialog.PageActions ?: return)
+        // The long-press panel puts the pressed page first; stitching needs the spread in reading order.
+        val (firstPage, secondPage) = (state.value.dialog as? Dialog.PageActions ?: return).inSpreadOrder()
         val viewer = state.value.viewer as? PagerViewer ?: return
         val isLTR = (viewer !is R2LPagerViewer) xor (viewer.config.invertDoublePages)
         val bg = viewer.config.pageCanvasColor
@@ -2648,6 +2723,9 @@ class ReaderViewModel @JvmOverloads constructor(
         data object ReadingModeSelect : Dialog
         data object OrientationModeSelect : Dialog
 
+        /** Glass: the OCR side panel ("Auto ▾" in the top bar). */
+        data object OcrSource : Dialog
+
         // SY -->
         data object ChapterList : Dialog
         // SY <--
@@ -2657,7 +2735,13 @@ class ReaderViewModel @JvmOverloads constructor(
             // SY -->
             val extraPage: ReaderPage? = null,
             // SY <--
-        ) : Dialog
+            /** Glass: the text of the OCR bubble the long-press hit, else null. */
+            val bubbleText: String? = null,
+        ) : Dialog {
+            /** The two pages in reading order (the pressed one may be [page] even when it is the second). */
+            fun inSpreadOrder(): Pair<ReaderPage, ReaderPage?> =
+                if (extraPage != null && extraPage.index < page.index) extraPage to page else page to extraPage
+        }
 
         // SY -->
         data object AutoScrollHelp : Dialog
@@ -2749,15 +2833,22 @@ class ReaderViewModel @JvmOverloads constructor(
             fallbackCharsPerPage = averageCharsPerPage,
         )
 
-        val currentChapterIndex = chapterList.indexOf(currentChapter)
-        val loadedPageCounts = chapterList.mapNotNull { it.pages?.size }.filter { it > 0 }
+        var estimateList: List<ReaderChapter> = chapterList
+        var currentChapterIndex = estimateList.indexOf(currentChapter)
+        if (currentChapterIndex < 0) {
+            // opened from the Glass volume list, not in the reader's list: count the volumes after it in the full list
+            val all = fullChapterList()
+            estimateList = all.map(::resolveChapter)
+            currentChapterIndex = all.indexOfFirst { it.id == currentChapter.chapter.id }
+        }
+        val loadedPageCounts = estimateList.mapNotNull { it.pages?.size }.filter { it > 0 }
         val fallbackPagesPerChapter = when {
             loadedPageCounts.isNotEmpty() -> loadedPageCounts.average()
             currentPages.isNotEmpty() -> currentPages.size.toDouble()
             else -> 0.0
         }
         val remainingFuturePages = if (currentChapterIndex >= 0) {
-            chapterList
+            estimateList
                 .drop(currentChapterIndex + 1)
                 .sumOf { chapter ->
                     chapter.pages?.size?.takeIf { it > 0 }?.toDouble() ?: fallbackPagesPerChapter

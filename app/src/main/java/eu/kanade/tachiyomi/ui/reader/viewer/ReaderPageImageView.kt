@@ -156,6 +156,7 @@ open class ReaderPageImageView @JvmOverloads constructor(
             anchorY: Float,
             anchorWidth: Float,
             anchorHeight: Float,
+            block: OcrTextBlock,
         ) -> Unit
     )? = null
 
@@ -736,6 +737,7 @@ open class ReaderPageImageView @JvmOverloads constructor(
             anchorBounds.top,
             anchorBounds.width(),
             anchorBounds.height(),
+            block,
         )
         return true
     }

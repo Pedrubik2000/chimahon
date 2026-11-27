@@ -27,7 +27,7 @@ object KumapieColours {
     val PACKAGES = listOf("io.github.pedrubik2000.kumapie.mobile", "io.github.pedrubik2000.kumapie.mobile.debug")
 
     // Darker than kumapie's subtitle colours: these draw on the OCR boxes' white background.
-    private val COLOURS = mapOf("u" to 0xFFD32F2F.toInt(), "d" to 0xFF2E7D32.toInt(), "b" to 0xFF1565C0.toInt())
+    val COLOURS = mapOf("u" to 0xFFD32F2F.toInt(), "d" to 0xFF2E7D32.toInt(), "b" to 0xFF1565C0.toInt())
     /** The colours are read again after a minute (cards fall due), as kumapie's provider did. */
     private const val MAX_AGE_MS = 60_000L
 

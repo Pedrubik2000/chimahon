@@ -12,7 +12,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,11 +29,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Share
+
 import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -67,7 +66,6 @@ import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.reader.appbars.ExhUtils
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.components.ChapterNavigator
-import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOcrSource
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
@@ -137,9 +135,8 @@ fun GlassReaderAppBars(
     ocrEnabled: Boolean,
     ocrLoading: Boolean,
     ocrSource: ReaderOcrSource,
-    mokuroAvailable: Boolean,
     onToggleOcr: (() -> Unit)?,
-    onSelectOcrSource: (ReaderOcrSource) -> Unit,
+    onClickOcrSource: () -> Unit,
     ocrProgress: String?,
     pagePanel: (@Composable () -> Unit)?,
 ) {
@@ -201,9 +198,8 @@ fun GlassReaderAppBars(
                     ocrEnabled = ocrEnabled,
                     ocrLoading = ocrLoading,
                     ocrSource = ocrSource,
-                    mokuroAvailable = mokuroAvailable,
                     onToggleOcr = onToggleOcr,
-                    onSelectOcrSource = onSelectOcrSource,
+                    onClickOcrSource = onClickOcrSource,
                     ocrProgress = ocrProgress,
                     tools = { modifier, narrow ->
                         GlassReaderTools(
@@ -292,9 +288,8 @@ private fun GlassReaderHeader(
     ocrEnabled: Boolean,
     ocrLoading: Boolean,
     ocrSource: ReaderOcrSource,
-    mokuroAvailable: Boolean,
     onToggleOcr: (() -> Unit)?,
-    onSelectOcrSource: (ReaderOcrSource) -> Unit,
+    onClickOcrSource: () -> Unit,
     ocrProgress: String?,
     tools: @Composable (Modifier, Boolean) -> Unit,
 ) {
@@ -328,17 +323,18 @@ private fun GlassReaderHeader(
                     Box(Modifier.width(1.dp).height(32.dp).background(Glass.line))
                 }
                 onToggleOcr?.let { toggle ->
-                    var menu by remember { mutableStateOf(false) }
+                    // One pill, two touch targets: "OCR" turns it on or off, "Auto ▾" opens the source panel.
                     val enabled = ocrEnabled || !ocrLoading
                     val ink = if (ocrEnabled) Glass.ice else Color.White
-                    Box {
+                    Row(
+                        Modifier
+                            .height(36.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, if (ocrEnabled) Glass.ice else Glass.line, CircleShape),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Row(
-                            Modifier
-                                .height(36.dp)
-                                .clip(CircleShape)
-                                .border(1.dp, if (ocrEnabled) Glass.ice else Glass.line, CircleShape)
-                                .combinedClickable(enabled = enabled, onClick = toggle, onLongClick = { menu = true })
-                                .padding(horizontal = 14.dp),
+                            Modifier.fillMaxHeight().clickable(enabled = enabled, onClick = toggle).padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
@@ -350,21 +346,12 @@ private fun GlassReaderHeader(
                                 maxLines = 1,
                             )
                         }
-                        GlassReaderTheme {
-                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                ReaderOcrSource.availableSources(BuildConfig.HAS_LOCAL_OCR, mokuroAvailable).forEach { source ->
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(source.label())) },
-                                        onClick = {
-                                            menu = false
-                                            onSelectOcrSource(source)
-                                        },
-                                        trailingIcon = {
-                                            if (source == ocrSource) Icon(Icons.Outlined.Check, contentDescription = null)
-                                        },
-                                    )
-                                }
-                            }
+                        Box(Modifier.width(1.dp).fillMaxHeight().background(Glass.line))
+                        Row(
+                            Modifier.fillMaxHeight().clickable(onClick = onClickOcrSource).padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(stringResource(ocrSource.shortLabel()) + " ▾", color = Color.White, fontSize = 14.sp, maxLines = 1)
                         }
                     }
                 }
@@ -385,7 +372,15 @@ private fun GlassReaderHeader(
 
 /** The mockup's `.ibtn`: 44dp round, page-coloured fill (the outline comes from GlassRoundButton). */
 private val glassRound = Modifier.size(44.dp).background(Glass.page, CircleShape)
-private fun ReaderOcrSource.label() = when (this) {
+/** The pill's word: "Auto", "Lens", "Local", "Mokuro". */
+internal fun ReaderOcrSource.shortLabel() = when (this) {
+    ReaderOcrSource.AUTOMATIC -> MR.strings.glass_ocr_short_auto
+    ReaderOcrSource.MOKURO -> KMR.strings.ocr_source_mokuro
+    ReaderOcrSource.GOOGLE_LENS -> MR.strings.glass_ocr_short_lens
+    ReaderOcrSource.LOCAL -> KMR.strings.ocr_source_local
+}
+
+internal fun ReaderOcrSource.label() = when (this) {
     ReaderOcrSource.AUTOMATIC -> KMR.strings.ocr_source_automatic
     ReaderOcrSource.MOKURO -> KMR.strings.ocr_source_mokuro
     ReaderOcrSource.GOOGLE_LENS -> KMR.strings.ocr_source_google_lens

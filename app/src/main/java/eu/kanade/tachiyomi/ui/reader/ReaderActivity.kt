@@ -103,6 +103,8 @@ import eu.kanade.presentation.reader.ReaderPageIndicator
 import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
+import eu.kanade.presentation.reader.glass.GlassOcrPanel
+import eu.kanade.presentation.reader.glass.GlassStatsPanel
 import eu.kanade.presentation.reader.glass.GlassPageIndicator
 import eu.kanade.presentation.reader.glass.GlassPageMenu
 import eu.kanade.presentation.reader.glass.GlassReaderSettingsPanel
@@ -140,6 +142,8 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
 import eu.kanade.tachiyomi.ui.reader.viewer.OcrLookupPopup
+import eu.kanade.tachiyomi.ui.reader.viewer.extractOcrLookupString
+import eu.kanade.tachiyomi.ui.reader.viewer.isLookupStartChar
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderPageImageView
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderProgressIndicator
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerConfig
@@ -558,7 +562,17 @@ class ReaderActivity : BaseActivity() {
                 }
             }
 
-            if (viewModel.showMangaStats) {
+            if (viewModel.showMangaStats && glassUi) {
+                GlassStatsPanel(
+                    mangaId = viewModel.manga!!.id,
+                    sessionCharacters = viewModel.mangaStatsSessionCharacters,
+                    sessionTimeMs = viewModel.mangaStatsSessionTimeMs,
+                    estimate = viewModel.mangaStatsEstimate,
+                    isTracking = viewModel.mangaStatsTracking,
+                    onToggleTracking = viewModel::toggleMangaStatsTracking,
+                    onClose = viewModel::closeMangaStatsSheet,
+                )
+            } else if (viewModel.showMangaStats) {
                 MangaStatsSheet(
                     context = context,
                     mangaId = viewModel.manga!!.id,
@@ -584,6 +598,8 @@ class ReaderActivity : BaseActivity() {
             // KMK <--
 
             val onDismissRequest = viewModel::closeDialog
+            // panels never stack: any dialog closes the Glass statistics panel (and opening it closes the dialog, see the view model)
+            LaunchedEffect(state.dialog) { if (state.dialog != null && state.dialog !is ReaderViewModel.Dialog.Loading) viewModel.closeMangaStatsSheet() }
             when (state.dialog) {
                 is ReaderViewModel.Dialog.Loading -> {
                     AlertDialog(
@@ -656,6 +672,19 @@ class ReaderActivity : BaseActivity() {
                     )
                 }
 
+                ReaderViewModel.Dialog.OcrSource -> if (glassUi) {
+                    val ocrOn by readerPreferences.ocrOverlayEnabled().collectAsState()
+                    GlassOcrPanel(
+                        ocrEnabled = ocrOn && viewModel.isOcrAllowedForCurrentManga(),
+                        ocrLoading = state.ocrScanProgress != null,
+                        onToggleOcr = { toggleOcrFromReader("panel") },
+                        selected = state.ocrSource,
+                        mokuroAvailable = state.mokuroAvailable,
+                        onSelectSource = ::selectOcrSourceFromReader,
+                        onClose = onDismissRequest,
+                    )
+                }
+
                 is ReaderViewModel.Dialog.PageActions -> {
                     val onSave: (Boolean) -> Unit = { extra ->
                         // KMK -->
@@ -676,11 +705,17 @@ class ReaderActivity : BaseActivity() {
                         }
                     }
                     val pageDialog = state.dialog as ReaderViewModel.Dialog.PageActions
+                    // the bubble's highlight on the page goes whenever this panel leaves (closed, or another dialog took its place)
+                    androidx.compose.runtime.DisposableEffect(pageDialog.bubbleText != null) {
+                        onDispose { if (pageDialog.bubbleText != null) clearActiveOcrBlock() }
+                    }
                     if (glassUi) {
                         GlassPageMenu(
                             page = pageDialog.page,
                             extraPage = pageDialog.extraPage,
+                            bubbleText = pageDialog.bubbleText,
                             onClose = onDismissRequest,
+                            onLookupWord = { text, offset, anchor -> lookupBubbleWord(text, offset, anchor, pageDialog.page) },
                             onSetAsCover = viewModel::setAsCover,
                             onShare = viewModel::shareImage,
                             onSave = onSave,
@@ -702,8 +737,26 @@ class ReaderActivity : BaseActivity() {
                 }
 
                 is ReaderViewModel.Dialog.ChapterList -> {
+                    // glass: every volume of the series (read ones too), read from the database off the main thread each time
+                    // the panel opens; classic: the reader's own list
                     var chapters by remember {
-                        mutableStateOf(viewModel.getChapters().toImmutableList())
+                        mutableStateOf(
+                            if (glassUi) {
+                                emptyList<eu.kanade.tachiyomi.ui.reader.chapter.ReaderChapterItem>().toImmutableList()
+                            } else {
+                                viewModel.getChapters().toImmutableList()
+                            },
+                        )
+                    }
+                    var onTablet by remember { mutableStateOf(emptySet<Long>()) }
+                    var volumesLoaded by remember { mutableStateOf(!glassUi) }
+                    if (glassUi) {
+                        LaunchedEffect(Unit) {
+                            val (items, ids) = viewModel.getAllChapters()
+                            chapters = items.toImmutableList()
+                            onTablet = ids
+                            volumesLoaded = true
+                        }
                     }
                     val onClickChapter: (tachiyomi.domain.chapter.model.Chapter) -> Unit = {
                         viewModel.loadNewChapterFromDialog(it)
@@ -720,13 +773,15 @@ class ReaderActivity : BaseActivity() {
                         }.toImmutableList()
                     }
                     if (glassUi) {
-                        GlassVolumeList(
+                        if (volumesLoaded) GlassVolumeList(
                             chapters = chapters,
+                            tablet = onTablet,
                             currentPage = state.currentPageText,
+                            totalPages = state.currentChapter?.pages?.size ?: 0,
                             onClose = onDismissRequest,
                             onClickChapter = onClickChapter,
                             onBookmark = onBookmark,
-                        )
+                        ) else BackHandler(onBack = onDismissRequest) // still loading: back closes it, not the reader
                     } else ChapterListDialog(
                         onDismissRequest = onDismissRequest,
                         screenModel = settingsScreenModel,
@@ -943,9 +998,14 @@ class ReaderActivity : BaseActivity() {
                     }
                 }
                 if (viewer.onShowOcrSelectionPanel == null) {
-                    viewer.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight ->
+                    viewer.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight, onPage, otherPage ->
                         runOnUiThread {
                             ocrPopupVisible = false
+                            // glass: one long-press panel (bubble text + page actions)
+                            if (Injekt.get<UiPreferences>().glassUi().get()) {
+                                viewModel.openPageDialog(onPage, otherPage, text)
+                                return@runOnUiThread
+                            }
                             ocrSelectionPanelState = OcrSelectionPanelState(
                                 text = text,
                                 anchorX = anchorX,
@@ -1008,9 +1068,14 @@ class ReaderActivity : BaseActivity() {
                     }
                 }
                 if (viewer.onShowOcrSelectionPanel == null) {
-                    viewer.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight ->
+                    viewer.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight, onPage, otherPage ->
                         runOnUiThread {
                             ocrPopupVisible = false
+                            // glass: one long-press panel (bubble text + page actions)
+                            if (Injekt.get<UiPreferences>().glassUi().get()) {
+                                viewModel.openPageDialog(onPage, otherPage, text)
+                                return@runOnUiThread
+                            }
                             ocrSelectionPanelState = OcrSelectionPanelState(
                                 text = text,
                                 anchorX = anchorX,
@@ -1130,6 +1195,26 @@ class ReaderActivity : BaseActivity() {
                 )
             }
         }
+    }
+
+    /** A word tapped in the Glass long-press panel opens the same lookup popup as a tap on the bubble on the page. */
+    private fun lookupBubbleWord(text: String, offset: Int, anchor: androidx.compose.ui.geometry.Rect, sourcePage: ReaderPage) {
+        if (offset !in text.indices || !isLookupStartChar(text[offset])) return
+        val lookupString = extractOcrLookupString(text, offset)
+        if (lookupString.isBlank()) return
+        val state = viewModel.state.value
+        val mediaInfo = if (state.manga != null && state.currentChapter != null) {
+            chimahon.MediaInfo(mangaTitle = state.manga!!.title, chapterName = state.currentChapter!!.chapter.name)
+        } else {
+            null
+        }
+        ensureOcrResources()
+        ocrPopupState = OcrPopupState(
+            lookupString, text, offset, ocrWebView!!, dictionaryRepository,
+            anchor.left, anchor.top, anchor.width, anchor.height,
+            false, getOrRefreshLookupPaths().first, mediaInfo, sourcePage, null,
+        )
+        ocrPopupVisible = true
     }
 
     private fun dismissOcrSelectionPanel() {
@@ -1576,6 +1661,7 @@ class ReaderActivity : BaseActivity() {
             mokuroAvailable = viewModel.isMokuroAvailable(),
             onToggleOcr = { toggleOcrFromReader("button") },
             onSelectOcrSource = ::selectOcrSourceFromReader,
+            onClickOcrSource = viewModel::openOcrSourceDialog,
             onClickSettings = viewModel::openSettingsDialog,
             onClickMangaStats = viewModel::openMangaStatsSheet,
             // SY -->
@@ -2065,8 +2151,21 @@ class ReaderActivity : BaseActivity() {
             is ReaderViewModel.Dialog.Settings,
             is ReaderViewModel.Dialog.ReadingModeSelect,
             is ReaderViewModel.Dialog.OrientationModeSelect,
-            -> { viewModel.closeDialog(); setMenuVisibility(true); return }
+            is ReaderViewModel.Dialog.OcrSource,
+            is ReaderViewModel.Dialog.PageActions,
+            is ReaderViewModel.Dialog.ChapterList,
+            -> {
+                viewModel.closeDialog()
+                setMenuVisibility(true)
+                return
+            }
             else -> {}
+        }
+        // the Glass statistics panel is not modal either
+        if (viewModel.showMangaStats && Injekt.get<UiPreferences>().glassUi().get()) {
+            viewModel.closeMangaStatsSheet()
+            setMenuVisibility(true)
+            return
         }
         setMenuVisibility(!viewModel.state.value.menuVisible)
     }

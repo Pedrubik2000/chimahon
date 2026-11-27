@@ -24,4 +24,20 @@ class GlassVolumeListTest {
     fun `on-tablet is only asked for the on-tablet filter`() {
         all.filterVolumes(VolumeFilter.Unread, { it }) { error("disk hit") }
     }
+
+    @Test
+    fun `counts match the filters`() {
+        val counts = all.volumeCounts({ it }) { it.id % 2 == 1L }
+        counts[VolumeFilter.All] shouldBe 4
+        counts[VolumeFilter.OnTablet] shouldBe 2
+        counts[VolumeFilter.Unread] shouldBe 2
+        counts[VolumeFilter.Bookmarks] shouldBe 2
+    }
+
+    @Test
+    fun `volume number is the chapter number, else its place`() {
+        volumeNumber(ch(1).copy(chapterNumber = 4.0), 9) shouldBe "04"
+        volumeNumber(ch(1).copy(chapterNumber = 10.5), 9) shouldBe "10.5"
+        volumeNumber(ch(1).copy(chapterNumber = -1.0), 2) shouldBe "03"
+    }
 }

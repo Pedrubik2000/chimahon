@@ -117,8 +117,12 @@ class PagerPageHolder(
             val sourcePage = block?.let { getPageForBlock(it) } ?: page
             viewer.onShowOcrPopup?.invoke(lookupString, fullText, charOffset, anchorX, anchorY, anchorWidth, anchorHeight, isVertical, mediaInfo, sourcePage)
         }
-        onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight ->
-            viewer.onShowOcrSelectionPanel?.invoke(text, anchorX, anchorY, anchorWidth, anchorHeight)
+        onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight, block ->
+            val onPage = getPageForBlock(block)
+            viewer.onShowOcrSelectionPanel?.invoke(
+                text, anchorX, anchorY, anchorWidth, anchorHeight,
+                onPage, if (onPage === page) extraPage else page,
+            )
         }
         onDismissOcrPopup = {
             viewer.onDismissOcrPopup?.invoke()

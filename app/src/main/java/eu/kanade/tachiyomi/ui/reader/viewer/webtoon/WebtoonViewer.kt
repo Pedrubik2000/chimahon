@@ -77,6 +77,9 @@ class WebtoonViewer(
             anchorY: Float,
             anchorWidth: Float,
             anchorHeight: Float,
+            /** the page the pressed bubble is on, and the other page of a two-page spread (else null) */
+            page: ReaderPage,
+            extraPage: ReaderPage?,
         ) -> Unit
     )? = null
 

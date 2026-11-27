@@ -50,7 +50,8 @@ private val PanelGap = 12.dp
 /** Header height: one row on a tablet, plus the tools row on a phone. */
 private val BarTopWide = 72.dp
 private val BarTopNarrow = 124.dp
-private val BarBottom = 136.dp
+// the two-line page bar is ~90 dp (28 + 48 + paddings, border, 4 dp gap) above the navigation bar; 8 dp clear of it
+private val BarBottom = 98.dp
 
 /**
  * A tall Glass panel on one side, between the top bar and the bottom page bar. It overlays the page: the viewer is never resized (a

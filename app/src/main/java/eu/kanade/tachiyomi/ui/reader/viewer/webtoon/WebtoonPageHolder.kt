@@ -105,8 +105,8 @@ class WebtoonPageHolder(
         frame.onShowOcrPopup = { lookupString, fullText, charOffset, anchorX, anchorY, anchorWidth, anchorHeight, isVertical, mediaInfo, _ ->
             viewer.onShowOcrPopup?.invoke(lookupString, fullText, charOffset, anchorX, anchorY, anchorWidth, anchorHeight, isVertical, mediaInfo, page)
         }
-        frame.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight ->
-            viewer.onShowOcrSelectionPanel?.invoke(text, anchorX, anchorY, anchorWidth, anchorHeight)
+        frame.onShowOcrSelectionPanel = { text, anchorX, anchorY, anchorWidth, anchorHeight, _ ->
+            page?.let { viewer.onShowOcrSelectionPanel?.invoke(text, anchorX, anchorY, anchorWidth, anchorHeight, it, null) }
         }
         frame.onDismissOcrPopup = {
             viewer.onDismissOcrPopup?.invoke()

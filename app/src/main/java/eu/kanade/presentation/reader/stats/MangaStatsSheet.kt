@@ -192,7 +192,7 @@ private fun StatRow(label: String, value: String) {
     }
 }
 
-private fun formatDuration(totalSeconds: Long): String {
+internal fun formatDuration(totalSeconds: Long): String {
     val s = totalSeconds % 60
     val m = (totalSeconds / 60) % 60
     val h = totalSeconds / 3600
@@ -203,12 +203,12 @@ private fun formatDuration(totalSeconds: Long): String {
     }
 }
 
-private fun sessionSpeed(chars: Int, timeMs: Long): Int {
+internal fun sessionSpeed(chars: Int, timeMs: Long): Int {
     if (timeMs <= 0) return 0
     return (chars.toDouble() / (timeMs / 3600000.0)).toInt()
 }
 
-private fun formatDurationSeconds(seconds: Double): String {
+internal fun formatDurationSeconds(seconds: Double): String {
     val totalSeconds = max(seconds.toLong(), 0L)
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
