@@ -274,7 +274,7 @@ class PagerViewerAdapter(
             val subJoinedItems = mutableListOf<Pair<ReaderItem, ReaderItem?>>()
 
             // Step 2: run through each set of pages
-            pagedItems.forEach { items ->
+            pagedItems.forEachIndexed { segment, items ->
                 items.forEach { it?.shiftedPage = false }
 
                 // Step 3: If pages have been shifted,
@@ -333,7 +333,9 @@ class PagerViewerAdapter(
                     subJoinedItems.addAll(items.chunked(2).map { Pair(it.first()!!, it.getOrNull(1)) })
                 }
 
-                otherItems.getOrNull(pagedItems.indexOf(items))?.let {
+                // by position, not indexOf: two empty segments are equal lists, so the empty one after the last
+                // transition found the first transition again and added a second "Previous" after "no next chapter"
+                otherItems.getOrNull(segment)?.let {
                     subJoinedItems.add(Pair(it, null))
                 }
             }
