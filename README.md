@@ -35,6 +35,7 @@ The new screens are made for tablets, and phones get their own narrow version (S
 - **Home** is your AniList *Reading* and *Plan to read* lists, with "Continue reading" on top.
 - **Library** is the whole list. Filter by list, genre, tag or length, or by what is on the tablet. Each cover shows how many volumes you have.
 - Progress goes back to AniList by volume as you finish them.
+- A **Covers | History** switch on Home shows what you read last, with Resume on each row. Series you are caught up on go to the end of *Reading*.
 
 ## 🧭 Discover
 
@@ -77,6 +78,17 @@ Three ways to find what to read next, based on what you finished:
 - Dates come from the Japanese publishers' catalogue ([books.or.jp](https://www.books.or.jp)), the National Diet Library and Kodansha's calendar; the sources' coverage says when a volume can be fetched. It checks every day around 09:00 on Wi-Fi, or when you tap *Check now*.
 - **Notifications**: *out today*, *on &lt;source&gt;* with a Fetch button, and date changes (quietly).
 - **Auto-fetch** (per title, on by default when you are up to date): the next volume is fetched by itself on Wi-Fi, with more than 5 GB free, at most 3 a day. After 3 failed tries it goes to *Needs attention*.
+
+## 📖 Reader, statistics and backup
+
+<p align="center">
+  <img src="./.github/readme-images/glass/reader.jpg" alt="Reader: the top bar with volume, page layout and OCR, and the page bar at the bottom" width="49%" />
+  <img src="./.github/readme-images/glass/settings-backup.jpg" alt="Settings: backup and restore at the top of Library and storage" width="49%" />
+</p>
+
+- **Reader**: a top bar (volume, single / double pages, OCR, page bookmark) and a slim page bar that says where you are. Settings, statistics, volumes and the long-press menu open in a side panel.
+- **Stats** on the tablet rail: reading time, characters read, speed, streak and cards mined, by day, week, month, year or all time.
+- **Backup** in Settings › Library and storage: back up now, restore, how often and where.
 
 ## 📱 Phones, torrents and downloads by hand
 
