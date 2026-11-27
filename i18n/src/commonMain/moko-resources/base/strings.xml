@@ -825,7 +825,7 @@
     <string name="glass_reader_mine">Mine</string>
     <string name="glass_reader_no_entry">No dictionary entry for %1$s</string>
     <!-- Glass reader side panels: settings, page menu, volume list -->
-    <string name="glass_rset_title">Reader</string>
+    <string name="glass_rset_title">Reader settings</string>
     <string name="glass_rset_scope">This series</string>
     <string name="glass_rset_page">Page %1$d</string>
     <string name="glass_rset_p">p. %1$d</string>
@@ -844,6 +844,19 @@
     <string name="glass_rset_sec_filters">Filters</string>
     <string name="glass_rset_sec_ocr">OCR</string>
     <string name="glass_rset_sec_more">More</string>
+    <string name="glass_rset_subline">This series + all books</string>
+    <string name="glass_rset_tab_reading">Reading</string>
+    <string name="glass_rset_sub_strip">Long strip</string>
+    <string name="glass_rset_sub_turning">Turning pages</string>
+    <string name="glass_rset_sub_general">General</string>
+    <string name="glass_rset_sub_pagebar">Page bar</string>
+    <string name="glass_rset_single">Single</string>
+    <string name="glass_rset_double">Double</string>
+    <string name="glass_rset_auto">Auto</string>
+    <string name="glass_rset_auto_note">Auto = double in landscape, single in portrait</string>
+    <string name="glass_rset_legend_next">next page</string>
+    <string name="glass_rset_legend_prev">previous</string>
+    <string name="glass_rset_legend_bars">bars</string>
     <!-- Glass reader panels: statistics, OCR source, volumes, long-press -->
     <string name="glass_stats_session">This session</string>
     <string name="glass_stats_chars_read">characters read</string>

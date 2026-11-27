@@ -625,7 +625,7 @@ class ReaderActivity : BaseActivity() {
                 is ReaderViewModel.Dialog.Settings -> if (glassUi) {
                     GlassReaderSettingsPanel(
                         screenModel = settingsScreenModel,
-                        initial = GlassSettingsSection.Mode,
+                        initial = GlassSettingsSection.Reading,
                         onClose = { onDismissRequest(); setMenuVisibility(true) },
                         onShowMenus = { setMenuVisibility(true) },
                         onHideMenus = { setMenuVisibility(false) },
@@ -647,7 +647,7 @@ class ReaderActivity : BaseActivity() {
                     // glass: the mode and orientation pickers are the settings panel at its Mode section
                     GlassReaderSettingsPanel(
                         screenModel = settingsScreenModel,
-                        initial = GlassSettingsSection.Mode,
+                        initial = GlassSettingsSection.Reading,
                         onClose = { onDismissRequest(); setMenuVisibility(true) },
                         onShowMenus = { setMenuVisibility(true) },
                         onHideMenus = { setMenuVisibility(false) },

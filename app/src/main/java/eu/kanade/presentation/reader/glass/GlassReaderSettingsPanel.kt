@@ -39,8 +39,8 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
 
-/** The sections of the Glass settings panel (A: the tabs of the classic dialog, with OCR pulled out of General). */
-enum class GlassSettingsSection { Mode, Page, Display, Taps, Filters, Ocr, More }
+/** The four tabs of the Glass settings panel (mockup A: Four tabs). */
+enum class GlassSettingsSection { Reading, Display, Taps, Ocr }
 
 /** What the top bar's old "more" menu held, now at the end of the settings: auto-scroll (More) and the web view / browser / share row. */
 class GlassSettingsExtras(
@@ -102,7 +102,7 @@ internal fun GlassPanelTitle(title: String, onClose: () -> Unit, trailing: @Comp
     }
 }
 
-/** The Glass settings panel (mockup A): serif title, section chips, then the Glass rows of the section. Filters hides the menus, like the classic tab. */
+/** The Glass settings panel (mockup A, four tabs): serif title, one row of four tabs, then the rows of the tab. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GlassReaderSettingsPanel(
@@ -114,32 +114,19 @@ fun GlassReaderSettingsPanel(
     extras: GlassSettingsExtras = GlassSettingsExtras(),
 ) {
     var section by remember { mutableStateOf(initial) }
-    LaunchedEffect(section) { if (section == GlassSettingsSection.Filters) onHideMenus() else onShowMenus() }
+    // The bars stay on every tab (Filters too): the page beside the panel changes live.
+    LaunchedEffect(Unit) { onShowMenus() }
 
     GlassSidePanel(onLeft = false, onClose = onClose) {
-        GlassPanelTitle(stringResource(MR.strings.glass_rset_title), onClose) {
-            Text(stringResource(MR.strings.glass_rset_scope), color = Glass.secondary, fontSize = Glass.body)
-        }
-        FlowRow(Modifier.padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            GlassSettingsSection.entries.forEach {
-                GlassChip(stringResource(it.label()), selected = it == section, onClick = { section = it })
-            }
-        }
+        GlassPanelTitle(stringResource(MR.strings.glass_rset_title), onClose)
+        Text(stringResource(MR.strings.glass_rset_subline), Modifier.padding(bottom = 10.dp), color = Glass.secondary, fontSize = Glass.caption)
+        GlassSegmented(GlassSettingsSection.entries.map { stringResource(it.label()) to it }, section) { section = it }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             when (section) {
-                GlassSettingsSection.Mode -> GlassModeSection(screenModel)
-                GlassSettingsSection.Page -> GlassPageSection(screenModel)
+                GlassSettingsSection.Reading -> GlassReadingSection(screenModel, extras, onClose)
                 GlassSettingsSection.Display -> GlassDisplaySection(screenModel)
                 GlassSettingsSection.Taps -> GlassTapsSection(screenModel)
-                GlassSettingsSection.Filters -> GlassFiltersSection(screenModel)
                 GlassSettingsSection.Ocr -> GlassOcrSection(screenModel)
-                GlassSettingsSection.More -> {
-                    GlassMoreSection(screenModel)
-                    extras.onAutoScroll?.let {
-                        GlassDivider()
-                        GlassChip(stringResource(MR.strings.glass_settings_auto_scroll), selected = false, onClick = { onClose(); it() }, leading = "play")
-                    }
-                }
             }
         }
         if (extras.onWebView != null || extras.onBrowser != null || extras.onShare != null) {
@@ -154,11 +141,8 @@ fun GlassReaderSettingsPanel(
 }
 
 private fun GlassSettingsSection.label() = when (this) {
-    GlassSettingsSection.Mode -> MR.strings.glass_rset_sec_mode
-    GlassSettingsSection.Page -> MR.strings.glass_rset_sec_page
+    GlassSettingsSection.Reading -> MR.strings.glass_rset_tab_reading
     GlassSettingsSection.Display -> MR.strings.glass_rset_sec_display
     GlassSettingsSection.Taps -> MR.strings.glass_rset_sec_taps
-    GlassSettingsSection.Filters -> MR.strings.glass_rset_sec_filters
     GlassSettingsSection.Ocr -> MR.strings.glass_rset_sec_ocr
-    GlassSettingsSection.More -> MR.strings.glass_rset_sec_more
 }

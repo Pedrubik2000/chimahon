@@ -1,7 +1,38 @@
 package eu.kanade.presentation.reader.glass
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import eu.kanade.presentation.glass.Glass
+import eu.kanade.presentation.glass.GlassChip
+import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation
+import eu.kanade.tachiyomi.ui.reader.viewer.navigation.DisabledNavigation
+import eu.kanade.tachiyomi.ui.reader.viewer.navigation.EdgeNavigation
+import eu.kanade.tachiyomi.ui.reader.viewer.navigation.KindlishNavigation
+import eu.kanade.tachiyomi.ui.reader.viewer.navigation.LNavigation
+import eu.kanade.tachiyomi.ui.reader.viewer.navigation.RightAndLeftNavigation
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,6 +48,8 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderOrientation
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderSettingsScreenModel
 import eu.kanade.tachiyomi.ui.reader.setting.ReadingMode
+import eu.kanade.tachiyomi.ui.reader.viewer.pager.R2LPagerViewer
+import eu.kanade.tachiyomi.ui.reader.viewer.pager.VerticalPagerViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import eu.kanade.tachiyomi.util.system.hasDisplayCutout
 import tachiyomi.core.common.preference.getAndSet
@@ -37,21 +70,63 @@ private fun isWebtoon(screenModel: ReaderSettingsScreenModel): Boolean {
     return viewer is WebtoonViewer
 }
 
-/** Reading mode tiles, orientation, page layout, centre margin. */
+/** The small ice "This series" tag of the two per-series settings. */
 @Composable
-internal fun GlassModeSection(screenModel: ReaderSettingsScreenModel) {
+private fun SeriesTag() {
+    Text(
+        stringResource(MR.strings.glass_rset_scope),
+        Modifier.clip(CircleShape).border(1.dp, Glass.ice, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp),
+        color = Glass.ice,
+        fontSize = 11.sp,
+        maxLines = 1,
+    )
+}
+
+/** The three rarer groups of Reading. */
+internal enum class ReadingSub { Page, Strip, Turning }
+
+/** Sub-chips of a tab (one wrapping row): [labels] in order, the [selected] one white. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SubChips(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    FlowRow(Modifier.padding(top = 14.dp, bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        labels.forEachIndexed { i, label -> GlassChip(label, selected = i == selected, onClick = { onSelect(i) }) }
+    }
+}
+
+/**
+ * Reading (mockup A): the per-series box (reading mode + orientation), the page layout switch, centre margin, then the rarer
+ * rows behind Page / Long strip / Turning pages.
+ */
+@Composable
+internal fun GlassReadingSection(screenModel: ReaderSettingsScreenModel, extras: GlassSettingsExtras, onClose: () -> Unit) {
     val manga by screenModel.mangaFlow.collectAsState()
     val prefs = screenModel.preferences
+    val webtoon = isWebtoon(screenModel)
     val readingMode = remember(manga) { ReadingMode.fromPreference(manga?.readingMode?.toInt()) }
-    GlassCap(stringResource(MR.strings.pref_category_reading_mode) + " · " + stringResource(MR.strings.glass_rset_scope), Modifier.fillMaxWidth())
-    GlassModeTiles(readingMode, { screenModel.onChangeReadingMode(it) }) { stringResource(it.stringRes) }
+    val orientation = remember(manga) { ReaderOrientation.fromPreference(manga?.readerOrientation?.toInt()) }
+    val box = RoundedCornerShape(Glass.r12)
+    Column(Modifier.fillMaxWidth().padding(top = 4.dp).border(1.dp, Glass.ice.copy(alpha = 0.6f), box).padding(horizontal = 10.dp, vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            GlassCap(stringResource(MR.strings.pref_category_reading_mode), Modifier.weight(1f))
+            SeriesTag()
+        }
+        GlassModeTiles(readingMode, { screenModel.onChangeReadingMode(it) }) { stringResource(it.stringRes) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            GlassCap(stringResource(MR.strings.rotation_type), Modifier.weight(1f))
+            SeriesTag()
+        }
+        GlassPills(ReaderOrientation.entries.map { stringResource(it.stringRes) to it }, orientation) { screenModel.onChangeOrientation(it) }
+        Box(Modifier.padding(bottom = 6.dp))
+    }
 
-    if (!isWebtoon(screenModel)) {
+    if (!webtoon) {
         GlassCap(stringResource(SYMR.strings.page_layout))
         GlassPrefSegmented(
             prefs.pageLayout(),
-            ReaderPreferences.PageLayouts.mapIndexed { i, r -> stringResource(r) to i },
+            listOf(MR.strings.glass_rset_single, MR.strings.glass_rset_double, MR.strings.glass_rset_auto).mapIndexed { i, r -> stringResource(r) to i },
         )
+        Text(stringResource(MR.strings.glass_rset_auto_note), Modifier.padding(top = 6.dp), color = Glass.secondary, fontSize = Glass.caption)
         GlassCap(stringResource(SYMR.strings.pref_center_margin))
         GlassPrefPills(
             prefs.centerMarginType(),
@@ -59,57 +134,68 @@ internal fun GlassModeSection(screenModel: ReaderSettingsScreenModel) {
         )
     }
 
-    val orientation = remember(manga) { ReaderOrientation.fromPreference(manga?.readerOrientation?.toInt()) }
-    GlassCap(stringResource(MR.strings.rotation_type) + " · " + stringResource(MR.strings.glass_rset_scope))
-    GlassPills(ReaderOrientation.entries.map { stringResource(it.stringRes) to it }, orientation) { screenModel.onChangeOrientation(it) }
+    var sub by remember { mutableStateOf(if (webtoon) ReadingSub.Strip else ReadingSub.Page) }
+    SubChips(
+        listOf(MR.strings.glass_rset_sec_page, MR.strings.glass_rset_sub_strip, MR.strings.glass_rset_sub_turning).map { stringResource(it) },
+        sub.ordinal,
+    ) { sub = ReadingSub.entries[it] }
+    when (sub) {
+        ReadingSub.Page -> GlassPagePagerRows(screenModel)
+        ReadingSub.Strip -> GlassStripRows(screenModel)
+        ReadingSub.Turning -> GlassTurningRows(screenModel, extras, onClose)
+    }
 }
 
-/** Scale, zoom, cropping, double pages: what is shown per page (pager or webtoon settings). */
+/** Reading > Long strip: the webtoon / long-strip settings (padding, scale, crop, split, rotate, auto webtoon). */
 @Composable
-internal fun GlassPageSection(screenModel: ReaderSettingsScreenModel) {
+internal fun GlassStripRows(screenModel: ReaderSettingsScreenModel) {
     val prefs = screenModel.preferences
-    if (isWebtoon(screenModel)) {
-        val manga by screenModel.mangaFlow.collectAsState()
-        val readingMode = remember(manga) { ReadingMode.fromPreference(manga?.readingMode?.toInt()) }
-        val scaleType by prefs.webtoonScaleType().collectAsState()
-        if (readingMode != ReadingMode.CONTINUOUS_VERTICAL || prefs.longStripGapSmartScale().get()) {
-            GlassCap(stringResource(KMR.strings.pref_webtoon_scale_type))
-            GlassPills(ReaderPreferences.WebtoonScaleType.entries.map { stringResource(it.titleRes) to it }, scaleType) { prefs.webtoonScaleType().set(it) }
-        }
-        val padding by prefs.webtoonSidePadding().collectAsState()
-        val percent = remember { NumberFormat.getPercentInstance() }
-        GlassSliderRow(
-            stringResource(MR.strings.pref_webtoon_side_padding), padding,
-            ReaderPreferences.WEBTOON_PADDING_MIN..ReaderPreferences.WEBTOON_PADDING_MAX,
-            percent.format(padding / 100f),
-        ) { prefs.webtoonSidePadding().set(it) }
-        GlassPrefToggle(stringResource(MR.strings.pref_crop_borders), prefs.cropBordersWebtoon())
-        GlassPrefToggle(stringResource(MR.strings.pref_crop_borders) + " (" + stringResource(MR.strings.vertical_plus_viewer) + ")", prefs.cropBordersContinuousVertical())
-        val split by prefs.dualPageSplitWebtoon().collectAsState()
-        GlassPrefToggle(stringResource(MR.strings.pref_dual_page_split), prefs.dualPageSplitWebtoon())
-        if (split) GlassPrefToggle(stringResource(MR.strings.pref_dual_page_invert), prefs.dualPageInvertWebtoon())
-        val rotate by prefs.dualPageRotateToFitWebtoon().collectAsState()
-        GlassPrefToggle(stringResource(MR.strings.pref_page_rotate), prefs.dualPageRotateToFitWebtoon())
-        if (rotate) GlassPrefToggle(stringResource(MR.strings.pref_page_rotate_invert), prefs.dualPageRotateToFitInvertWebtoon())
-    } else {
-        val scale by prefs.imageScaleType().collectAsState()
-        GlassCap(stringResource(MR.strings.pref_image_scale_type))
-        GlassPrefPills(prefs.imageScaleType(), ReaderPreferences.ImageScaleType.mapIndexed { i, r -> stringResource(r) to i + 1 })
-        GlassCap(stringResource(MR.strings.pref_zoom_start))
-        GlassPrefPills(prefs.zoomStart(), ReaderPreferences.ZoomStart.mapIndexed { i, r -> stringResource(r) to i + 1 })
-        GlassPrefToggle(stringResource(MR.strings.pref_crop_borders), prefs.cropBorders())
-        if (scale in ReaderPreferences.zoomWideImagesAllowedList) {
-            GlassPrefToggle(stringResource(MR.strings.pref_landscape_zoom), prefs.landscapeZoom())
-        }
-        GlassPrefToggle(stringResource(MR.strings.pref_navigate_pan), prefs.navigateToPan())
-        val split by prefs.dualPageSplitPaged().collectAsState()
-        GlassPrefToggle(stringResource(MR.strings.pref_dual_page_split), prefs.dualPageSplitPaged())
-        if (split) GlassPrefToggle(stringResource(MR.strings.pref_dual_page_invert), prefs.dualPageInvertPaged())
-        val rotate by prefs.dualPageRotateToFit().collectAsState()
-        GlassPrefToggle(stringResource(MR.strings.pref_page_rotate), prefs.dualPageRotateToFit())
-        if (rotate) GlassPrefToggle(stringResource(MR.strings.pref_page_rotate_invert), prefs.dualPageRotateToFitInvert())
-        GlassPrefToggle(stringResource(SYMR.strings.invert_double_pages), prefs.invertDoublePages())
+    val manga by screenModel.mangaFlow.collectAsState()
+    val readingMode = remember(manga) { ReadingMode.fromPreference(manga?.readingMode?.toInt()) }
+    val scaleType by prefs.webtoonScaleType().collectAsState()
+    if (readingMode != ReadingMode.CONTINUOUS_VERTICAL || prefs.longStripGapSmartScale().get()) {
+        GlassCap(stringResource(KMR.strings.pref_webtoon_scale_type))
+        GlassPills(ReaderPreferences.WebtoonScaleType.entries.map { stringResource(it.titleRes) to it }, scaleType) { prefs.webtoonScaleType().set(it) }
     }
+    val padding by prefs.webtoonSidePadding().collectAsState()
+    val percent = remember { NumberFormat.getPercentInstance() }
+    GlassSliderRow(
+        stringResource(MR.strings.pref_webtoon_side_padding), padding,
+        ReaderPreferences.WEBTOON_PADDING_MIN..ReaderPreferences.WEBTOON_PADDING_MAX,
+        percent.format(padding / 100f),
+    ) { prefs.webtoonSidePadding().set(it) }
+    GlassPrefToggle(stringResource(MR.strings.pref_crop_borders), prefs.cropBordersWebtoon())
+    GlassPrefToggle(stringResource(MR.strings.pref_crop_borders) + " (" + stringResource(MR.strings.vertical_plus_viewer) + ")", prefs.cropBordersContinuousVertical())
+    val split by prefs.dualPageSplitWebtoon().collectAsState()
+    GlassPrefToggle(stringResource(MR.strings.pref_dual_page_split), prefs.dualPageSplitWebtoon())
+    if (split) GlassPrefToggle(stringResource(MR.strings.pref_dual_page_invert), prefs.dualPageInvertWebtoon())
+    val rotate by prefs.dualPageRotateToFitWebtoon().collectAsState()
+    GlassPrefToggle(stringResource(MR.strings.pref_page_rotate), prefs.dualPageRotateToFitWebtoon())
+    if (rotate) GlassPrefToggle(stringResource(MR.strings.pref_page_rotate_invert), prefs.dualPageRotateToFitInvertWebtoon())
+    GlassPrefToggle(stringResource(SYMR.strings.auto_webtoon_mode), prefs.useAutoWebtoon())
+}
+
+/** Reading > Page: scale, zoom start, crop, landscape zoom, pan, split / rotate wide pages, invert double. */
+@Composable
+internal fun GlassPagePagerRows(screenModel: ReaderSettingsScreenModel) {
+    val prefs = screenModel.preferences
+    val scale by prefs.imageScaleType().collectAsState()
+    GlassCap(stringResource(MR.strings.pref_image_scale_type))
+    GlassPrefPills(prefs.imageScaleType(), ReaderPreferences.ImageScaleType.mapIndexed { i, r -> stringResource(r) to i + 1 })
+    GlassCap(stringResource(MR.strings.pref_zoom_start))
+    GlassPrefPills(prefs.zoomStart(), ReaderPreferences.ZoomStart.mapIndexed { i, r -> stringResource(r) to i + 1 })
+    GlassPrefToggle(stringResource(MR.strings.pref_crop_borders), prefs.cropBorders())
+    if (scale in ReaderPreferences.zoomWideImagesAllowedList) {
+        GlassPrefToggle(stringResource(MR.strings.pref_landscape_zoom), prefs.landscapeZoom())
+    }
+    GlassPrefToggle(stringResource(MR.strings.pref_navigate_pan), prefs.navigateToPan())
+    val split by prefs.dualPageSplitPaged().collectAsState()
+    GlassPrefToggle(stringResource(MR.strings.pref_dual_page_split), prefs.dualPageSplitPaged())
+    if (split) GlassPrefToggle(stringResource(MR.strings.pref_dual_page_invert), prefs.dualPageInvertPaged())
+    val rotate by prefs.dualPageRotateToFit().collectAsState()
+    GlassPrefToggle(stringResource(MR.strings.pref_page_rotate), prefs.dualPageRotateToFit())
+    if (rotate) GlassPrefToggle(stringResource(MR.strings.pref_page_rotate_invert), prefs.dualPageRotateToFitInvert())
+    GlassPrefToggle(stringResource(SYMR.strings.invert_double_pages), prefs.invertDoublePages())
 }
 
 private val themes = listOf(
@@ -119,9 +205,21 @@ private val themes = listOf(
     MR.strings.automatic_background to 3,
 )
 
-/** Background, page number, fullscreen, cutout, keep screen on. */
+/** Display (mockup A): General / Filters / Page bar. Filters keep the reader bars: the page beside the panel changes live. */
 @Composable
 internal fun GlassDisplaySection(screenModel: ReaderSettingsScreenModel) {
+    var sub by remember { mutableStateOf(0) }
+    SubChips(listOf(MR.strings.glass_rset_sub_general, MR.strings.glass_rset_sec_filters, MR.strings.glass_rset_sub_pagebar).map { stringResource(it) }, sub) { sub = it }
+    when (sub) {
+        0 -> GlassGeneralRows(screenModel)
+        1 -> GlassFiltersSection(screenModel)
+        else -> GlassPageBarRows(screenModel)
+    }
+}
+
+/** Display > General: background, page number, fullscreen, cutout, keep screen on. */
+@Composable
+private fun GlassGeneralRows(screenModel: ReaderSettingsScreenModel) {
     val prefs = screenModel.preferences
     GlassCap(stringResource(MR.strings.pref_reader_theme))
     GlassPrefPills(prefs.readerTheme(), themes.map { (r, v) -> stringResource(r) to v })
@@ -134,20 +232,93 @@ internal fun GlassDisplaySection(screenModel: ReaderSettingsScreenModel) {
     GlassPrefToggle(stringResource(MR.strings.pref_keep_screen_on), prefs.keepScreenOn())
 }
 
-/** Tap zones and gestures. */
+/** Display > Page bar: the seekbar options. */
+@Composable
+private fun GlassPageBarRows(screenModel: ReaderSettingsScreenModel) {
+    val prefs = screenModel.preferences
+    GlassPrefToggle(stringResource(SYMR.strings.pref_force_horz_seekbar), prefs.forceHorizontalSeekbar())
+    val horizontal by prefs.forceHorizontalSeekbar().collectAsState()
+    if (!horizontal) {
+        GlassPrefToggle(stringResource(SYMR.strings.pref_show_vert_seekbar_landscape), prefs.landscapeVerticalSeekbar())
+        GlassPrefToggle(stringResource(SYMR.strings.pref_left_handed_vertical_seekbar), prefs.leftVerticalSeekbar())
+    }
+}
+
+/** The page picture of one tap-zone layout: ice = next page, dark = previous, plain = the bars (inversion applied). */
+@Composable
+private fun TapZonePicture(nav: ViewerNavigation, rtl: Boolean, label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val shape = RoundedCornerShape(Glass.r8)
+    Column(modifier.clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Canvas(
+            Modifier
+                .fillMaxWidth(0.62f)
+                .aspectRatio(0.72f)
+                .clip(shape)
+                .border(if (selected) 2.dp else 1.dp, if (selected) Glass.ice else Glass.line, shape),
+        ) {
+            drawRect(Color(0xFFE9E7E2))
+            nav.getRegions().forEach { r ->
+                val color = when (r.type) {
+                    // LEFT / RIGHT are screen sides: in a right-to-left pager LEFT is the next page
+                    ViewerNavigation.NavigationRegion.NEXT -> Glass.ice
+                    ViewerNavigation.NavigationRegion.PREV -> Color(0xFF3A3F47)
+                    ViewerNavigation.NavigationRegion.LEFT -> if (rtl) Glass.ice else Color(0xFF3A3F47)
+                    ViewerNavigation.NavigationRegion.RIGHT -> if (rtl) Color(0xFF3A3F47) else Glass.ice
+                    else -> return@forEach
+                }
+                drawRect(color, Offset(r.rectF.left * size.width, r.rectF.top * size.height), Size(r.rectF.width() * size.width, r.rectF.height() * size.height))
+            }
+        }
+        Text(label, color = if (selected) Color.White else Glass.secondary, fontSize = 11.sp, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 13.sp)
+    }
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.size(7.dp).clip(CircleShape).background(color).border(1.dp, Glass.line, CircleShape))
+        Text(label, color = Glass.secondary, fontSize = Glass.caption)
+    }
+}
+
+/** Taps and gestures: the six tap-zone pictures, invert, smaller zones, long tap, zoom gestures. */
 @Composable
 internal fun GlassTapsSection(screenModel: ReaderSettingsScreenModel) {
     val prefs = screenModel.preferences
     val webtoon = isWebtoon(screenModel)
+    val viewer by screenModel.viewerFlow.collectAsState()
+    val rtl = viewer is R2LPagerViewer
+    val vertical = viewer is VerticalPagerViewer
     val navPref = if (webtoon) prefs.navigationModeWebtoon() else prefs.navigationModePager()
     val invertPref = if (webtoon) prefs.webtoonNavInverted() else prefs.pagerNavInverted()
     val nav by navPref.collectAsState()
+    val invert by invertPref.collectAsState()
+    val smaller by prefs.smallerTapZone().collectAsState()
+    val navs = remember(webtoon, vertical, invert, smaller) {
+        listOf(
+            // same default as PagerConfig / WebtoonConfig: L layout for webtoon and vertical paging
+            if (webtoon || vertical) LNavigation() else RightAndLeftNavigation(),
+            LNavigation(), KindlishNavigation(), EdgeNavigation(), RightAndLeftNavigation(), DisabledNavigation(),
+        ).onEach { it.invertMode = invert }
+    }
     GlassCap(stringResource(MR.strings.pref_viewer_nav))
-    GlassPrefPills(navPref, ReaderPreferences.TapZones.mapIndexed { i, r -> stringResource(r) to i })
+    navs.withIndex().chunked(3).forEach { row ->
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.forEach { (i, n) ->
+                TapZonePicture(n, rtl, stringResource(ReaderPreferences.TapZones[i]), nav == i, { navPref.set(i) }, Modifier.weight(1f))
+            }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LegendDot(Glass.ice, stringResource(MR.strings.glass_rset_legend_next))
+        LegendDot(Color(0xFF3A3F47), stringResource(MR.strings.glass_rset_legend_prev))
+        LegendDot(Color(0xFFE9E7E2), stringResource(MR.strings.glass_rset_legend_bars))
+    }
     if (nav != 5) {
         GlassCap(stringResource(MR.strings.pref_read_with_tapping_inverted))
-        GlassPrefPills(invertPref, ReaderPreferences.TappingInvertMode.entries.map { stringResource(it.titleRes) to it })
+        GlassPills(ReaderPreferences.TappingInvertMode.entries.map { stringResource(it.titleRes) to it }, invert) { invertPref.set(it) }
     }
+    Box(Modifier.padding(top = 6.dp))
     GlassPrefToggle(stringResource(KMR.strings.pref_viewer_nav_smaller_tap_zone), prefs.smallerTapZone())
     GlassPrefToggle(stringResource(MR.strings.pref_read_with_long_tap), prefs.readWithLongTap())
     if (webtoon) {
@@ -222,21 +393,19 @@ private val flashColors = listOf(
     MR.strings.pref_flash_style_white_black to ReaderPreferences.FlashColor.WHITE_BLACK,
 )
 
-/** Seekbar, chapter transition, page flash, auto webtoon, page transitions, smooth scroll. */
+/** Reading > Turning pages: chapter transition, page transitions, smooth scroll, flash on page turn, the Auto-scroll chip. */
 @Composable
-internal fun GlassMoreSection(screenModel: ReaderSettingsScreenModel) {
+internal fun GlassTurningRows(screenModel: ReaderSettingsScreenModel, extras: GlassSettingsExtras, onClose: () -> Unit) {
     val prefs = screenModel.preferences
     val webtoon = isWebtoon(screenModel)
-    GlassPrefToggle(stringResource(SYMR.strings.pref_force_horz_seekbar), prefs.forceHorizontalSeekbar())
-    val horizontal by prefs.forceHorizontalSeekbar().collectAsState()
-    if (!horizontal) {
-        GlassPrefToggle(stringResource(SYMR.strings.pref_show_vert_seekbar_landscape), prefs.landscapeVerticalSeekbar())
-        GlassPrefToggle(stringResource(SYMR.strings.pref_left_handed_vertical_seekbar), prefs.leftVerticalSeekbar())
-    }
     GlassPrefToggle(stringResource(MR.strings.pref_always_show_chapter_transition), prefs.alwaysShowChapterTransition())
-    GlassPrefToggle(stringResource(SYMR.strings.auto_webtoon_mode), prefs.useAutoWebtoon())
     GlassPrefToggle(stringResource(MR.strings.pref_page_transitions), if (webtoon) prefs.pageTransitionsWebtoon() else prefs.pageTransitionsPager())
     if (webtoon) GlassPrefToggle(stringResource(SYMR.strings.pref_smooth_scroll), prefs.smoothAutoScroll())
+    extras.onAutoScroll?.let {
+        Box(Modifier.padding(vertical = 6.dp)) {
+            GlassChip(stringResource(MR.strings.glass_settings_auto_scroll), selected = false, onClick = { onClose(); it() }, leading = "play")
+        }
+    }
 
     GlassDivider()
     GlassPrefToggle(stringResource(MR.strings.pref_flash_page), prefs.flashOnPageChange())
