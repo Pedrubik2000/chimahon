@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -97,14 +100,16 @@ fun GlassVolumeList(
     chapters: List<ReaderChapterItem>,
     /** ids of the chapters on the device, worked out once off the main thread */
     tablet: Set<Long>,
-    /** ids of the chapters that have bookmarked pages */
-    pageBookmarked: Set<Long>,
+    /** chapter id -> its bookmarked pages (1-based), only chapters that have some */
+    pageBookmarks: Map<Long, Set<Int>>,
     currentPage: String,
     totalPages: Int,
     onClose: () -> Unit,
     onClickChapter: (Chapter) -> Unit,
     onBookmark: (Chapter) -> Unit,
+    onClickPage: (Chapter, Int) -> Unit,
 ) {
+    val pageBookmarked = pageBookmarks.keys
     var filter by remember { mutableStateOf(VolumeFilter.All) }
     val onTablet: (ReaderChapterItem) -> Boolean = { it.chapter.id in tablet }
     val hasPages: (ReaderChapterItem) -> Boolean = { it.chapter.id in pageBookmarked }
@@ -145,7 +150,35 @@ fun GlassVolumeList(
                 GlassChip(stringResource(it.label()), selected = it == filter, onClick = { filter = it }, count = counts[it]?.toString())
             }
         }
-        LazyVerticalGrid(
+        // Bookmarks: the bookmarked pages themselves, per volume; tap one to go there
+        if (filter == VolumeFilter.Bookmarks) {
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(shown, key = { "glass-bookmarks-${it.chapter.id}" }) { item ->
+                    val pages = pageBookmarks[item.chapter.id].orEmpty().sorted()
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            item.chapter.name,
+                            Modifier.clickable { onClickChapter(item.chapter) },
+                            color = if (item.isCurrent) Glass.ice else Color.White,
+                            fontSize = Glass.body,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (pages.isEmpty()) {
+                            // only the old whole-volume bookmark
+                            Text(stringResource(MR.strings.glass_vol_whole_bookmark), color = Glass.secondary, fontSize = Glass.caption)
+                        } else {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                pages.forEach { p ->
+                                    GlassChip(stringResource(MR.strings.glass_vol_page, p.toString()), selected = false, onClick = { onClickPage(item.chapter, p) })
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else LazyVerticalGrid(
             GridCells.Fixed(4),
             Modifier.weight(1f),
             state = state,

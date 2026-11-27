@@ -772,20 +772,21 @@ class ReaderViewModel @JvmOverloads constructor(
         }
     }
 
-    fun loadNewChapterFromDialog(chapter: Chapter) {
+    /** [page] = the page index to open the volume on (a page bookmark); null = where it was left. */
+    fun loadNewChapterFromDialog(chapter: Chapter, page: Int? = null) {
         viewModelScope.launchIO {
             // a volume the reader's skip-read / filters left out of chapterList is loaded from the full list
             val newChapter = chapterList.firstOrNull { it.chapter.id == chapter.id }
                 ?: fullChapterList().firstOrNull { it.id == chapter.id }?.let(::resolveChapter)
                 ?: return@launchIO
-            loadAdjacent(newChapter)
+            loadAdjacent(newChapter, page)
         }
     }
 
     /**
      * Called when the user is going to load the prev/next chapter through the toolbar buttons.
      */
-    private suspend fun loadAdjacent(chapter: ReaderChapter) {
+    private suspend fun loadAdjacent(chapter: ReaderChapter, page: Int? = null) {
         val loader = loader ?: return
 
         logcat { "Loading adjacent ${chapter.chapter.url}" }
@@ -793,7 +794,7 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(isLoadingAdjacentChapter = true) }
         try {
             withIOContext {
-                loadChapter(loader, chapter)
+                loadChapter(loader, chapter, page)
             }
         } catch (e: Throwable) {
             if (e is CancellationException) {

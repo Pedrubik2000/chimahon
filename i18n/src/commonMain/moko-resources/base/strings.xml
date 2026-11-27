@@ -890,6 +890,7 @@
     <string name="glass_ocr_desc_local">On the tablet, works offline, faster</string>
     <string name="glass_vol_reading">Reading %1$s · p. %2$s / %3$d</string>
     <string name="glass_vol_read">Read</string>
+    <string name="glass_vol_whole_bookmark">Volume bookmarked</string>
     <string name="glass_press_bubble">Bubble text</string>
     <string name="glass_press_known">known</string>
     <string name="glass_press_new">new / learning</string>

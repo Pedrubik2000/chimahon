@@ -752,7 +752,7 @@ class ReaderActivity : BaseActivity() {
                         )
                     }
                     var onTablet by remember { mutableStateOf(emptySet<Long>()) }
-                    val pageBookmarkedChapters = PageBookmarks.all.collectAsState().value.filterValues { it.isNotEmpty() }.keys
+                    val pageBookmarks = PageBookmarks.all.collectAsState().value.filterValues { it.isNotEmpty() }
                     var volumesLoaded by remember { mutableStateOf(!glassUi) }
                     if (glassUi) {
                         LaunchedEffect(Unit) {
@@ -780,7 +780,16 @@ class ReaderActivity : BaseActivity() {
                         if (volumesLoaded) GlassVolumeList(
                             chapters = chapters,
                             tablet = onTablet,
-                            pageBookmarked = pageBookmarkedChapters,
+                            pageBookmarks = pageBookmarks,
+                            onClickPage = { chapter, page ->
+                                // 1-based page number -> index; the volume being read only moves, another one opens there
+                                if (chapter.id == state.currentChapter?.chapter?.id) {
+                                    moveToPageIndex(page - 1)
+                                } else {
+                                    viewModel.loadNewChapterFromDialog(chapter, page - 1)
+                                }
+                                onDismissRequest()
+                            },
                             currentPage = state.currentPageText,
                             totalPages = state.currentChapter?.pages?.size ?: 0,
                             onClose = onDismissRequest,
