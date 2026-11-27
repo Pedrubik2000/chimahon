@@ -84,6 +84,8 @@ object Cards {
             ?: store(context).addCard(furigana(word, reading), sentence, meaning, show, episode, null,
                 JSONObject().put("Reading", reading).toString(), "kumahon")
         addContext(context, card.id, show, episode, page, sentence, image)
+        // the card is in the store: recolour the page now (red -> blue), not after the sync that follows (5 s + network)
+        chimahon.ocr.KumapieColours.clear()
         return card
     }
 
