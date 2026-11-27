@@ -784,7 +784,9 @@ class ReaderActivity : BaseActivity() {
                             onClickPage = { chapter, page ->
                                 // 1-based page number -> index; the volume being read only moves, another one opens there
                                 if (chapter.id == state.currentChapter?.chapter?.id) {
-                                    moveToPageIndex(page - 1)
+                                    // a bookmark past the end (the file was replaced by a shorter one): the last page
+                                    val last = (state.currentChapter?.pages?.lastIndex ?: 0).coerceAtLeast(0)
+                                    moveToPageIndex((page - 1).coerceIn(0, last))
                                 } else {
                                     viewModel.loadNewChapterFromDialog(chapter, page - 1)
                                 }

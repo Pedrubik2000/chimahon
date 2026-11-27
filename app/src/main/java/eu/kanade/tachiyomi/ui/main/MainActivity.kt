@@ -667,6 +667,8 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    private var mangaShortcutJob: kotlinx.coroutines.Job? = null
+
     private fun handleIntentAction(intent: Intent, navigator: Navigator): Boolean {
         val notificationId = intent.getIntExtra("notificationId", -1)
         if (notificationId > -1) {
@@ -681,11 +683,18 @@ class MainActivity : BaseActivity() {
             Constants.SHORTCUT_LIBRARY -> HomeScreen.Tab.Library()
             Constants.SHORTCUT_MANGA -> {
                 val idToOpen = intent.extras?.getLong(Constants.MANGA_EXTRA) ?: return false
-                navigator.popUntilRoot()
-                if (navigator.items.firstOrNull() == GlassHomeScreen) {
+                val glass = navigator.items.firstOrNull() == GlassHomeScreen
+                if (glass && HomeScreen in navigator.items) {
+                    // "Classic view" is open over the glass shell: stay in it (the classic tabs' title page)
+                    navigator.popUntil { it == HomeScreen }
+                    HomeScreen.Tab.Library(idToOpen)
+                } else if (glass) {
+                    navigator.popUntilRoot()
                     // the new look (the reader's title, a shortcut): the title's glass page when the series is on the
-                    // AniList list, else the classic title page over the glass shell; never the classic tabs
-                    lifecycleScope.launch {
+                    // AniList list, else the classic title page over the glass shell; never the classic tabs.
+                    // A second intent before the first one's push would stack two title pages: only the last one pushes
+                    mangaShortcutJob?.cancel()
+                    mangaShortcutJob = lifecycleScope.launch {
                         val mediaId = tachiyomi.core.common.util.lang.withIOContext {
                             Injekt.get<tachiyomi.domain.track.interactor.GetTracks>().await(idToOpen)
                         }.firstOrNull { it.trackerId == eu.kanade.tachiyomi.data.track.TrackerManager.ANILIST }?.remoteId
@@ -697,6 +706,7 @@ class MainActivity : BaseActivity() {
                     }
                     null
                 } else {
+                    navigator.popUntilRoot()
                     HomeScreen.Tab.Library(idToOpen)
                 }
             }

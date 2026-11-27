@@ -461,7 +461,9 @@ class ReaderViewModel @JvmOverloads constructor(
             .sortedWith(sort)
             .run { if (readerPreferences.skipDupe().get()) removeDuplicates(selected) else this }
             .run { if (basePreferences.downloadedOnly().get()) filterDownloaded(manga, mangaMap) else this }
-            .withCurrent(current, sort)
+            // ponytail: a merged series counts as deduped even with its "dedupe" switch off; read the merge
+            // reference if someone reads a no-dedupe merge from an excluded scanlator
+            .withCurrent(current, sort, deduped = merged || readerPreferences.skipDupe().get())
             .also { fullChapters = it }
     }
 
