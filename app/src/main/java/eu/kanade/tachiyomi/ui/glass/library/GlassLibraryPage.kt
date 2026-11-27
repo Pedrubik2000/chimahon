@@ -22,6 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import eu.kanade.tachiyomi.ui.category.CategoryScreenModel
+import eu.kanade.presentation.glass.GlassRoundButton
+import eu.kanade.presentation.glass.Pill
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,7 +69,7 @@ import tachiyomi.presentation.core.i18n.stringResource
  * ([GlassFilterScaffold]). State lives in [GlassTitlesModel].
  */
 @Composable
-fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
+fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator, categoryModel: @Composable () -> CategoryScreenModel) {
     if (!isTabletUi()) {
         GlassPhoneLibraryPage(model, navigator)
         return
@@ -77,9 +83,17 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
     val v = model.library.collectAsStateWithLifecycle().value ?: LibraryView()
     val shown = v.shown
     val set: (TitleFilters) -> Unit = { model.filters = it }
+    // the pencil: the sidebar becomes the category editor (Classic CategoryScreenModel, created on first use)
+    var editing by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val catModel = if (editing) categoryModel() else null
 
     GlassFilterScaffold(
+        title = if (editing) stringResource(MR.strings.glass_library) else null,
+        openPanel = editing,
         panel = {
+            if (catModel != null) {
+                GlassCategoryEditor(catModel)
+            } else {
             FilterGroup(stringResource(MR.strings.glass_anilist)) {
                 ListFilter.entries.forEach { s ->
                     GlassChip(
@@ -106,10 +120,16 @@ fun GlassLibraryPage(model: GlassTitlesModel, navigator: Navigator) {
                 }
             }
             LibraryMoreFilters(v, f, set)
+            }
         },
         // next to the "Filters" heading: the panel is long now
         headerAction = {
-            if (f != TitleFilters() || sort != GlassSort.LAST_READ) {
+            if (editing) {
+                Pill(stringResource(MR.strings.glass_cats_done), { catModel?.dismissDialog(); editing = false }, primary = true, small = true)
+            } else {
+                GlassRoundButton("pencil", { editing = true }, description = stringResource(MR.strings.glass_cats_edit), iconSize = 20.dp)
+            }
+            if (!editing && (f != TitleFilters() || sort != GlassSort.LAST_READ)) {
                 Text(
                     stringResource(MR.strings.glass_discover_clear),
                     color = Glass.ice,

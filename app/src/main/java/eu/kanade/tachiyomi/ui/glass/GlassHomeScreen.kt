@@ -59,6 +59,9 @@ import eu.kanade.tachiyomi.ui.glass.review.GlassReviewPage
 import eu.kanade.tachiyomi.ui.glass.review.refreshReviewDue
 import eu.kanade.tachiyomi.ui.glass.settings.GlassPhoneSettingsPage
 import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
+import eu.kanade.tachiyomi.ui.glass.stats.GlassStatsPage
+import eu.kanade.tachiyomi.ui.category.CategoryScreenModel
+import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
 import eu.kanade.tachiyomi.ui.glass.settings.glassSettingsSection
 import eu.kanade.tachiyomi.ui.glass.title.GlassTitleScreen
 import eu.kanade.tachiyomi.ui.home.HomeScreen
@@ -117,6 +120,7 @@ object GlassHomeScreen : Screen() {
 
         // canvas `PhoneHero-2`: on a phone (pref glassPhone) the pages are the phone ones and the rail is a bar
         val phone = !isTabletUi()
+        val categoryModel: @Composable () -> CategoryScreenModel = { rememberScreenModel { CategoryScreenModel() } }
         GlassPage {
             when {
                 !phone -> Unit
@@ -132,17 +136,20 @@ object GlassHomeScreen : Screen() {
                 page == "releases" -> GlassReleasesPage(navigator, updatesModel)
                 page == "review" -> GlassPhoneReviewPage(rememberScreenModel { GlassReviewModel() })
                 // the tablet pages' own narrow layouts, with phone margins
-                page == "library" -> GlassLibraryPage(model, navigator)
+                page == "library" -> GlassLibraryPage(model, navigator, categoryModel)
                 page == "downloads" -> GlassDownloadsPage(model, navigator)
                 page == "settings" -> GlassPhoneSettingsPage(navigator)
+                // a window that shrank while Stats was open: Stats is a tablet rail page, so back to Home
+                page == "stats" -> LaunchedEffect(Unit) { page = "home" }
             }
             if (!phone) when (page) {
                 "home" -> GlassHomePage(model, navigator, historyModel)
-                "library" -> GlassLibraryPage(model, navigator)
+                "library" -> GlassLibraryPage(model, navigator, categoryModel)
                 // created on the first Discover visit, then kept with the shell (no AniList call before that)
                 "discover" -> GlassDiscoverPage(rememberScreenModel { GlassDiscoverModel() }, navigator)
                 "releases" -> GlassReleasesPage(navigator, updatesModel)
                 "review" -> GlassReviewPage(rememberScreenModel { GlassReviewModel() })
+                "stats" -> GlassStatsPage(navigator) { rememberScreenModel { StatsScreenModel(titleId = null) } }
                 "downloads" -> GlassDownloadsPage(model, navigator)
                 "settings" -> GlassSettingsPage(navigator)
                 else -> Column(

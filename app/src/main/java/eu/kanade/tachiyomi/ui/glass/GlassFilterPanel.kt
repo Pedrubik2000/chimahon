@@ -54,23 +54,27 @@ import tachiyomi.presentation.core.i18n.stringResource
 fun GlassFilterScaffold(
     panel: @Composable () -> Unit,
     headerAction: @Composable () -> Unit = {},
+    /** the sidebar heading; null = "Filters" */
+    title: String? = null,
+    /** narrow layout: open the panel now and when this turns true (Library edit mode) */
+    openPanel: Boolean = false,
     content: @Composable (filters: @Composable () -> Unit) -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth >= 900.dp) {
-            FilterSidebar(panel, headerAction, Modifier.padding(start = 100.dp).width(264.dp).fillMaxHeight())
+            FilterSidebar(panel, headerAction, title, Modifier.padding(start = 100.dp).width(264.dp).fillMaxHeight())
             Box(Modifier.fillMaxSize().padding(start = 396.dp)) { content {} }
         } else {
             // under 600dp it is a phone: no rail to clear
             Box(Modifier.fillMaxSize().padding(start = if (maxWidth < 600.dp) 16.dp else 108.dp)) {
-                content { FilterSection(panel, headerAction) }
+                content { FilterSection(panel, headerAction, title, openPanel) }
             }
         }
     }
 }
 
 @Composable
-private fun FilterSidebar(panel: @Composable () -> Unit, headerAction: @Composable () -> Unit, modifier: Modifier) {
+private fun FilterSidebar(panel: @Composable () -> Unit, headerAction: @Composable () -> Unit, title: String?, modifier: Modifier) {
     Row(modifier) {
         Column(
             Modifier
@@ -83,7 +87,7 @@ private fun FilterSidebar(panel: @Composable () -> Unit, headerAction: @Composab
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(MR.strings.glass_discover_filters),
+                    title ?: stringResource(MR.strings.glass_discover_filters),
                     fontSize = Glass.heading,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
@@ -98,12 +102,13 @@ private fun FilterSidebar(panel: @Composable () -> Unit, headerAction: @Composab
 
 /** Narrow widths: "Filters ▾" pill; open = the groups in a panel-coloured box that scrolls on its own. */
 @Composable
-private fun FilterSection(panel: @Composable () -> Unit, headerAction: @Composable () -> Unit) {
-    var open by rememberSaveable { mutableStateOf(false) }
+private fun FilterSection(panel: @Composable () -> Unit, headerAction: @Composable () -> Unit, title: String?, openPanel: Boolean) {
+    var open by rememberSaveable { mutableStateOf(openPanel) }
+    androidx.compose.runtime.LaunchedEffect(openPanel) { if (openPanel) open = true }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GlassChip(
-                stringResource(MR.strings.glass_discover_filters),
+                title ?: stringResource(MR.strings.glass_discover_filters),
                 selected = false,
                 onClick = { open = !open },
                 icon = if (open) "chevUp" else "chevDown",

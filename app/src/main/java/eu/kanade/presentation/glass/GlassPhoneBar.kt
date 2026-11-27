@@ -47,7 +47,7 @@ fun GlassPhoneBar(
         // seven 48dp items + 16dp padding = 352dp: fits a 360dp phone, no gap between the touch targets
         horizontalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        GlassRailItems.forEach { (id, label, icon) ->
+        GlassRailItems.filter { it.first != "stats" }.forEach { (id, label, icon) -> // the phone bar keeps its seven (Stats is a tablet rail page)
             val on = id == active
             val dot = id in dots
             val due = (if (id == "review") glassReviewDue.intValue else 0) + (if (id == "releases") glassReleasesNew.intValue else 0)

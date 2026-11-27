@@ -266,6 +266,8 @@ fun StatsScreenContent(
     onCheckInGoal: (String, String?) -> Unit,
     onAnkiRefresh: () -> Unit,
     onOpenMissingAnkiCharacters: () -> Unit,
+    /** false: the Glass Stats page draws its own period pills and tab sidebar; only the tab body is drawn */
+    showChrome: Boolean = true,
 ) {
     var filtersExpanded by remember { mutableStateOf(false) }
     var showDefinitions by remember { mutableStateOf(false) }
@@ -276,6 +278,7 @@ fun StatsScreenContent(
             .fillMaxSize()
             .padding(paddingValues),
     ) {
+        if (showChrome) {
         FilterSummary(
             state = state,
             expanded = filtersExpanded,
@@ -295,15 +298,18 @@ fun StatsScreenContent(
             onProvenanceStatesSelect = onProvenanceStatesSelect,
             onDefinitions = { showDefinitions = true },
         )
+        }
         if (state.isRefreshing) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
+        if (showChrome) {
         StatsTabs(
             selected = state.selectedTab,
             goalsEnabled = state.goalsEnabled,
             ankiEnabled = state.ankiEnabled,
             onSelect = onTabSelect,
         )
+        }
         when (state.selectedTab) {
             StatsTab.OVERVIEW -> OverviewTab(
                 state = state,
@@ -5004,14 +5010,14 @@ private fun mediaLabel(value: MediaKind?): String = when (value) {
 }
 
 @Composable
-private fun characterMetricLabel(value: CharacterMetric): String = when (value) {
+internal fun characterMetricLabel(value: CharacterMetric): String = when (value) {
     CharacterMetric.GROSS -> stringResource(KMR.strings.stats_basis_gross)
     CharacterMetric.UNIQUE_SOURCE -> stringResource(KMR.strings.stats_basis_unique)
     CharacterMetric.NET_PROGRESS -> stringResource(KMR.strings.stats_basis_net)
 }
 
 @Composable
-private fun tabLabel(value: StatsTab): String = when (value) {
+internal fun tabLabel(value: StatsTab): String = when (value) {
     StatsTab.OVERVIEW -> stringResource(KMR.strings.stats_tab_overview)
     StatsTab.ACTIVITY -> stringResource(KMR.strings.stats_tab_activity)
     StatsTab.TITLES -> stringResource(KMR.strings.stats_tab_titles)
@@ -5242,7 +5248,7 @@ private fun goalMultiplierLabel(value: Double): String =
     }
 
 @Composable
-private fun goalTypeLabel(value: String): String = when (value) {
+internal fun goalTypeLabel(value: String): String = when (value) {
     "PERPETUAL_DAILY" -> stringResource(KMR.strings.stats_goal_type_daily)
     "DATE_BOUND_TOTAL" -> stringResource(KMR.strings.stats_goal_type_total)
     "FINISH_TITLE_BY_DATE" -> stringResource(KMR.strings.stats_goal_type_finish_title)
@@ -5252,7 +5258,7 @@ private fun goalTypeLabel(value: String): String = when (value) {
 }
 
 @Composable
-private fun formatGoalValue(metric: String, value: Double): String {
+internal fun formatGoalValue(metric: String, value: Double): String {
     val displayValue = statsGoalDisplayValue(metric, value)
     return when (displayValue.kind) {
         StatsGoalDisplayKind.DURATION -> formatDuration(displayValue.durationMillis())
@@ -5345,7 +5351,7 @@ private fun sourceKindLabel(value: SourceKind): String = when (value) {
     SourceKind.VIDEO_OCR_REGION -> stringResource(KMR.strings.stats_source_kind_video_ocr)
 }
 
-private fun ReadingMetrics.characterValue(metric: CharacterMetric): Long =
+internal fun ReadingMetrics.characterValue(metric: CharacterMetric): Long =
     characters.valueFor(metric)
 
 private fun AnalyticsActivityTotals.characterValue(metric: CharacterMetric): Long = when (metric) {
@@ -5411,7 +5417,7 @@ private fun formatTrendValue(value: Long, trendMetric: StatsTrendMetric): String
         formatCount(value)
     }
 
-private fun formatCount(value: Long): String = NumberFormat.getIntegerInstance().format(value)
+internal fun formatCount(value: Long): String = NumberFormat.getIntegerInstance().format(value)
 
 /**
  * A grouped count with its noun in agreement, for the prose lines where "1 days" would read as a
@@ -5422,7 +5428,7 @@ private fun formatCount(value: Long): String = NumberFormat.getIntegerInstance()
 private fun pluralCount(resource: PluralsResource, count: Int): String =
     pluralStringResource(resource, count, formatCount(count.toLong()))
 
-private fun formatRate(value: Double): String = NumberFormat.getIntegerInstance().format(value.roundToInt())
+internal fun formatRate(value: Double): String = NumberFormat.getIntegerInstance().format(value.roundToInt())
 
 private fun formatDecimal(value: Double): String =
     NumberFormat.getNumberInstance().apply { maximumFractionDigits = 1 }.format(value)
@@ -5462,7 +5468,7 @@ private fun formatDuration(millis: Long): String {
  * entirely; the abbreviated units keep both numbers.
  */
 @Composable
-private fun formatDurationCompact(millis: Long): String {
+internal fun formatDurationCompact(millis: Long): String {
     val parts = statsDurationParts(millis)
     if (parts.lessThanSecond) {
         return stringResource(KMR.strings.stats_duration_less_than_second)

@@ -70,6 +70,7 @@ import eu.kanade.domain.ui.model.StatusColourSet
 import kotlinx.collections.immutable.toImmutableList
 import tachiyomi.domain.download.service.DownloadPreferences
 import tachiyomi.i18n.MR
+import tachiyomi.i18n.kmk.KMR
 import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
@@ -219,7 +220,8 @@ internal fun sectionItems(id: String, navigator: Navigator): List<Preference> = 
             SettingsDictionaryPopupScreen.getPreferences()
     }
     "mining" -> SettingsAnkiScreen.getPreferences()
-    "library" -> SettingsLibraryScreen.getPreferences() + statusColoursGroup() + SettingsDataScreen.getPreferences()
+    "library" -> listOf<Preference>(Preference.PreferenceItem.CustomPreference(title = stringResource(MR.strings.label_backup)) { GlassBackupCard() }) +
+        SettingsLibraryScreen.getPreferences() + statusColoursGroup() + withoutGlassBackup(SettingsDataScreen.getPreferences())
     "privacy" -> SettingsSecurityScreen.getPreferences()
     else -> {
         val dl = splitDownloads()
@@ -339,3 +341,23 @@ private fun statusColoursGroup(): Preference.PreferenceGroup = Preference.Prefer
         ),
     ),
 )
+
+/**
+ * The Classic Data screen's items without what [GlassBackupCard] now shows: its Backup and restore group and its
+ * storage-location row + info line. Export, sync and the rest stay as they were.
+ */
+@Composable
+private fun withoutGlassBackup(items: List<Preference>): List<Preference> {
+    val backup = stringResource(MR.strings.label_backup)
+    val location = stringResource(MR.strings.pref_storage_location)
+    val locationInfo = stringResource(MR.strings.pref_storage_location_info)
+    val banner = stringResource(KMR.strings.pref_show_restoring_progress_banner)
+    val kept = items.filter { it.title != backup && it.title != location && it.title != locationInfo }
+    // what the card does not show stays: the backup info line and the restore-progress switch
+    val group = items.firstOrNull { it.title == backup } as? Preference.PreferenceGroup ?: return kept
+    val switch = group.preferenceItems.filter { it.title == banner }
+    return kept + Preference.PreferenceGroup(
+        title = backup,
+        preferenceItems = (listOf<Preference.PreferenceItem<out Any, out Any>>(Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.backup_info))) + switch).toImmutableList(),
+    )
+}

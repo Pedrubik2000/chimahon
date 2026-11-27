@@ -106,6 +106,7 @@ val GlassRailItems = listOf(
     Triple("discover", "Discover", "compass"),
     Triple("releases", "Releases", "calendar"),
     Triple("review", "Review", "cards"),
+    Triple("stats", "Stats", "stats"),
     Triple("downloads", "Downloads", "download"),
     Triple("settings", "Settings", "gear"),
 )

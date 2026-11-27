@@ -99,20 +99,8 @@ class StatsScreen(
             StatsScreenModel(titleId = canonicalTitleId)
         }
         val state by screenModel.state.collectAsState()
-        var showRawTextDisclosure by remember(screenModel) {
-            mutableStateOf(screenModel.rawTextDisclosureRequired())
-        }
-
-        LaunchedEffect(screenModel) {
-            screenModel.exportDocuments.collect { document ->
-                val file = withContext(Dispatchers.IO) {
-                    File(context.cacheDir, "stats_exports").also(File::mkdirs)
-                        .resolve(document.fileName)
-                        .also { it.writeBytes(document.bytes) }
-                }
-                context.startActivity(file.getUriCompat(context).toShareIntent(context, document.mimeType))
-            }
-        }
+        StatsRawTextDisclosure(screenModel)
+        StatsExportEffect(screenModel)
 
         Scaffold(
             topBar = { scrollBehavior ->
@@ -155,6 +143,82 @@ class StatsScreen(
                 LoadingScreen()
                 return@Scaffold
             }
+            StatsScreenHost(screenModel, success, canonicalTitleId, paddingValues, onNavigator = navigator)
+        }
+    }
+}
+
+/** The shared export handler of the Classic Stats screen and the Glass Stats page. */
+@androidx.compose.runtime.Composable
+internal fun StatsExportEffect(screenModel: StatsScreenModel) {
+    val context = LocalContext.current
+    LaunchedEffect(screenModel) {
+            screenModel.exportDocuments.collect { document ->
+                val file = withContext(Dispatchers.IO) {
+                    File(context.cacheDir, "stats_exports").also(File::mkdirs)
+                        .resolve(document.fileName)
+                        .also { it.writeBytes(document.bytes) }
+                }
+                context.startActivity(file.getUriCompat(context).toShareIntent(context, document.mimeType))
+            }
+        }
+}
+
+/** The Stats screen's raw-text disclosure dialog (shared with the Glass Stats page). */
+@androidx.compose.runtime.Composable
+internal fun StatsRawTextDisclosure(screenModel: StatsScreenModel) {
+    val context = LocalContext.current
+    var showRawTextDisclosure by remember(screenModel) {
+        mutableStateOf(screenModel.rawTextDisclosureRequired())
+    }
+        if (showRawTextDisclosure) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = {
+                    Text(stringResource(KMR.strings.stats_raw_text_disclosure_title))
+                },
+                text = {
+                    Text(stringResource(KMR.strings.stats_raw_text_disclosure_message))
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            screenModel.acknowledgeRawTextDisclosure(
+                                RawTextRetention.UNTIL_DELETED,
+                            )
+                            showRawTextDisclosure = false
+                        },
+                    ) {
+                        Text(stringResource(KMR.strings.stats_retention_until_deleted))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            screenModel.acknowledgeRawTextDisclosure(RawTextRetention.NEVER)
+                            ImmersionRetentionJob.start(context)
+                            showRawTextDisclosure = false
+                        },
+                    ) {
+                        Text(stringResource(KMR.strings.stats_retention_never))
+                    }
+                },
+            )
+        }
+}
+
+/** The Stats tab bodies wired to [screenModel] (shared with the Glass Stats page, which sets [showChrome] false). */
+@androidx.compose.runtime.Composable
+internal fun StatsScreenHost(
+    screenModel: StatsScreenModel,
+    success: StatsScreenState.Success,
+    canonicalTitleId: TitleId?,
+    paddingValues: androidx.compose.foundation.layout.PaddingValues,
+    onNavigator: cafe.adriel.voyager.navigator.Navigator,
+    showChrome: Boolean = true,
+) {
+    val context = LocalContext.current
+    val navigator = onNavigator
             StatsScreenContent(
                 state = success,
                 paddingValues = paddingValues,
@@ -250,43 +314,8 @@ class StatsScreen(
                 onAnkiRefresh = { AnkiInventorySyncJob.refreshNow(context) },
                 onOpenMissingAnkiCharacters =
                 screenModel::openMissingAnkiCharactersWorkbench,
+                showChrome = showChrome,
             )
-        }
-        if (showRawTextDisclosure) {
-            AlertDialog(
-                onDismissRequest = {},
-                title = {
-                    Text(stringResource(KMR.strings.stats_raw_text_disclosure_title))
-                },
-                text = {
-                    Text(stringResource(KMR.strings.stats_raw_text_disclosure_message))
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            screenModel.acknowledgeRawTextDisclosure(
-                                RawTextRetention.UNTIL_DELETED,
-                            )
-                            showRawTextDisclosure = false
-                        },
-                    ) {
-                        Text(stringResource(KMR.strings.stats_retention_until_deleted))
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            screenModel.acknowledgeRawTextDisclosure(RawTextRetention.NEVER)
-                            ImmersionRetentionJob.start(context)
-                            showRawTextDisclosure = false
-                        },
-                    ) {
-                        Text(stringResource(KMR.strings.stats_retention_never))
-                    }
-                },
-            )
-        }
-    }
 }
 
 internal fun canonicalStatsTitleId(value: String?): TitleId? =
