@@ -13,3 +13,7 @@ fun List<Chapter>.removeDuplicates(currentChapter: Chapter): List<Chapter> {
                 ?: chapters.first()
         }
 }
+
+/** This list with [current] put back in [sort] order when a filter or [removeDuplicates] left it out. */
+fun List<Chapter>.withCurrent(current: Chapter?, sort: (Chapter, Chapter) -> Int): List<Chapter> =
+    if (current == null || any { it.id == current.id }) this else (this + current).sortedWith(sort)

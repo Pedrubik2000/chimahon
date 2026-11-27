@@ -60,6 +60,7 @@ import eu.kanade.tachiyomi.ui.reader.viewer.pager.R2LPagerViewer
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonViewer
 import eu.kanade.tachiyomi.util.chapter.filterDownloaded
 import eu.kanade.tachiyomi.util.chapter.removeDuplicates
+import eu.kanade.tachiyomi.util.chapter.withCurrent
 import eu.kanade.tachiyomi.util.editCover
 import eu.kanade.tachiyomi.util.lang.byteSize
 import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
@@ -451,11 +452,16 @@ class ReaderViewModel @JvmOverloads constructor(
         } else {
             getChaptersByMangaId.await(manga.id, applyFilter = true)
         }
-        val selected = chapters.find { it.id == chapterId } ?: chapters.firstOrNull() ?: return emptyList()
+        // the chapter being read now (not the one the reader was opened on): the three steps below must never drop it
+        val currentId = getCurrentChapter()?.chapter?.id ?: chapterId
+        val current = chapters.find { it.id == currentId } ?: getCurrentChapter()?.chapter?.toDomainChapter()
+        val selected = current ?: chapters.firstOrNull() ?: return emptyList()
+        val sort = getChapterSort(manga, sortDescending = false)
         return chapters
-            .sortedWith(getChapterSort(manga, sortDescending = false))
+            .sortedWith(sort)
             .run { if (readerPreferences.skipDupe().get()) removeDuplicates(selected) else this }
             .run { if (basePreferences.downloadedOnly().get()) filterDownloaded(manga, mangaMap) else this }
+            .withCurrent(current, sort)
             .also { fullChapters = it }
     }
 
