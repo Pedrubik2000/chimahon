@@ -710,6 +710,9 @@ class ReaderViewModel @JvmOverloads constructor(
         // SY <--
     ): ViewerChapters {
         loader.loadChapter(chapter /* SY --> */, page/* SY <-- */)
+        // the loader returns early for a chapter that is already loaded (a neighbour volume) and then never sets the
+        // page asked for (a page bookmark): the viewer would open it where it was left
+        if (page != null) chapter.requestedPage = page
 
         val chapterPos = chapterList.indexOf(chapter)
         val newChapters = if (chapterPos >= 0) {
