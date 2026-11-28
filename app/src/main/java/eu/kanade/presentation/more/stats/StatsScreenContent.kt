@@ -3612,7 +3612,7 @@ private fun CharacterAnkiItem(item: ImmersionAnkiItem) {
  * The name to show for a session's title, preferring the reader's local library name over the
  * recorded one. Null when the title is no longer resolvable, which the row falls back for.
  */
-private fun StatsScreenState.Success.sessionTitleName(session: ImmersionSession): String? =
+internal fun StatsScreenState.Success.sessionTitleName(session: ImmersionSession): String? =
     titleMetadata[session.titleId]?.localDisplayTitle
         ?: titleOptions.firstOrNull { it.titleId == session.titleId }?.displayTitle
 
@@ -4201,7 +4201,7 @@ private fun GoalCard(
 }
 
 @Composable
-private fun GoalEditorDialog(
+internal fun GoalEditorDialog(
     original: ImmersionGoal?,
     hasTitleScope: Boolean,
     onDismiss: () -> Unit,
@@ -4459,7 +4459,7 @@ private fun GoalEditorDialog(
 }
 
 @Composable
-private fun GoalCheckInDialog(
+internal fun GoalCheckInDialog(
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit,
 ) {
@@ -5035,7 +5035,7 @@ private fun bucketLabel(value: AnalyticsBucketScale): String = when (value) {
 }
 
 @Composable
-private fun sortLabel(value: AnalyticsSort): String = when (value) {
+internal fun sortLabel(value: AnalyticsSort): String = when (value) {
     AnalyticsSort.MOST_RECENT -> stringResource(KMR.strings.stats_sort_recent)
     AnalyticsSort.MOST_TIME -> stringResource(KMR.strings.stats_sort_time)
     AnalyticsSort.MOST_CHARACTERS -> stringResource(KMR.strings.stats_sort_characters)
@@ -5047,7 +5047,7 @@ private fun sortLabel(value: AnalyticsSort): String = when (value) {
 }
 
 @Composable
-private fun characterScriptLabel(value: AnalyticsCharacterScript): String = when (value) {
+internal fun characterScriptLabel(value: AnalyticsCharacterScript): String = when (value) {
     AnalyticsCharacterScript.HAN -> stringResource(KMR.strings.stats_character_script_han)
     AnalyticsCharacterScript.HIRAGANA ->
         stringResource(KMR.strings.stats_character_script_hiragana)
@@ -5076,7 +5076,7 @@ private fun unicodeScriptLabel(rawScript: String): String {
 }
 
 @Composable
-private fun characterRangeLabel(value: AnalyticsCharacterRange): String = when (value) {
+internal fun characterRangeLabel(value: AnalyticsCharacterRange): String = when (value) {
     AnalyticsCharacterRange.ENCOUNTERED ->
         stringResource(KMR.strings.stats_character_range_encountered)
     AnalyticsCharacterRange.FIRST_SEEN_IN_RANGE ->
@@ -5093,7 +5093,7 @@ private fun characterRangeLabel(value: AnalyticsCharacterRange): String = when (
 }
 
 @Composable
-private fun characterPriorityModeLabel(value: AnalyticsCharacterPriorityMode): String =
+internal fun characterPriorityModeLabel(value: AnalyticsCharacterPriorityMode): String =
     when (value) {
         AnalyticsCharacterPriorityMode.FREQUENCY ->
             stringResource(KMR.strings.stats_character_priority_frequency)
@@ -5106,7 +5106,7 @@ private fun characterPriorityModeLabel(value: AnalyticsCharacterPriorityMode): S
     }
 
 @Composable
-private fun characterGridModeLabel(value: StatsCharacterGridMode): String = when (value) {
+internal fun characterGridModeLabel(value: StatsCharacterGridMode): String = when (value) {
     StatsCharacterGridMode.FREQUENCY ->
         stringResource(KMR.strings.stats_character_mode_frequency)
     StatsCharacterGridMode.FIRST_SEEN ->
@@ -5126,7 +5126,7 @@ private fun characterLayoutLabel(value: StatsCharacterLayout): String = when (va
 }
 
 @Composable
-private fun characterMetadataBand(character: AnalyticsCharacterRow): String {
+internal fun characterMetadataBand(character: AnalyticsCharacterRow): String {
     val frequency = character.frequencyRank?.let(::formatCount)
         ?: stringResource(KMR.strings.stats_unavailable)
     val jlpt = character.jlptLevel?.let { "N$it" }
@@ -5145,7 +5145,7 @@ private fun characterMetadataBand(character: AnalyticsCharacterRow): String {
 }
 
 @Composable
-private fun titleSortLabel(value: AnalyticsTitleSort): String = when (value) {
+internal fun titleSortLabel(value: AnalyticsTitleSort): String = when (value) {
     AnalyticsTitleSort.MOST_RECENT -> stringResource(KMR.strings.stats_sort_recent)
     AnalyticsTitleSort.ALPHABETICAL -> stringResource(KMR.strings.stats_sort_alphabetical)
     AnalyticsTitleSort.MOST_TIME -> stringResource(KMR.strings.stats_sort_time)
@@ -5190,7 +5190,7 @@ private fun titleSortMetric(
 }
 
 @Composable
-private fun titleStateFilterLabel(value: AnalyticsTitleStateFilter): String = when (value) {
+internal fun titleStateFilterLabel(value: AnalyticsTitleStateFilter): String = when (value) {
     AnalyticsTitleStateFilter.ALL -> stringResource(KMR.strings.stats_filter_all)
     AnalyticsTitleStateFilter.COMPLETED -> stringResource(KMR.strings.stats_title_completed)
     AnalyticsTitleStateFilter.IN_PROGRESS -> stringResource(KMR.strings.stats_title_in_progress)
@@ -5198,7 +5198,7 @@ private fun titleStateFilterLabel(value: AnalyticsTitleStateFilter): String = wh
 }
 
 @Composable
-private fun titleCoverageFilterLabel(value: AnalyticsTitleCoverageFilter): String = when (value) {
+internal fun titleCoverageFilterLabel(value: AnalyticsTitleCoverageFilter): String = when (value) {
     AnalyticsTitleCoverageFilter.ALL -> stringResource(KMR.strings.stats_filter_all)
     AnalyticsTitleCoverageFilter.COMPLETE ->
         stringResource(KMR.strings.stats_title_coverage_complete)
@@ -5324,7 +5324,7 @@ private fun provenanceLabel(value: ProvenanceState): String = when (value) {
 }
 
 @Composable
-private fun maturityLabel(value: MaturityTier): String = when (value) {
+internal fun maturityLabel(value: MaturityTier): String = when (value) {
     MaturityTier.UNKNOWN -> stringResource(KMR.strings.stats_maturity_unknown)
     MaturityTier.NEW -> stringResource(KMR.strings.stats_maturity_new)
     MaturityTier.LEARNING -> stringResource(KMR.strings.stats_maturity_learning)
@@ -5354,17 +5354,17 @@ private fun sourceKindLabel(value: SourceKind): String = when (value) {
 internal fun ReadingMetrics.characterValue(metric: CharacterMetric): Long =
     characters.valueFor(metric)
 
-private fun AnalyticsActivityTotals.characterValue(metric: CharacterMetric): Long = when (metric) {
+internal fun AnalyticsActivityTotals.characterValue(metric: CharacterMetric): Long = when (metric) {
     CharacterMetric.GROSS -> grossCharacters
     CharacterMetric.UNIQUE_SOURCE -> uniqueSourceCharacters
     CharacterMetric.NET_PROGRESS -> netCharacters
 }
 
 /** Whether a bucket holds anything worth drawing, as opposed to merely existing. */
-private fun AnalyticsActivityTotals.hasActivity(metric: CharacterMetric): Boolean =
+internal fun AnalyticsActivityTotals.hasActivity(metric: CharacterMetric): Boolean =
     characterValue(metric) > 0L || activeDurationMillis > 0L
 
-private fun movingAverage(
+internal fun movingAverage(
     points: List<AnalyticsTrendPoint>,
     trendMetric: StatsTrendMetric,
     metric: CharacterMetric,
@@ -5378,7 +5378,7 @@ private fun movingAverage(
         point to values.average()
     }
 
-private fun ReadingMetrics.trendValue(
+internal fun ReadingMetrics.trendValue(
     trendMetric: StatsTrendMetric,
     characterMetric: CharacterMetric,
 ): Long = when (trendMetric) {
@@ -5390,7 +5390,7 @@ private fun ReadingMetrics.trendValue(
 }
 
 @Composable
-private fun trendMetricLabel(
+internal fun trendMetricLabel(
     trendMetric: StatsTrendMetric,
     characterMetric: CharacterMetric,
 ): String = when (trendMetric) {
@@ -5410,7 +5410,7 @@ private fun titleSeriesSelectionLabel(selection: AnalyticsTitleSeriesSelection):
 }
 
 @Composable
-private fun formatTrendValue(value: Long, trendMetric: StatsTrendMetric): String =
+internal fun formatTrendValue(value: Long, trendMetric: StatsTrendMetric): String =
     if (trendMetric == StatsTrendMetric.ACTIVE_TIME) {
         formatDuration(value)
     } else {
@@ -5425,19 +5425,19 @@ internal fun formatCount(value: Long): String = NumberFormat.getIntegerInstance(
  * and the substituted number describe the same value.
  */
 @Composable
-private fun pluralCount(resource: PluralsResource, count: Int): String =
+internal fun pluralCount(resource: PluralsResource, count: Int): String =
     pluralStringResource(resource, count, formatCount(count.toLong()))
 
 internal fun formatRate(value: Double): String = NumberFormat.getIntegerInstance().format(value.roundToInt())
 
-private fun formatDecimal(value: Double): String =
+internal fun formatDecimal(value: Double): String =
     NumberFormat.getNumberInstance().apply { maximumFractionDigits = 1 }.format(value)
 
-private fun formatPercent(value: Double): String =
+internal fun formatPercent(value: Double): String =
     NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(value)
 
 @Composable
-private fun formatDuration(millis: Long): String {
+internal fun formatDuration(millis: Long): String {
     val parts = statsDurationParts(millis)
     if (parts.lessThanSecond) {
         return stringResource(KMR.strings.stats_duration_less_than_second)
@@ -5484,13 +5484,13 @@ internal fun formatDurationCompact(millis: Long): String {
     }
 }
 
-private fun formatInstant(epochMillis: Long): String =
+internal fun formatInstant(epochMillis: Long): String =
     DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
         .withLocale(Locale.getDefault())
         .withZone(ZoneId.systemDefault())
         .format(Instant.ofEpochMilli(epochMillis))
 
-private fun formatHour(hourOfDay: Int): String =
+internal fun formatHour(hourOfDay: Int): String =
     DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
         .withLocale(Locale.getDefault())
         .format(LocalTime.of(hourOfDay, 0))
@@ -5499,7 +5499,7 @@ private fun formatWeekday(isoDayOfWeek: Int): String =
     DayOfWeek.of(isoDayOfWeek).getDisplayName(TextStyle.FULL, Locale.getDefault())
 
 @Composable
-private fun formatDateRange(
+internal fun formatDateRange(
     start: ImmersionLocalDate,
     endInclusive: ImmersionLocalDate,
 ): String = if (start == endInclusive) {
@@ -5512,7 +5512,7 @@ private fun formatDateRange(
     )
 }
 
-private fun formatLocalDate(date: ImmersionLocalDate): String =
+internal fun formatLocalDate(date: ImmersionLocalDate): String =
     DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
         .withLocale(Locale.getDefault())
         .format(date.toLocalDate())

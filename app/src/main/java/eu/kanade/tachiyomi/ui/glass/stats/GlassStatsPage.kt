@@ -1,6 +1,14 @@
 package eu.kanade.tachiyomi.ui.glass.stats
 
 import androidx.compose.foundation.background
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +54,7 @@ import eu.kanade.presentation.glass.GlassChip
 import eu.kanade.presentation.glass.GlassIcon
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
+import eu.kanade.presentation.more.stats.StatsLoadable
 import eu.kanade.presentation.more.stats.StatsRangePreset
 import eu.kanade.presentation.more.stats.StatsScreenState
 import eu.kanade.presentation.more.stats.StatsSection
@@ -61,6 +71,7 @@ import eu.kanade.tachiyomi.ui.stats.StatsRawTextDisclosure
 import eu.kanade.tachiyomi.ui.stats.StatsRecentsPrivacy
 import eu.kanade.tachiyomi.ui.stats.StatsScreenHost
 import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
+import tachiyomi.domain.immersion.model.AnalyticsResult
 import tachiyomi.domain.immersion.service.ImmersionStatsPreferences
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
@@ -116,6 +127,20 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
     StatsExportEffect(model)
     StatsRawTextDisclosure(model)
     val success = state as? StatsScreenState.Success
+    // the "Classic view" pill in the header: any control the Glass tab does not place stays reachable there
+    var classic by remember(success?.selectedTab) { androidx.compose.runtime.mutableStateOf(false) }
+    // one scroll position per tab, kept here so closing a Classic detail returns to the same place
+    val listStates = StatsTab.entries.associateWith { rememberLazyListState() }
+    val detailOpen = success != null && showClassicHost(success.selectedTab, success.selection.title != null, success.selection.character != null, success.selection.session != null)
+    // Back closes an open title / character / session detail (the shell's handler would go Home)
+    BackHandler(enabled = detailOpen) {
+        when (success?.selectedTab) {
+            StatsTab.TITLES -> model.selectTitle(null)
+            StatsTab.CHARACTERS -> model.selectCharacter(null)
+            StatsTab.SESSIONS -> model.selectSession(null)
+            else -> Unit
+        }
+    }
 
     Row(Modifier.fillMaxSize()) {
         Spacer(Modifier.width(100.dp)) // the rail
@@ -173,6 +198,13 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                         Pill(stringResource(MR.strings.glass_stats_filtered), { model.clearHiddenFilters() }, small = true, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
+                if (success.selectedTab != StatsTab.OVERVIEW && !detailOpen) {
+                    Pill(
+                        stringResource(if (classic) MR.strings.glass_stats_glass_view else MR.strings.glass_stats_classic_view),
+                        { classic = !classic },
+                        small = true,
+                    )
+                }
                 eu.kanade.presentation.glass.GlassRoundButton("restore", model::refresh, description = stringResource(KMR.strings.stats_refresh), iconSize = 20.dp)
                 if (!narrow) FlowPills(success.filter.rangePreset, model::selectRange)
             }
@@ -184,8 +216,17 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (success.selectedTab == StatsTab.OVERVIEW) {
                     GlassStatsOverview(success, onTab = model::selectTab, onRetry = model::retrySection, narrow = narrow)
-                } else {
+                } else if (classic || detailOpen) {
                     StatsScreenHost(model, success, null, PaddingValues(0.dp), onNavigator = navigator, showChrome = false)
+                } else {
+                    when (success.selectedTab) {
+                        StatsTab.ACTIVITY -> GlassStatsActivity(success, model, narrow, listStates.getValue(StatsTab.ACTIVITY))
+                        StatsTab.TITLES -> GlassStatsTitles(success, model, narrow, listStates.getValue(StatsTab.TITLES))
+                        StatsTab.CHARACTERS -> GlassStatsCharacters(success, model, narrow, listStates.getValue(StatsTab.CHARACTERS))
+                        StatsTab.SESSIONS -> GlassStatsSessions(success, model, narrow, listStates.getValue(StatsTab.SESSIONS))
+                        StatsTab.GOALS -> GlassStatsGoals(success, model, narrow, listStates.getValue(StatsTab.GOALS))
+                        else -> GlassStatsAnki(success, model, narrow, listStates.getValue(StatsTab.ANKI))
+                    }
                 }
             }
         }
@@ -198,7 +239,7 @@ private val NARROW = 600.dp
 
 /** Two panels side by side (3 : 2), or one under the other on a [narrow] page. */
 @Composable
-private fun PanelRow(narrow: Boolean, first: @Composable (Modifier) -> Unit, second: (@Composable (Modifier) -> Unit)? = null) {
+internal fun PanelRow(narrow: Boolean, first: @Composable (Modifier) -> Unit, second: (@Composable (Modifier) -> Unit)? = null) {
     if (narrow) {
         first(Modifier.fillMaxWidth())
         second?.invoke(Modifier.fillMaxWidth())
@@ -296,25 +337,35 @@ internal fun GlassStatsOverview(state: StatsScreenState.Success, onTab: (StatsTa
     }
 }
 
-private class Tile(val value: String, val label: String, val note: String?)
+/** [selected] = the ice 1 dp outline and ice number (Activity: the tile the chart shows); [onClick] makes the tile a button. */
+internal class Tile(val value: String, val label: String, val note: String?, val selected: Boolean = false, val onClick: (() -> Unit)? = null)
 
 @Composable
-private fun delta(ratio: Double?): String? = ratio?.let {
+internal fun delta(ratio: Double?): String? = ratio?.let {
     val pct = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 0 }.format(abs(it))
     (if (it >= 0) "+" else "-") + pct
 }
 
 @Composable
-private fun StatTile(t: Tile, modifier: Modifier) {
-    Column(modifier.heightIn(min = 112.dp).glassPanel(Glass.r16).padding(18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(t.value, fontSize = Glass.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+internal fun StatTile(t: Tile, modifier: Modifier) {
+    val shape = RoundedCornerShape(Glass.r16)
+    Column(
+        modifier
+            .heightIn(min = 112.dp)
+            .glassPanel(Glass.r16)
+            .then(if (t.selected) Modifier.border(1.dp, Glass.ice, shape) else Modifier)
+            .then(if (t.onClick != null) Modifier.clickable(onClick = t.onClick) else Modifier)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(t.value, color = if (t.selected) Glass.ice else Color.White, fontSize = Glass.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(t.label, color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
         t.note?.let { Text(it, color = Glass.ice, fontSize = Glass.body, maxLines = 1) }
     }
 }
 
 @Composable
-private fun Panel(title: String, modifier: Modifier, action: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
+internal fun Panel(title: String, modifier: Modifier, action: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
     Column(modifier.heightIn(min = 200.dp).glassPanel(Glass.r16).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, Modifier.weight(1f), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -462,4 +513,192 @@ private fun StatsScreenModel.clearHiddenFilters() {
     selectProvenanceStates(emptySet())
     setIncludeLegacy(true)
     setIncludeRereads(true)
+}
+
+/** Tiles: [perRow] a row, two on a narrow page. */
+@Composable
+internal fun Tiles(tiles: List<Tile>, narrow: Boolean, perRow: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        tiles.chunked(if (narrow) 2 else perRow).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                row.forEach { t -> StatTile(t, Modifier.weight(1f)) }
+                repeat((if (narrow) 2 else perRow) - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/** A tab body: ONE lazy list, so long lists only compose what is on screen. */
+@Composable
+internal fun TabList(listState: LazyListState, content: LazyListScope.() -> Unit) {
+    LazyColumn(Modifier.fillMaxSize(), state = listState, content = content)
+}
+
+/** A standalone item with the 14 dp gap under it. */
+internal fun LazyListScope.block(content: @Composable () -> Unit) {
+    item { Column(Modifier.padding(bottom = 14.dp)) { content() } }
+}
+
+/** The 2 dp ice line at the top of a tab while its sections refresh over content already shown. */
+internal fun LazyListScope.refreshLine(show: Boolean) {
+    if (show) {
+        item(key = "refresh") {
+            Box(Modifier.padding(bottom = 12.dp)) {
+                LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp), color = Glass.ice, trackColor = Glass.line)
+            }
+        }
+    }
+}
+
+/** True while a section that already has content is loading again. */
+internal fun StatsLoadable<*>.refreshingOverContent(): Boolean = refreshing && value != null
+
+/** "Load more", or the loading text while that page loads. */
+@Composable
+internal fun LoadMore(loading: Boolean, onClick: () -> Unit) {
+    if (loading) {
+        Text(stringResource(MR.strings.glass_stats_loading), color = Glass.secondary, fontSize = Glass.body)
+    } else {
+        Pill(stringResource(KMR.strings.stats_load_more), onClick, small = true)
+    }
+}
+
+/**
+ * One slice of a panel that is spread over several lazy items: the first has the top corners, the last the bottom ones, the rest
+ * only the side lines, so together they look like one rounded panel. [content] sits inside the 18 dp side padding.
+ */
+@Composable
+internal fun PanelSlice(top: Boolean, bottom: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .padding(bottom = if (bottom) 14.dp else 0.dp)
+            .drawBehind {
+                val r = Glass.r16.toPx()
+                val w = size.width
+                val h = size.height
+                val top0 = androidx.compose.ui.geometry.CornerRadius(if (top) r else 0f)
+                val bot0 = androidx.compose.ui.geometry.CornerRadius(if (bottom) r else 0f)
+                val fill = androidx.compose.ui.graphics.Path().apply {
+                    addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, w, h, top0, top0, bot0, bot0))
+                }
+                drawPath(fill, Glass.panel)
+                val line = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(0f, if (bottom) h - r else h)
+                    lineTo(0f, if (top) r else 0f)
+                    if (top) {
+                        arcTo(androidx.compose.ui.geometry.Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
+                        lineTo(w - r, 0f)
+                        arcTo(androidx.compose.ui.geometry.Rect(w - 2 * r, 0f, w, 2 * r), 270f, 90f, false)
+                    } else {
+                        moveTo(w, 0f)
+                    }
+                    lineTo(w, if (bottom) h - r else h)
+                    if (bottom) {
+                        arcTo(androidx.compose.ui.geometry.Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
+                        lineTo(r, h)
+                        arcTo(androidx.compose.ui.geometry.Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
+                    }
+                }
+                drawPath(line, Glass.line, style = Stroke(1.dp.toPx()))
+            }
+            .padding(start = 18.dp, end = 18.dp, top = if (top) 18.dp else 0.dp, bottom = if (bottom) 18.dp else 0.dp),
+    ) { content() }
+}
+
+/** A Classic section: its value when loaded, else the retry pill (failed) or "Loading" (as the Overview does). */
+@Composable
+internal fun <T> LoadableBody(section: StatsLoadable<AnalyticsResult<T>>, onRetry: () -> Unit, content: @Composable (T) -> Unit) {
+    val value = section.value?.value
+    when {
+        value != null -> content(value)
+        section.error -> Pill(stringResource(KMR.strings.stats_retry_section), onRetry, small = true)
+        else -> Text(stringResource(MR.strings.glass_stats_loading), color = Glass.secondary, fontSize = Glass.body)
+    }
+}
+
+/** The search field of a list panel: the 40 dp pill the Releases search uses. */
+@Composable
+internal fun GlassSearchBox(query: String, onChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier.height(Glass.chip).clip(CircleShape).background(Glass.page).border(1.dp, Glass.line, CircleShape).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        GlassIcon("search", size = 16.dp, tint = Glass.secondary)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (query.isEmpty()) Text(placeholder, color = Glass.secondary, fontSize = Glass.body, maxLines = 1)
+            androidx.compose.foundation.text.BasicTextField(
+                value = query,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = Glass.body),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Color.White),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/** A chip that opens a small menu of [options] (the Classic filter / sort menus). */
+@Composable
+internal fun <T> GlassMenuChip(label: String, options: List<T>, optionLabel: @Composable (T) -> String, onSelect: (T) -> Unit) {
+    var open by remember { androidx.compose.runtime.mutableStateOf(false) }
+    Box {
+        GlassChip(label, selected = false, onClick = { open = true }, icon = "chevDown")
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            options.forEach { option ->
+                androidx.compose.material3.DropdownMenuItem(text = { Text(optionLabel(option)) }, onClick = { onSelect(option); open = false })
+            }
+        }
+    }
+}
+
+/**
+ * Bars for [values] (the last one ice, the others white 62%) with an optional dashed [average] line and the first / last labels
+ * under them (Activity chart, Characters growth, Anki weekly cards).
+ */
+@Composable
+internal fun BarChart(values: List<Double>, average: List<Double>?, firstLabel: String, lastLabel: String, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 170.dp) {
+    val max = (values + (average ?: emptyList())).maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(height)) {
+            val slot = size.width / values.size
+            val barW = (slot * 0.7f).coerceAtLeast(1f)
+            values.forEachIndexed { i, v ->
+                if (v <= 0.0) return@forEachIndexed
+                val h = (size.height * (v / max)).toFloat().coerceAtLeast(2f)
+                drawRect(
+                    if (i == values.lastIndex) Glass.ice else Glass.secondary,
+                    Offset(i * slot + (slot - barW) / 2, size.height - h),
+                    Size(barW, h),
+                )
+            }
+            if (average != null && average.size > 1) {
+                val path = androidx.compose.ui.graphics.Path()
+                average.forEachIndexed { i, v ->
+                    val x = i * slot + slot / 2
+                    val y = size.height - (size.height * (v / max)).toFloat()
+                    if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(
+                    path,
+                    Color.White,
+                    style = Stroke(2.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(firstLabel, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1)
+            Text(lastLabel, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1)
+        }
+    }
+}
+
+/** True when the Classic body has to be shown instead of the Glass one: a title / character / session detail is open on that tab. */
+internal fun showClassicHost(tab: StatsTab, titleOpen: Boolean, characterOpen: Boolean, sessionOpen: Boolean): Boolean = when (tab) {
+    StatsTab.TITLES -> titleOpen
+    StatsTab.CHARACTERS -> characterOpen
+    StatsTab.SESSIONS -> sessionOpen
+    else -> false
 }
