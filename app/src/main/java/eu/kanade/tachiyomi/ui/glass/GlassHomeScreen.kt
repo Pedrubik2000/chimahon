@@ -60,6 +60,7 @@ import eu.kanade.tachiyomi.ui.glass.review.GlassReviewPage
 import eu.kanade.tachiyomi.ui.glass.review.refreshReviewDue
 import eu.kanade.tachiyomi.ui.glass.settings.GlassPhoneSettingsPage
 import eu.kanade.tachiyomi.ui.glass.settings.GlassSettingsPage
+import eu.kanade.tachiyomi.ui.glass.settings.GlassWhatsNewPage
 import eu.kanade.tachiyomi.ui.glass.stats.GlassStatsPage
 import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
 import eu.kanade.tachiyomi.ui.glass.settings.glassSettingsSection
@@ -83,7 +84,7 @@ private val glassPage = mutableStateOf("home")
 object GlassHomeScreen : Screen() {
     private fun readResolve(): Any = GlassHomeScreen
 
-    /** Switches the shell to [page] ("home", "library", "discover", "releases", "review", "downloads", "settings"), e.g. from a title page's rail. */
+    /** Switches the shell to [page] ("home", "library", "discover", "releases", "review", "downloads", "settings", "whatsnew" = the installed version's release notes), e.g. from a title page's rail. */
     fun show(page: String) {
         glassPage.value = page
     }
@@ -120,6 +121,14 @@ object GlassHomeScreen : Screen() {
 
         // canvas `PhoneHero-2`: on a phone (pref glassPhone) the pages are the phone ones and the rail is a bar
         val phone = !isTabletUi()
+        // "What's new" lives under Settings > About: the gear stays lit and Back returns there
+        val railPage = if (page == "whatsnew") "settings" else page
+        val whatsNew: @Composable () -> Unit = {
+            GlassWhatsNewPage(phone) {
+                glassSettingsSection.value = "about"
+                page = "settings"
+            }
+        }
         GlassPage {
             when {
                 !phone -> Unit
@@ -138,6 +147,7 @@ object GlassHomeScreen : Screen() {
                 page == "library" -> GlassLibraryPage(model, navigator)
                 page == "downloads" -> GlassDownloadsPage(model, navigator)
                 page == "settings" -> GlassPhoneSettingsPage(navigator)
+                page == "whatsnew" -> whatsNew()
                 // a window that shrank while Stats was open: Stats is a tablet rail page, so back to Home
                 page == "stats" -> LaunchedEffect(Unit) { page = "home" }
             }
@@ -151,6 +161,7 @@ object GlassHomeScreen : Screen() {
                 "stats" -> GlassStatsPage(navigator) { rememberScreenModel { StatsScreenModel(titleId = null) } }
                 "downloads" -> GlassDownloadsPage(model, navigator)
                 "settings" -> GlassSettingsPage(navigator)
+                "whatsnew" -> whatsNew()
                 else -> Column(
                     Modifier.padding(start = 108.dp, top = 24.dp, end = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -206,7 +217,7 @@ object GlassHomeScreen : Screen() {
             }
             if (phone) {
                 GlassPhoneBar(
-                    active = page,
+                    active = railPage,
                     onSelect = {
                         page = it
                         problemsOpen = false
@@ -217,7 +228,7 @@ object GlassHomeScreen : Screen() {
             }
             // last, so it draws over the pages (Home's banner scrolls under it) and keeps its touches
             if (!phone) GlassRail(
-                active = page,
+                active = railPage,
                 onSelect = {
                     page = it
                     problemsOpen = false

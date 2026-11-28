@@ -1057,6 +1057,12 @@
     <string name="glass_about_check_failed">Couldn\'t check · %1$s</string>
     <string name="glass_about_check_failed_toast">Couldn\'t check for updates</string>
     <string name="glass_about_full_notes">Full notes</string>
+    <string name="glass_whats_new_crumb">About · What's new</string>
+    <string name="glass_whats_new_loading">Getting the notes from GitHub…</string>
+    <string name="glass_whats_new_failed">Couldn't get the notes</string>
+    <string name="glass_whats_new_failed_sub">The notes come from GitHub. Your update is installed and works without them.</string>
+    <string name="glass_whats_new_on_page">On this page</string>
+    <string name="glass_whats_new_installed">Installed %1$s</string>
     <string name="glass_about_licences_sub">Mihon, Komikku, chimahon and the libraries they use</string>
     <string name="glass_about_github_sub">github.com/Pedrubik2000/kumahon · releases and code</string>
     <string name="glass_about_advanced">Advanced</string>

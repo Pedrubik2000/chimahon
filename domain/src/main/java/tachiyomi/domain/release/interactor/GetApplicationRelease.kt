@@ -66,6 +66,10 @@ class GetApplicationRelease(
     }
     // KMK <--
 
+    /** chimahon: the notes of the installed version alone ([Arguments.versionName]); the newest release when that one is not published; null with no release. */
+    suspend fun awaitInstalledReleaseNotes(arguments: Arguments): Release? =
+        service.releaseNotes(arguments).filter { !it.preRelease && !it.draft }.forVersion(arguments.versionName)
+
     /**
      * [isPreview] is if current version is Preview (beta) build
      *
@@ -140,6 +144,10 @@ class GetApplicationRelease(
         data object OsTooOld : Result
     }
 }
+
+/** chimahon: the release tagged [versionName] ("v1.4.29" = "1.4.29"), else the first (newest) one. */
+internal fun List<Release>.forVersion(versionName: String): Release? =
+    firstOrNull { it.version.removePrefix("v") == versionName.removePrefix("v") } ?: firstOrNull()
 
 // KMK --.
 internal fun List<Release>.getLatest(): Release? {

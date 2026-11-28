@@ -455,7 +455,10 @@ class MainActivity : BaseActivity() {
                     onDismissRequest = { showChangelog = false },
                     onOpenWhatsNew = {
                         showChangelog = false
-                        if (!isCheckingWhatsNew) {
+                        // chimahon: the new look has its own page for the notes (it loads them itself)
+                        if (glassRoot && navigator?.lastItem == GlassHomeScreen) {
+                            GlassHomeScreen.show("whatsnew")
+                        } else if (!isCheckingWhatsNew) {
                             scope.launch {
                                 isCheckingWhatsNew = true
 

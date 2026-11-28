@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.util.system.isPreviewBuildType
 import exh.source.ExhPreferences
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.release.interactor.GetApplicationRelease
+import tachiyomi.domain.release.model.Release
 import tachiyomi.domain.release.service.AppUpdatePolicy
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -91,6 +92,19 @@ class AppUpdateChecker(
         }
     }
     // KMK <--
+
+    /** chimahon: the installed version's release (notes not joined with older ones); see [GetApplicationRelease.awaitInstalledReleaseNotes]. */
+    suspend fun getInstalledReleaseNotes(): Release? = withIOContext {
+        getApplicationRelease.awaitInstalledReleaseNotes(
+            GetApplicationRelease.Arguments(
+                isFoss = isFossBuildType,
+                isPreview = false,
+                commitCount = BuildConfig.COMMIT_COUNT.toInt(),
+                versionName = BuildConfig.VERSION_NAME,
+                repository = getGithubRepo(),
+            ),
+        )
+    }
 }
 
 val GITHUB_REPO: String by lazy { getGithubRepo() }

@@ -184,6 +184,15 @@ class GetApplicationReleaseTest {
     }
 
     @Test
+    fun `notes of the installed version, else the newest`() {
+        val releases = listOf("v1.4.29", "v1.4.28", "v1.4.27").map { Release(it, "notes $it", "", "") }
+        releases.forVersion("1.4.28")?.info shouldBe "notes v1.4.28"
+        releases.forVersion("v1.4.27")?.version shouldBe "v1.4.27"
+        releases.forVersion("1.4.30")?.version shouldBe "v1.4.29"
+        emptyList<Release>().forVersion("1.4.29") shouldBe null
+    }
+
+    @Test
     fun `kumahon dev tags are never newer`() = runTest {
         kumahonCheck("dev-1.1.0-10997", "1.0.0") shouldBe false
         kumahonCheck("dev-1.2.0-10997", "1.2.0") shouldBe false

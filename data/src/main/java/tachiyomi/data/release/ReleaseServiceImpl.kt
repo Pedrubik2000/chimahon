@@ -75,7 +75,9 @@ class ReleaseServiceImpl(
 
     private fun getDownloadLink(release: GithubRelease, isFoss: Boolean): String? =
         // chimahon: pure part split out so it can be unit tested
-        pickDownloadLink(release.assets, Build.SUPPORTED_ABIS[0], isFoss)
+        // every ABI the device runs, best first: an x86_64 device that also runs arm64 gets the arm64 APK
+        // (and its release notes) instead of no release at all
+        Build.SUPPORTED_ABIS.firstNotNullOfOrNull { pickDownloadLink(release.assets, it, isFoss) }
 
     companion object {
         /**

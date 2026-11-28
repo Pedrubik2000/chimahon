@@ -40,6 +40,7 @@ import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
 import eu.kanade.tachiyomi.data.updater.AppUpdateDownloadJob
 import eu.kanade.tachiyomi.ui.home.HomeScreen
+import eu.kanade.tachiyomi.ui.glass.GlassHomeScreen
 import eu.kanade.tachiyomi.ui.glass.setup.GlassSetupScreen
 import eu.kanade.tachiyomi.ui.setting.SettingsScreen
 import eu.kanade.tachiyomi.util.CrashLogUtil
@@ -247,13 +248,16 @@ internal fun AboutPage(navigator: Navigator) {
             val shown = notes
             if (shown != null && update == null) {
                 Divider()
+                val installed = shown.version.versionLabel() == BuildConfig.VERSION_NAME
                 AboutRow(
                     "book",
                     // the newest release is not the installed one: say so instead of "What's new"
                     stringResource(
-                        if (shown.version.versionLabel() == BuildConfig.VERSION_NAME) MR.strings.glass_about_whats_new else MR.strings.glass_about_latest_release,
+                        if (installed) MR.strings.glass_about_whats_new else MR.strings.glass_about_latest_release,
                         shown.version.versionLabel(),
                     ),
+                    // the whole notes on their own page (the installed version's, else these newest ones: a dev build)
+                    Modifier.clickable { GlassHomeScreen.show("whatsnew") },
                     trailing = {
                         Pill(stringResource(MR.strings.glass_about_full_notes), { context.openInBrowser(shown.releaseLink) }, small = true, icon = "external")
                     },
