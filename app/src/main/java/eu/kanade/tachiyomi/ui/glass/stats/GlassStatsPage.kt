@@ -160,7 +160,10 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                 }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Glass.line))
-        Column(Modifier.weight(1f).fillMaxHeight().padding(start = 32.dp, top = 28.dp, end = 32.dp)) {
+        // a narrow page (the tablet upright, split screen): the periods go under the title, the tiles two a row, the panels one a row
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
+        val narrow = maxWidth < NARROW
+        Column(Modifier.fillMaxSize().padding(start = 32.dp, top = 28.dp, end = 32.dp)) {
             if (success == null) return@Column
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(Modifier.weight(1f)) {
@@ -171,16 +174,38 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                     }
                 }
                 eu.kanade.presentation.glass.GlassRoundButton("restore", model::refresh, description = stringResource(KMR.strings.stats_refresh), iconSize = 20.dp)
+                if (!narrow) FlowPills(success.filter.rangePreset, model::selectRange)
+            }
+            if (narrow) {
+                Spacer(Modifier.height(12.dp))
                 FlowPills(success.filter.rangePreset, model::selectRange)
             }
             Spacer(Modifier.height(16.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (success.selectedTab == StatsTab.OVERVIEW) {
-                    GlassStatsOverview(success, onTab = model::selectTab, onRetry = model::retrySection)
+                    GlassStatsOverview(success, onTab = model::selectTab, onRetry = model::retrySection, narrow = narrow)
                 } else {
                     StatsScreenHost(model, success, null, PaddingValues(0.dp), onNavigator = navigator, showChrome = false)
                 }
             }
+        }
+        }
+    }
+}
+
+/** Under this width of the Stats content the layout is the narrow one. */
+private val NARROW = 600.dp
+
+/** Two panels side by side (3 : 2), or one under the other on a [narrow] page. */
+@Composable
+private fun PanelRow(narrow: Boolean, first: @Composable (Modifier) -> Unit, second: (@Composable (Modifier) -> Unit)? = null) {
+    if (narrow) {
+        first(Modifier.fillMaxWidth())
+        second?.invoke(Modifier.fillMaxWidth())
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            first(Modifier.weight(3f))
+            second?.invoke(Modifier.weight(2f))
         }
     }
 }
@@ -207,7 +232,7 @@ private fun periodLine(state: StatsScreenState.Success): String? {
 
 /** The Overview tab in Glass (canvas option-b): six tiles, the last 14 days, goals, titles, Anki. Data = the Classic sections. */
 @Composable
-internal fun GlassStatsOverview(state: StatsScreenState.Success, onTab: (StatsTab) -> Unit, onRetry: (StatsSection) -> Unit) {
+internal fun GlassStatsOverview(state: StatsScreenState.Success, onTab: (StatsTab) -> Unit, onRetry: (StatsSection) -> Unit, narrow: Boolean = false) {
     val overview = state.sections.overview.value?.value
     val metric = state.filter.characterMetric
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -236,27 +261,37 @@ internal fun GlassStatsOverview(state: StatsScreenState.Success, onTab: (StatsTa
             Tile(formatCount(cur.sessions.value), stringResource(KMR.strings.stats_sessions), null),
             Tile(formatCount(cur.cardsCreated.value), stringResource(KMR.strings.stats_cards_created), null),
         )
-        tiles.chunked(3).forEach { row ->
+        tiles.chunked(if (narrow) 2 else 3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 row.forEach { t -> StatTile(t, Modifier.weight(1f)) }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Panel(stringResource(MR.strings.glass_stats_chart), Modifier.weight(3f)) { Bars(state) }
-            Panel(stringResource(MR.strings.glass_stats_goals), Modifier.weight(2f), action = {
-                if (state.goalsEnabled) Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.GOALS) })
-            }) { Goals(state, onTab) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Panel(tabLabel(StatsTab.TITLES), Modifier.weight(3f), action = {
-                Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.TITLES) })
-            }) { TitlesList(state) }
+        PanelRow(
+            narrow,
+            { m -> Panel(stringResource(MR.strings.glass_stats_chart), m) { Bars(state) } },
+            { m ->
+                Panel(stringResource(MR.strings.glass_stats_goals), m, action = {
+                    if (state.goalsEnabled) Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.GOALS) })
+                }) { Goals(state, onTab) }
+            },
+        )
+        PanelRow(
+            narrow,
+            { m ->
+                Panel(tabLabel(StatsTab.TITLES), m, action = {
+                    Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.TITLES) })
+                }) { TitlesList(state) }
+            },
             if (state.ankiEnabled) {
-                Panel(stringResource(MR.strings.glass_stats_anki), Modifier.weight(2f), action = {
-                    Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.ANKI) })
-                }) { AnkiBlock(state) }
-            }
-        }
+                { m ->
+                    Panel(stringResource(MR.strings.glass_stats_anki), m, action = {
+                        Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.ANKI) })
+                    }) { AnkiBlock(state) }
+                }
+            } else {
+                null
+            },
+        )
         Spacer(Modifier.height(16.dp))
     }
 }
