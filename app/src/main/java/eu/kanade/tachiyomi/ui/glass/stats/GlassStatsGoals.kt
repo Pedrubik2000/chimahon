@@ -180,7 +180,7 @@ private fun GoalCard(g: AnalyticsGoalProgress, modifier: Modifier, onEdit: () ->
 }
 
 @Composable
-private fun Line(label: String, value: String) {
+internal fun Line(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(label, Modifier.weight(1f), color = Glass.secondary, fontSize = Glass.caption)
         Text(value, Modifier.weight(1f), fontSize = Glass.caption, textAlign = TextAlign.End)
@@ -188,4 +188,4 @@ private fun Line(label: String, value: String) {
 }
 
 @Composable
-private fun Note(text: String) = Text(text, color = Glass.secondary, fontSize = Glass.caption)
+internal fun Note(text: String) = Text(text, color = Glass.secondary, fontSize = Glass.caption)

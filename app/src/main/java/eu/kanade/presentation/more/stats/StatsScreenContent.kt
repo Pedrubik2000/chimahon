@@ -5267,7 +5267,7 @@ internal fun formatGoalValue(metric: String, value: Double): String {
 }
 
 @Composable
-private fun capabilityLabel(value: CapabilityState): String = when (value) {
+internal fun capabilityLabel(value: CapabilityState): String = when (value) {
     CapabilityState.AVAILABLE -> stringResource(KMR.strings.stats_available)
     CapabilityState.PARTIAL -> stringResource(KMR.strings.stats_partial)
     CapabilityState.UNAVAILABLE -> stringResource(KMR.strings.stats_unavailable)
@@ -5275,7 +5275,7 @@ private fun capabilityLabel(value: CapabilityState): String = when (value) {
 }
 
 @Composable
-private fun ankiReportLabel(value: AnalyticsAnkiReport): String = when (value) {
+internal fun ankiReportLabel(value: AnalyticsAnkiReport): String = when (value) {
     AnalyticsAnkiReport.INVENTORY -> stringResource(KMR.strings.stats_anki_report_inventory)
     AnalyticsAnkiReport.CARD_ACTIVITY -> stringResource(KMR.strings.stats_anki_report_card_activity)
     AnalyticsAnkiReport.SOURCE_ATTRIBUTION ->
@@ -5296,7 +5296,7 @@ private fun ankiReportLabel(value: AnalyticsAnkiReport): String = when (value) {
  * already said it — so it returns null and the row stands alone.
  */
 @Composable
-private fun ankiCapabilityReason(value: AnalyticsAnkiCapabilityReason): String? = when (value) {
+internal fun ankiCapabilityReason(value: AnalyticsAnkiCapabilityReason): String? = when (value) {
     AnalyticsAnkiCapabilityReason.AVAILABLE -> null
     AnalyticsAnkiCapabilityReason.NO_CURRENT_INVENTORY ->
         stringResource(KMR.strings.stats_anki_capability_no_inventory)
@@ -5402,7 +5402,7 @@ internal fun trendMetricLabel(
 }
 
 @Composable
-private fun titleSeriesSelectionLabel(selection: AnalyticsTitleSeriesSelection): String = when (selection) {
+internal fun titleSeriesSelectionLabel(selection: AnalyticsTitleSeriesSelection): String = when (selection) {
     AnalyticsTitleSeriesSelection.TOP_CHARACTERS ->
         stringResource(KMR.strings.stats_title_series_top)
     AnalyticsTitleSeriesSelection.MOST_RECENT ->

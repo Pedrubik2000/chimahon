@@ -151,6 +151,9 @@ internal fun GlassStatsTitles(state: StatsScreenState.Success, model: StatsScree
                             { model.updateTitleFilter(state.titleFilter.copy(coverage = it)) },
                         )
                     }
+                    if (state.titleSort == AnalyticsTitleSort.READING_SPEED) {
+                        Text(stringResource(KMR.strings.stats_minimum_threshold), color = Glass.secondary, fontSize = Glass.caption)
+                    }
                     when {
                         loadState.showContent -> Unit
                         loadState.showError -> Pill(stringResource(KMR.strings.stats_retry_section), { model.retrySection(StatsSection.TITLES) }, small = true)
@@ -180,30 +183,37 @@ internal fun GlassStatsTitles(state: StatsScreenState.Success, model: StatsScree
 @Composable
 private fun TitleRow(state: StatsScreenState.Success, t: AnalyticsTitleRow, fraction: Float, first: Boolean, onClick: () -> Unit) {
     val name = state.titleMetadata[t.titleId]?.localDisplayTitle ?: t.displayTitle
+    BarRow(
+        name,
+        stringResource(
+            MR.strings.glass_stats_title_sub,
+            formatCount(t.metrics.characterValue(state.filter.characterMetric)),
+            formatCount(t.metrics.sessions.value),
+            shortDate(t.lastActiveDate),
+        ),
+        formatDurationCompact(t.metrics.activeTime.value),
+        fraction,
+        first,
+        onClick,
+    )
+}
+
+/** A row of the Titles look: name and a caption, a bar (ice when [first], longest = full width), the value; a chevron when [onClick] is given. Also used by Activity, Characters and Anki. */
+@Composable
+internal fun BarRow(name: String, sub: String?, value: String, fraction: Float, first: Boolean, onClick: (() -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(Glass.r8)).clickable(onClick = onClick).padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(Glass.r8)).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(2f)) {
             Text(name, fontSize = Glass.body, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                stringResource(
-                    MR.strings.glass_stats_title_sub,
-                    formatCount(t.metrics.characterValue(state.filter.characterMetric)),
-                    formatCount(t.metrics.sessions.value),
-                    shortDate(t.lastActiveDate),
-                ),
-                color = Glass.secondary,
-                fontSize = Glass.caption,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (sub != null) Text(sub, color = Glass.secondary, fontSize = Glass.caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.weight(3f).height(10.dp).clip(CircleShape).background(Glass.line)) {
             Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(if (first) Glass.ice else Glass.secondary))
         }
-        Text(formatDurationCompact(t.metrics.activeTime.value), Modifier.width(72.dp), fontSize = Glass.body, textAlign = TextAlign.End, maxLines = 1)
-        GlassIcon("chevRight", size = 16.dp, tint = Glass.secondary)
+        Text(value, Modifier.width(72.dp), fontSize = Glass.body, textAlign = TextAlign.End, maxLines = 1)
+        if (onClick != null) GlassIcon("chevRight", size = 16.dp, tint = Glass.secondary)
     }
 }

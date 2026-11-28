@@ -127,8 +127,6 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
     StatsExportEffect(model)
     StatsRawTextDisclosure(model)
     val success = state as? StatsScreenState.Success
-    // the "Classic view" pill in the header: any control the Glass tab does not place stays reachable there
-    var classic by remember(success?.selectedTab) { androidx.compose.runtime.mutableStateOf(false) }
     // one scroll position per tab, kept here so closing a Classic detail returns to the same place
     val listStates = StatsTab.entries.associateWith { rememberLazyListState() }
     val detailOpen = success != null && showClassicHost(success.selectedTab, success.selection.title != null, success.selection.character != null, success.selection.session != null)
@@ -198,13 +196,6 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                         Pill(stringResource(MR.strings.glass_stats_filtered), { model.clearHiddenFilters() }, small = true, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
-                if (success.selectedTab != StatsTab.OVERVIEW && !detailOpen) {
-                    Pill(
-                        stringResource(if (classic) MR.strings.glass_stats_glass_view else MR.strings.glass_stats_classic_view),
-                        { classic = !classic },
-                        small = true,
-                    )
-                }
                 eu.kanade.presentation.glass.GlassRoundButton("restore", model::refresh, description = stringResource(KMR.strings.stats_refresh), iconSize = 20.dp)
                 if (!narrow) FlowPills(success.filter.rangePreset, model::selectRange)
             }
@@ -216,7 +207,7 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (success.selectedTab == StatsTab.OVERVIEW) {
                     GlassStatsOverview(success, onTab = model::selectTab, onRetry = model::retrySection, narrow = narrow)
-                } else if (classic || detailOpen) {
+                } else if (detailOpen) {
                     StatsScreenHost(model, success, null, PaddingValues(0.dp), onNavigator = navigator, showChrome = false)
                 } else {
                     when (success.selectedTab) {
@@ -365,12 +356,14 @@ internal fun StatTile(t: Tile, modifier: Modifier) {
 }
 
 @Composable
-internal fun Panel(title: String, modifier: Modifier, action: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
+/** [actionBelow]: the action goes under the title instead of beside it (a narrow page, where chips beside it cut the title to "Sess…"). */
+internal fun Panel(title: String, modifier: Modifier, action: @Composable () -> Unit = {}, actionBelow: Boolean = false, content: @Composable () -> Unit) {
     Column(modifier.heightIn(min = 200.dp).glassPanel(Glass.r16).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, Modifier.weight(1f), fontSize = Glass.label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            action()
+            if (!actionBelow) action()
         }
+        if (actionBelow) action()
         content()
     }
 }

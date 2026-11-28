@@ -33,13 +33,16 @@ import eu.kanade.presentation.more.stats.formatDurationCompact
 import eu.kanade.presentation.more.stats.formatHour
 import eu.kanade.presentation.more.stats.formatLocalDate
 import eu.kanade.presentation.more.stats.formatRate
+import eu.kanade.presentation.more.stats.formatTrendValue
 import eu.kanade.presentation.more.stats.hasActivity
+import eu.kanade.presentation.more.stats.titleSeriesSelectionLabel
 import eu.kanade.presentation.more.stats.movingAverage
 import eu.kanade.presentation.more.stats.trendValue
 import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
 import tachiyomi.domain.immersion.model.AnalyticsActivityTotals
 import tachiyomi.domain.immersion.model.AnalyticsBucketScale
 import tachiyomi.domain.immersion.model.AnalyticsTemporalActivity
+import tachiyomi.domain.immersion.model.AnalyticsTitleSeriesSelection
 import tachiyomi.domain.immersion.model.AnalyticsTrends
 import tachiyomi.domain.immersion.model.CharacterMetric
 import tachiyomi.domain.immersion.model.ImmersionLocalDate
@@ -73,15 +76,64 @@ internal fun GlassStatsActivity(state: StatsScreenState.Success, model: StatsScr
                 val hoursUseTime = activity.hours.none { it.totals.characterValue(metric) > 0L }
                 val hours = activity.hours.filter { it.totals.hasActivity(metric) }.associate { it.hourOfDay to activityValue(it.totals, metric, hoursUseTime) }
                 val peak = hours.maxByOrNull { it.value }?.takeIf { it.value > 0 }?.key
-                PanelRow(
-                    narrow,
-                    { m ->
-                        Panel(stringResource(MR.strings.glass_stats_by_hour), m, action = {
-                            peak?.let { Text(stringResource(MR.strings.glass_stats_most_at, formatHour(it)), color = Glass.secondary, fontSize = Glass.caption) }
-                        }) { HourCells(hours, peak) }
-                    },
-                    { m -> Panel(stringResource(MR.strings.glass_stats_by_weekday), m) { WeekdayRows(activity, metric) } },
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PanelRow(
+                        narrow,
+                        { m ->
+                            Panel(stringResource(MR.strings.glass_stats_by_hour), m, action = {
+                                peak?.let { Text(stringResource(MR.strings.glass_stats_most_at, formatHour(it)), color = Glass.secondary, fontSize = Glass.caption) }
+                            }) { HourCells(hours, peak) }
+                        },
+                        { m -> Panel(stringResource(MR.strings.glass_stats_by_weekday), m) { WeekdayRows(activity, metric) } },
+                    )
+                    Text(stringResource(KMR.strings.stats_time_patterns_explanation), color = Glass.secondary, fontSize = Glass.caption)
+                }
+            }
+        }
+        // the Classic "title contributions": the per-title series with its Top / Recent selector
+        block {
+            LoadableBody(state.sections.titleTrends, { model.retrySection(StatsSection.TITLE_TRENDS) }) { tt ->
+                Panel(stringResource(MR.strings.glass_stats_titles_in_period), Modifier.fillMaxWidth(), actionBelow = narrow, action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AnalyticsTitleSeriesSelection.entries.forEach { option ->
+                            GlassChip(titleSeriesSelectionLabel(option), selected = option == state.titleTrendSelection, onClick = { model.selectTitleTrendSelection(option) })
+                        }
+                    }
+                }) {
+                    if (tt.series.isEmpty()) {
+                        Text(stringResource(MR.strings.glass_stats_none), color = Glass.secondary, fontSize = Glass.body)
+                    } else {
+                        val totals = tt.series.map { it.points.lastOrNull()?.cumulativeMetrics?.trendValue(state.trendMetric, metric) ?: 0L }
+                        val bars = timeBarFractions(totals)
+                        tt.series.forEachIndexed { i, series ->
+                            val active = series.points.count { it.metrics.trendValue(state.trendMetric, metric) > 0L }
+                            BarRow(series.displayTitle, stringResource(MR.strings.glass_stats_read_in, active, series.points.size), formatTrendValue(totals[i], state.trendMetric), bars[i], i == 0)
+                        }
+                        Text(stringResource(KMR.strings.stats_title_series_limit, tt.series.size), color = Glass.secondary, fontSize = Glass.caption)
+                    }
+                }
+            }
+        }
+        // the Classic cumulative / efficiency numbers the five tiles do not show, and its speed-threshold caveat
+        block {
+            LoadableBody(state.sections.trends, { model.retrySection(StatsSection.TRENDS) }) { trends ->
+                val cumulative = trends.points.lastOrNull()?.cumulativeMetrics
+                if (cumulative != null) {
+                    Panel(stringResource(MR.strings.glass_stats_totals), Modifier.fillMaxWidth()) {
+                        Line(stringResource(KMR.strings.stats_source_units), formatCount(cumulative.sourceUnits.value))
+                        Line(
+                            stringResource(KMR.strings.stats_reading_speed),
+                            cumulative.readingSpeedPerHour(metric)?.let { stringResource(KMR.strings.stats_per_hour, formatRate(it)) } ?: stringResource(KMR.strings.stats_unavailable),
+                        )
+                        Line(
+                            stringResource(KMR.strings.stats_mining_rate),
+                            cumulative.miningRatePerTenThousandGrossCharacters()?.let { formatDecimal(it) } ?: stringResource(KMR.strings.stats_unavailable),
+                        )
+                        if (trends.points.any { it.metrics.activeTime.value > 0L || it.metrics.sessions.value > 0L }) {
+                            Note(stringResource(KMR.strings.stats_minimum_threshold))
+                        }
+                    }
+                }
             }
         }
     }
@@ -127,7 +179,7 @@ private fun ActivityChart(state: StatsScreenState.Success, model: StatsScreenMod
         } else {
             null
         }
-        Panel(metricTitle(state.trendMetric, metric) + (speed ?: ""), Modifier.fillMaxWidth(), action = {
+        Panel(metricTitle(state.trendMetric, metric) + (speed ?: ""), Modifier.fillMaxWidth(), actionBelow = narrow, action = {
             ScaleChips(state.trendScale, model::selectTrendScale)
         }) {
             val values = points.map { it.metrics.trendValue(state.trendMetric, metric).toDouble() }

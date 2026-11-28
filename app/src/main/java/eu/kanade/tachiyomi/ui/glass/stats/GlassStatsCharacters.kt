@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.GlassChip
+import eu.kanade.presentation.glass.GlassRoundButton
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.more.stats.StatsCharacterGridMode
 import eu.kanade.presentation.more.stats.StatsCharacterLayout
@@ -50,6 +51,7 @@ import eu.kanade.presentation.more.stats.formatInstant
 import eu.kanade.presentation.more.stats.maturityLabel
 import eu.kanade.presentation.more.stats.sortLabel
 import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
+import eu.kanade.tachiyomi.ui.stats.characterCoverageTarget
 import eu.kanade.tachiyomi.ui.stats.characterDisplayText
 import eu.kanade.tachiyomi.ui.stats.characterFrequencyLevel
 import tachiyomi.domain.immersion.model.AnalyticsCharacterPriorityMode
@@ -111,10 +113,17 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                                         stringResource(MR.strings.glass_stats_aim, state.characterCoverageTargetPercent),
                                     ),
                                 )
+                                add(
+                                    Tile(
+                                        NumberFormat.getPercentInstance().format(summary.matureInAnki.toDouble() / summary.distinctCharacters),
+                                        stringResource(MR.strings.glass_stats_mature_cards),
+                                        stringResource(MR.strings.glass_stats_of_chars, formatCount(summary.matureInAnki), formatCount(summary.distinctCharacters)),
+                                    ),
+                                )
                             }
                         },
                         narrow,
-                        3,
+                        if (coverage) 4 else 3,
                     )
                 }
             } else if (state.sections.characterSummary.error) {
@@ -125,10 +134,64 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
             val fresh = points.map { it.metrics.newCharacters.value.toDouble() }
             if (fresh.any { it > 0.0 }) {
                 block {
-                    Panel(stringResource(MR.strings.glass_stats_new_chars_over_time), Modifier.fillMaxWidth(), action = {
+                    Panel(stringResource(MR.strings.glass_stats_new_chars_over_time), Modifier.fillMaxWidth(), actionBelow = narrow, action = {
                         ScaleChips(state.trendScale, model::selectTrendScale)
                     }) {
                         BarChart(fresh, null, shortDate(points.first().range.start), shortDate(points.last().range.endInclusive), height = 110.dp)
+                    }
+                }
+            }
+            if (summary != null) {
+                val coverage = characterCoverageAvailable(state)
+                // the Classic "by script" breakdown
+                if (summary.scripts.isNotEmpty()) {
+                    block {
+                        Panel(stringResource(KMR.strings.stats_character_scripts), Modifier.fillMaxWidth()) {
+                            val counts = summary.scripts.map { it.distinctCharacters }
+                            val bars = timeBarFractions(counts)
+                            summary.scripts.forEachIndexed { i, sc ->
+                                BarRow(
+                                    characterScriptLabel(sc.script),
+                                    if (coverage) stringResource(MR.strings.glass_stats_of_chars, formatCount(sc.representedInAnki), formatCount(sc.distinctCharacters)) else null,
+                                    formatCount(sc.distinctCharacters),
+                                    bars[i],
+                                    i == 0,
+                                )
+                            }
+                        }
+                    }
+                }
+                // the Classic coverage target (slider) as minus / plus, with its target and daily suggestion
+                block {
+                    Panel(stringResource(MR.strings.glass_stats_coverage_aim), Modifier.fillMaxWidth()) {
+                        if (!coverage) {
+                            Text(stringResource(KMR.strings.stats_character_anki_unavailable), color = Glass.secondary, fontSize = Glass.caption)
+                        } else {
+                            val percent = state.characterCoverageTargetPercent
+                            val target = characterCoverageTarget(summary, percent)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                GlassRoundButton("minus", { model.setCharacterCoverageTargetPercent((percent - 5).coerceAtLeast(50)) }, outlined = true, enabled = percent > 50, description = stringResource(MR.strings.glass_stats_aim_lower))
+                                Text(stringResource(MR.strings.glass_stats_aim_row, percent), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold, color = Glass.ice)
+                                GlassRoundButton("plus", { model.setCharacterCoverageTargetPercent((percent + 5).coerceAtMost(100)) }, outlined = true, enabled = percent < 100, description = stringResource(MR.strings.glass_stats_aim_higher))
+                            }
+                            Text(stringResource(KMR.strings.stats_character_coverage_target, percent, formatCount(target.targetCharacters)), fontSize = Glass.body)
+                            Text(
+                                stringResource(KMR.strings.stats_character_daily_suggestion, formatCount(target.dailyPlanningSuggestion), formatCount(target.remainingCharacters)),
+                                color = Glass.secondary,
+                                fontSize = Glass.caption,
+                            )
+                        }
+                    }
+                }
+            }
+            // the Classic "top titles introducing characters"
+            val introducing = state.titleOptions.filter { it.metrics.newCharacters.value > 0 }.sortedByDescending { it.metrics.newCharacters.value }.take(5)
+            if (introducing.isNotEmpty()) {
+                block {
+                    Panel(stringResource(KMR.strings.stats_character_top_titles), Modifier.fillMaxWidth()) {
+                        val counts = introducing.map { it.metrics.newCharacters.value }
+                        val bars = timeBarFractions(counts)
+                        introducing.forEachIndexed { i, t -> BarRow(t.displayTitle, null, formatCount(counts[i]), bars[i], i == 0) }
                     }
                 }
             }
@@ -139,6 +202,7 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text(stringResource(MR.strings.glass_stats_characters), fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
                         GlassSearchBox(state.characterSearch, model::searchCharacters, stringResource(KMR.strings.stats_search_characters))
+                        Text(stringResource(KMR.strings.stats_search_characters_fields), color = Glass.secondary, fontSize = Glass.caption)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             GlassChip(stringResource(KMR.strings.stats_all), selected = filter.scripts.isEmpty(), onClick = { model.updateCharacterFilter(filter.copy(scripts = emptySet())) })
                             AnalyticsCharacterScript.entries.forEach { script ->
@@ -193,6 +257,10 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                                 onClick = { model.selectCharacterLayout(StatsCharacterLayout.LIST) },
                             )
                         }
+                        Text(stringResource(KMR.strings.stats_character_priority_formula), color = Glass.secondary, fontSize = Glass.caption)
+                        if (state.characterGridMode == StatsCharacterGridMode.FREQUENCY) {
+                            Text(stringResource(KMR.strings.stats_character_frequency_legend), color = Glass.secondary, fontSize = Glass.caption)
+                        }
                         Text(stringResource(KMR.strings.stats_character_select_hint), color = Glass.secondary, fontSize = Glass.caption)
                         if (selected.isNotEmpty()) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -244,6 +312,15 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
             }
         }
     }
+}
+
+/** Whether Anki coverage can be shown: a profile maps a character field and the inventory is current enough (the Classic rule). */
+private fun characterCoverageAvailable(state: StatsScreenState.Success): Boolean {
+    val mapped = state.profiles
+        .filter { state.filter.profileId == null || it.id == state.filter.profileId }
+        .any { it.ankiStatsCharacterField.isNotBlank() }
+    val capability = state.sections.anki.value?.value?.snapshot?.capabilityState
+    return mapped && capability in setOf(CapabilityState.AVAILABLE, CapabilityState.PARTIAL, CapabilityState.STALE)
 }
 
 @Composable
