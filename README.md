@@ -86,6 +86,10 @@ Three ways to find what to read next, based on what you finished:
   <img src="./.github/readme-images/glass/settings-backup.jpg" alt="Settings: backup and restore at the top of Library and storage" width="49%" />
 </p>
 
+<p align="center">
+  <img src="./.github/readme-images/glass/stats.jpg" alt="Stats: reading time, characters read, speed, streak and new cards, with the reading time of the last 14 days" width="60%" />
+</p>
+
 - **Reader**: a top bar (volume, single / double pages, OCR, page bookmark) and a slim page bar that says where you are. Settings, statistics, volumes and the long-press menu open in a side panel.
 - **Stats** on the tablet rail: reading time, characters read, speed, streak and cards mined, by day, week, month, year or all time.
 - **Backup** in Settings › Library and storage: back up now, restore, how often and where.
