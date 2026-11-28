@@ -161,7 +161,7 @@ object KumapieColours {
         work = listOfNotNull(first, title).firstOrNull { it.length <= 60 && '。' !in it && JAPANESE.containsMatchIn(it) }
             ?: works[title]?.takeIf { it.isNotEmpty() } // "": AniList had no match
         readingTitle = title
-        Log.i("KumapieColours", "reading $title: work $work")
+        Log.i("KumapieColours", "reading $title: work $work, splitter ${japanese?.let { if (it.splitterReady) "jiten" else "sudachi" } ?: "not loaded"}")
         if (title.isBlank()) return
         // the character dictionary's set of works: noted once the Japanese title is known (the plain title first would add a second entry for the same manga)
         work?.let { CharacterDictionary.note(context.applicationContext, it); onNoted(); return }

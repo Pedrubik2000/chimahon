@@ -27,6 +27,19 @@ class JapaneseModelTest {
         assertEquals("呼ばれちゃった→呼ぶ | [！]", show("呼ばれちゃった！"))
     }
 
+    /** Without Jiten's files too, 感じました is the known word 感じる (Sudachi alone says 感ずる), as the lookup popup shows it. */
+    @Test fun sudachiJoinKeepsTheModernVerb() {
+        assertEquals("感じる", JapaneseModel.modern("感じ", "感ずる"))
+        assertEquals("感ずる", JapaneseModel.modern("感ずる", "感ずる"))
+        assertEquals("感ずる", JapaneseModel.modern("感ぜ", "感ずる"))
+        assertEquals("する", JapaneseModel.modern("し", "する"))
+        assumeTrue(model?.isReady == true)
+        fun bases(t: String) = JapaneseModel.join(model!!.parse(listOf(t)).first()).filter { it.isWord }.joinToString(" ") { it.base }
+        assertEquals("初めて 芳醇 を 感じる", bases("初めて芳醇を感じました！"))
+        assertEquals("信じる", bases("信じています"))
+        assertEquals("勉強 する", bases("勉強しました"))
+    }
+
     /** Sudachi mode B + join alone (no Jiten files): kumapie's `words` fallback. */
     @Test fun sudachiJoin() {
         assumeTrue(model?.isReady == true)

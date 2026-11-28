@@ -233,8 +233,15 @@ class JapaneseModel(
 
         /** Sudachi's mode-B tokens of [text]. */
         fun tokens(tok: Tokenizer, text: String): List<Token> = tok.tokenize(Tokenizer.SplitMode.B, text).map {
-            Token(it.surface(), it.dictionaryForm(), it.readingForm(), it.partOfSpeech()[0], it.begin(), it.partOfSpeech()[1])
+            Token(it.surface(), modern(it.surface(), it.dictionaryForm()), it.readingForm(), it.partOfSpeech()[0], it.begin(), it.partOfSpeech()[1])
         }
+
+        /**
+         * Sudachi reads 感じ (感じました, 感じた) as a form of the old verb 感ずる; the word a learner knows, and the one the lookup popup
+         * and Jiten's splitter give, is 感じる (信じる, 生じる, 応じる ... alike). The old forms themselves (感ずる, 感ぜず) keep 感ずる.
+         */
+        internal fun modern(surface: String, dictionary: String): String =
+            if (dictionary.endsWith("ずる") && surface.startsWith(dictionary.dropLast(2) + "じ")) dictionary.dropLast(2) + "じる" else dictionary
 
         /**
          * Sudachi's mode-B pieces joined into learner words (prototype and checks: C:\dojo\work\ja-parser\chunks.py):
