@@ -10,17 +10,22 @@ import chimahon.srs.SyncTrigger
  * ([SyncTrigger]), so the rating reaches kumapie as a revlog event (ids kept: ms * 1000 + 0..999, dedup by id).
  */
 object PopupRating {
-    /** Rates the word's card (1 Again .. 4 Easy); answers the undo token (`card:revlogId`), or null = not saved (no card of it). Blocking. */
-    fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long): String? {
-        val card = Cards.shownCard(context, word, reading) ?: return null
-        val srs = Cards.store(context)
+    /**
+     * Rates the word's card (1 Again .. 4 Easy); answers the undo token (`card:revlogId`), or null = not saved (no card of it). Blocking.
+     * [newCardMeaning] not null = the word is blue or green from a card on another device (Pedro, 2026-11-28: "Rate it here"): without
+     * a card of its own, the rating first makes one here with that meaning and this context, as mining it would.
+     */
+    fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long, newCardMeaning: String? = null): String? {
         val sentence = chimahon.ocr.KumapieColours.sentence
         val place = chimahon.ocr.KumapieColours.place
+        val had = Cards.shownCard(context, word, reading)
+        val card = had ?: newCardMeaning?.takeIf { word.isNotBlank() }?.let { Cards.addMined(context, word, reading, sentence, it, place?.first, place?.second) } ?: return null
+        val srs = Cards.store(context)
         val rev = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") } ?: return null
         // where it happened is a context of the card (local only, never synced), as the rating row has always saved
         // the rating is committed: a failure from here on must not report "not saved" (a second tap would rate twice)
         runCatching {
-            if (place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
+            if (place != null && had != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence) // a card made now has it
             chimahon.ocr.KumapieColours.clear() // the page's colours follow the new state
         }.onFailure { android.util.Log.w("KumahonPopup", "rating saved, context/colours failed", it) }
         return "${card.id}:$rev"

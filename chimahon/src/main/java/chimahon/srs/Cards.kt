@@ -58,6 +58,11 @@ object Cards {
         return Preview(card, (1..4).map { eu.kanade.tachiyomi.ui.glass.review.ReviewLogic.intervalLabel(fsrs.interval(fsrs.next(before, days, it).stability)) })
     }
 
+    /** The four answer intervals a card made now would get: the labels for a word mined on another device, whose own card the first rating makes. */
+    fun newLabels(context: Context): List<String> = store(context).fsrs.let { fsrs ->
+        (1..4).map { eu.kanade.tachiyomi.ui.glass.review.ReviewLogic.intervalLabel(fsrs.interval(fsrs.next(null, 0, it).stability)) }
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Runs [block] in the background (never delays the caller); an exception is logged, never thrown. */

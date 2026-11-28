@@ -347,7 +347,7 @@ object AnkiCardCreator {
     }
 
     /** The glossary as plain text (dictionary names left out), one entry per line. */
-    private fun plainMeaning(result: LookupResult): String =
+    fun plainMeaning(result: LookupResult): String =
         buildGlossaryPlain(result.term.glossaries, noDictTag = true).split("<br>")
             .joinToString("\n") { android.text.Html.fromHtml(it, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim() }
             .trim()

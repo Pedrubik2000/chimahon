@@ -54,14 +54,16 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /** What the popup knows of the looked-up word: its colour state, whether it is marked known, and (when kumahon has its card) the card with its answer intervals. */
-internal class PopupWordState(val state: String, val marked: Boolean, val preview: Cards.Preview?)
+internal class PopupWordState(val state: String, val marked: Boolean, val preview: Cards.Preview?, val newLabels: List<String>? = null)
 
 private fun readWordState(context: android.content.Context, word: String, reading: String, matched: String): PopupWordState {
     val body = JSONObject().put("action", "state").put("word", word).put("reading", reading).put("text", matched)
     val answer = runCatching { JSONObject(KumapieColours.callOwn(context, body.toString())) }.getOrNull()
     val state = PopupLogic.stateName(answer?.optString("state"))
     val preview = if (state == "u") null else runCatching { Cards.preview(context, word, reading) }.getOrNull()
-    return PopupWordState(state, answer?.optBoolean("marked") ?: false, preview)
+    // blue or green without a card here = mined on another device: the first rating makes the card, these are its intervals
+    val newLabels = if (preview == null && (state == "b" || state == "d")) runCatching { Cards.newLabels(context) }.getOrNull() else null
+    return PopupWordState(state, answer?.optBoolean("marked") ?: false, preview, newLabels)
 }
 
 private fun stateColour(state: String?): Color = when (state) {
@@ -116,10 +118,11 @@ internal fun GlassLookupCard(
     val once = remember(expression, reading) { RateOnce() }
 
     // loading (word == null): no state shown yet, no bar. Loaded: the state is the page's colour. The card exists only when kumahon's own
-    // store has it (preview); without one (new, known, or mined on another device: blue) the bar is Mark known + Mine as before.
+    // store has it (preview); without one a new or known word gets Mark known + Mine, and a word mined on another device (blue, or
+    // green when due) gets the rating buttons too: its first rating makes the card here (Pedro, 2026-11-28).
     val hasCard = word?.preview != null
     val state = word?.state
-    val bar = if (state == null || !hasCard) PopupLogic.Bar.MINE else PopupLogic.bar(state, true)
+    val bar = if (state == null) PopupLogic.Bar.MINE else PopupLogic.bar(state, hasCard)
     var dictionary by remember(expression) { mutableIntStateOf(0) }
 
     fun press(which: String) { webView.evaluateJavascript("window.DictionaryRenderer && window.DictionaryRenderer.press('$which');", null) }
@@ -131,7 +134,7 @@ internal fun GlassLookupCard(
                 KumapieColours.callOwn(context, JSONObject().put("action", "mark").put("word", expression).put("reading", reading).put("text", matched).put("known", known).toString())
             }
             val marked = runCatching { JSONObject(answer).getBoolean("marked") }.getOrNull()
-            if (marked != null) word = word?.let { PopupWordState(it.state, marked, it.preview) } ?: PopupWordState("u", marked, null)
+            if (marked != null) word = word?.let { PopupWordState(it.state, marked, it.preview, it.newLabels) } ?: PopupWordState("u", marked, null)
             tick++
         }
     }
@@ -139,7 +142,7 @@ internal fun GlassLookupCard(
         if (answered != null || !once.begin()) return // one rating per word per popup open: a double tap is ignored
         scope.launch {
             val ms = SystemClock.elapsedRealtime() - shownAt
-            val token = withContext(Dispatchers.IO) { runCatching { PopupRating.ratePopupCard(context, expression, reading, ease, ms) }.onFailure { android.util.Log.w("GlassLookupCard", "rating failed: $it") }.getOrNull() }
+            val token = withContext(Dispatchers.IO) { runCatching { PopupRating.ratePopupCard(context, expression, reading, ease, ms, if (hasCard || result == null) null else chimahon.anki.AnkiCardCreator.plainMeaning(result)) }.onFailure { android.util.Log.w("GlassLookupCard", "rating failed: $it") }.getOrNull() }
             if (token != null) { answered = PopupLogic.RATINGS[ease - 1] to token; note = null; tick++ } else { once.fail(); note = "The rating was not saved." }
         }
     }
@@ -224,7 +227,7 @@ internal fun GlassLookupCard(
                         Arrows(arrowsEnabled, ::step, small = true)
                     }
                     if (answered == null) Row(Modifier.fillMaxWidth().height(60.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (i in 1..4) RateButton(PopupLogic.RATINGS[i - 1], word?.preview?.labels?.getOrNull(i - 1), i == 3, i == 1, Modifier.weight(1f)) { rate(i) }
+                        for (i in 1..4) RateButton(PopupLogic.RATINGS[i - 1], (word?.preview?.labels ?: word?.newLabels)?.getOrNull(i - 1), i == 3, i == 1, Modifier.weight(1f)) { rate(i) }
                     }
                 }
             }
