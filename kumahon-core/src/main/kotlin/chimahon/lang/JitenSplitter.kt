@@ -30,6 +30,10 @@ class JitenSplitter(private val lexicon: File, private val systemDic: File, priv
         JitenParser(lex, MorphologicalAnalyser(lex, systemDic.toPath(), userDic?.toPath()))
     }.also { parser = it }
 
+    /** Reads the files now; throws when they don't load (the caller throws them away). */
+    @Synchronized
+    fun load() { parser() }
+
     /** Jiten's frequency rank of [word] (1 = most common; names don't count), null when it has none. */
     @Synchronized
     fun frequencyRank(word: String): Int? = parser().lexicon.getBestNonNameFrequencyRank(word)

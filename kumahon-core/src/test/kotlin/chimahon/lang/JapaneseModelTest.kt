@@ -75,6 +75,18 @@ class JapaneseModelTest {
         assertEquals(true, bad.droppedAt > 0)
     }
 
+    /** A release marked dropped by 1.4.25 or older (where one text that failed to split dropped it) is fetched again; one that doesn't load is not. */
+    @Test fun oldDroppedMarkIsTriedAgain(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        assumeTrue(model?.isReady == true)
+        model!!.dic.copyTo(File(tmp, model!!.dic.name))
+        val m = JapaneseModel(tmp)
+        val now = System.currentTimeMillis()
+        File(tmp, "jiten-splitter.version").writeText("dropped:2026-10-11\n$now")
+        assertEquals(true, m.splitterWanted())
+        File(tmp, "jiten-splitter.version").writeText("unloadable:2026-10-11\n$now")
+        assertEquals(false, m.splitterWanted())
+    }
+
     /** A server answering with an error page or a cut file: nothing kept, no leftovers, the failure reported. */
     @Test fun badDownloadsAreRefused(@org.junit.jupiter.api.io.TempDir tmp: File) {
         File(tmp, "sudachi-core-${JapaneseModel.VERSION}.dic").writeBytes(ByteArray(10)) // "downloaded" already

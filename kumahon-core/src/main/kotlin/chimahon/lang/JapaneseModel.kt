@@ -32,7 +32,7 @@ class JapaneseModel(
     @Volatile var failure: String? = null
         private set
     /**
-     * `<version>` or `dropped:<version>` (files of that release that don't load here), a newline, the time of the last manifest
+     * `<version>` or `unloadable:<version>` (files of that release that don't load here), a newline, the time of the last manifest
      * check (ms). Absent: files from a server, or none.
      */
     private val versionFile = File(dir, "jiten-splitter.version")
@@ -40,11 +40,12 @@ class JapaneseModel(
         val l = versionFile.readText().trim().lines()
         val v = l[0].trim()
         // an old file holds only the version: check time 0 = the next daily check runs at once
-        Triple(v.removePrefix("dropped:"), v.startsWith("dropped:"), l.getOrNull(1)?.trim()?.toLongOrNull() ?: 0L)
+        // "dropped:" was written until 1.4.25 also when one text failed to split: such a release is fetched again
+        Triple(v.removePrefix("unloadable:").removePrefix("dropped:"), v.startsWith("unloadable:"), l.getOrNull(1)?.trim()?.toLongOrNull() ?: 0L)
     }.getOrNull()
     /** For the log: which of Jiten's files exist, the version file as written, the last failure. */
     val splitterState: String get() = "files ${splitterFiles.map { it.exists() }}, version ${runCatching { versionFile.readText().lines().joinToString(" ") }.getOrDefault("none")}, failure $failure"
-    private fun writeState(version: String, dropped: Boolean) = versionFile.writeText("${if (dropped) "dropped:" else ""}$version\n${System.currentTimeMillis()}")
+    private fun writeState(version: String, dropped: Boolean) = versionFile.writeText("${if (dropped) "unloadable:" else ""}$version\n${System.currentTimeMillis()}")
     /** Jiten's files are missing (and not dropped from this release), or the release manifest wasn't read for a day: [download] has something to do. */
     fun splitterWanted(): Boolean {
         if (!isReady) return false
@@ -164,8 +165,9 @@ class JapaneseModel(
     /** [text]'s words as a learner sees them (kumapie `words`: Jiten's splitter when its files are here, else Sudachi + [join]); null while the dictionary isn't downloaded. */
     fun words(text: String): List<Token>? {
         if (!isReady) return null
-        val s = try { splitter() } catch (e: Exception) { dropSplitter(e); null }
-        if (s != null) try { return synchronized(SPLIT) { s.split(text) } } catch (e: Exception) { dropSplitter(e) }
+        val s = try { splitter()?.also { synchronized(SPLIT) { it.load() } } } catch (e: Exception) { dropSplitter(e); null }
+        // One text Jiten can't split says nothing about the files: Sudachi splits that text, the files stay.
+        if (s != null) try { return synchronized(SPLIT) { s.split(text) } } catch (e: Exception) { e.printStackTrace() }
         return join(parse(listOf(text)).first())
     }
 
