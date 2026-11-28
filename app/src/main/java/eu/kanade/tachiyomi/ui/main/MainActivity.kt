@@ -451,6 +451,7 @@ class MainActivity : BaseActivity() {
             if (showChangelog) {
                 // KMK -->
                 WhatsNewDialog(
+                    glass = remember { Injekt.get<UiPreferences>().glassUi().get() },
                     onDismissRequest = { showChangelog = false },
                     onOpenWhatsNew = {
                         showChangelog = false
