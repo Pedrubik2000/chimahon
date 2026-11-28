@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.glass
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -222,21 +223,25 @@ object GlassHomeScreen : Screen() {
                     problemsOpen = false
                 },
                 onBearLongClick = { navigator.push(GlassKitScreen()) },
-                modifier = Modifier.padding(start = 20.dp, top = 24.dp),
+                modifier = Modifier.fillMaxHeight().padding(start = 20.dp, top = 24.dp, bottom = 24.dp),
                 dots = GlassProblems.areas(problems),
+                // canvas Err-3: only while something needs attention (or the panel is still open on an empty list)
+                // (on a phone the way in is Home's "Needs attention" pill; the bar shows the dots).
+                // Pinned at the rail's bottom: in a short window the rail's buttons scroll above it, they no longer overlap
+                bottom = if (problems.isNotEmpty() || problemsOpen) {
+                    {
+                        GlassRailButton(
+                            icon = "alert",
+                            label = stringResource(MR.strings.glass_problems_alert, problems.size),
+                            on = problemsOpen,
+                            onClick = { problemsOpen = !problemsOpen },
+                            badge = problems.size.takeIf { it > 0 }?.toString(),
+                        )
+                    }
+                } else {
+                    null
+                },
             )
-            // canvas Err-3: only while something needs attention (or the panel is still open on an empty list)
-            // (on a phone the way in is Home's "Needs attention" pill; the bar shows the dots)
-            if (!phone && (problems.isNotEmpty() || problemsOpen)) {
-                GlassRailButton(
-                    icon = "alert",
-                    label = stringResource(MR.strings.glass_problems_alert, problems.size),
-                    on = problemsOpen,
-                    onClick = { problemsOpen = !problemsOpen },
-                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 24.dp),
-                    badge = problems.size.takeIf { it > 0 }?.toString(),
-                )
-            }
         }
     }
 }

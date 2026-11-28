@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -202,9 +204,12 @@ fun GlassRail(
     onBearLongClick: () -> Unit = {},
     /** rail ids with an ice dot (an area that needs attention, canvas `Err-3`) */
     dots: Set<String> = emptySet(),
-) {
+    /** Pinned under the buttons (the Needs attention button). With it the rail takes the height it is given and its buttons scroll when they don't fit. */
+    bottom: (@Composable () -> Unit)? = null,
+) = Column(modifier.width(Glass.rail), verticalArrangement = Arrangement.spacedBy(14.dp)) {
     Column(
-        modifier.width(Glass.rail),
+        // a short window (a small tablet, split screen): the buttons scroll instead of running under the pinned one
+        Modifier.weight(1f, fill = bottom != null).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -235,6 +240,7 @@ fun GlassRail(
             )
         }
     }
+    bottom?.invoke()
 }
 
 /** One 56dp round rail button: white when [on]; [dot] = 14dp ice dot top right; [badge] = ice count top right. */
