@@ -2604,7 +2604,8 @@
     <string name="glass_stats_chars_per_hour">characters / hour</string>
     <string name="glass_stats_streak">day streak</string>
     <string name="glass_stats_longest">longest %1$d</string>
-    <string name="glass_stats_chart">Reading time · last 14 days</string>
+    <string name="glass_stats_chart">Reading time · last %1$d days</string>
+    <string name="glass_stats_chart_day">Reading time · %1$s</string>
     <string name="glass_stats_goals">Goals</string>
     <string name="glass_stats_no_goals">No goal for today.</string>
     <string name="glass_stats_new_goal">New goal</string>

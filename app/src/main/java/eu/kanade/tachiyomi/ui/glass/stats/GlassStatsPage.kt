@@ -268,7 +268,7 @@ internal fun GlassStatsOverview(state: StatsScreenState.Success, onTab: (StatsTa
         }
         PanelRow(
             narrow,
-            { m -> Panel(stringResource(MR.strings.glass_stats_chart), m) { Bars(state) } },
+            { m -> Panel(chartTitle(state), m) { Bars(state) } },
             { m ->
                 Panel(stringResource(MR.strings.glass_stats_goals), m, action = {
                     if (state.goalsEnabled) Text(stringResource(KMR.strings.stats_view_all), color = Glass.ice, fontSize = Glass.body, modifier = Modifier.clickable { onTab(StatsTab.GOALS) })
@@ -324,10 +324,25 @@ private fun Panel(title: String, modifier: Modifier, action: @Composable () -> U
     }
 }
 
-/** The last 14 days of the Classic heatmap section: active time per day, today in ice. */
+/** The days [Bars] draws: the chosen period's, at most the last 14. */
+private fun chartPoints(state: StatsScreenState.Success) = state.sections.heatmap.value?.value?.points.orEmpty().takeLast(14)
+
+/** "Reading time · last 7 days" for the bars that are drawn; one day is named ("Reading time · Nov 27"). */
+@Composable
+private fun chartTitle(state: StatsScreenState.Success): String {
+    val points = chartPoints(state)
+    return if (points.size == 1) {
+        val day = points[0].range.start.toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+        stringResource(MR.strings.glass_stats_chart_day, day)
+    } else {
+        stringResource(MR.strings.glass_stats_chart, if (points.isEmpty()) 14 else points.size)
+    }
+}
+
+/** The chosen period's days (at most the last 14) of the Classic heatmap section: active time per day, today in ice. */
 @Composable
 private fun Bars(state: StatsScreenState.Success) {
-    val points = state.sections.heatmap.value?.value?.points.orEmpty().takeLast(14)
+    val points = chartPoints(state)
     if (points.isEmpty()) {
         Text(stringResource(MR.strings.glass_stats_none), color = Glass.secondary, fontSize = Glass.body)
         return
