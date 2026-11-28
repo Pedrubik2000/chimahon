@@ -109,8 +109,11 @@ class WordColourer(
     /** The colour of the card (or mark) whose word is [n] pieces from [i] written together; null = there is none. */
     private fun run(ix: Index, text: String, toks: List<JapaneseModel.Token>, i: Int, n: Int): String? {
         val last = toks[i + n - 1]
-        val joined = text.substring(toks[i].begin, last.begin + last.surface.length)
-        return cardState(ix, joined)?.let { if (joined in ix.marks) "k" else it }
+        val head = text.substring(toks[i].begin, last.begin)
+        // as written, then with the last piece in its dictionary form (a 英気を養う card colours 英気を養って)
+        return listOf(head + last.surface, head + last.base).distinct().firstNotNullOfOrNull { joined ->
+            cardState(ix, joined)?.let { if (joined in ix.marks) "k" else it }
+        }
     }
 
     /** The colour the page gives a word (dictionary form [base], written [surface]): the lookup popup shows the same. Null = no store. */

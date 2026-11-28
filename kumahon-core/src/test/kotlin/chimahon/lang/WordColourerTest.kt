@@ -49,6 +49,20 @@ class WordColourerTest {
         assertEquals(listOf(0, 2, 4, 7), rows.map { it.start })
     }
 
+    /** A mined expression read in another form (英気を養う in 英気を養ってもらいます, user 2026-11-28): its pieces take the card's colour, with either splitter. */
+    @Test fun anExpressionCardColoursItsConjugatedForm(@TempDir sudachiOnly: File) {
+        val real = System.getenv("KUMAHON_SUDACHI_DIR")?.let(::File)?.let { JapaneseModel(it) }
+        org.junit.jupiter.api.Assumptions.assumeTrue(real?.splitterReady == true)
+        real!!.dic.copyTo(File(sudachiOnly, real.dic.name))
+        card("英気を養う", "えいきをやしなう") // blue
+        val text = "英気を養ってもらいます"
+        for (model in listOf(real, JapaneseModel(sudachiOnly))) {
+            val rows = WordColourer({ store }, model::words, { false }).rows(text)
+            val blue = rows.takeWhile { it.state == "b" } // Jiten: the whole phrase is one word; Sudachi: 英気 + を + 養って at least
+            assertEquals(true, text.substring(0, blue.lastOrNull()?.let { it.start + it.length } ?: 0).startsWith("英気を養って"), "splitter ready ${model.splitterReady}: ${model.words(text)!!.map { it.surface + "/" + it.base }}")
+        }
+    }
+
     @Test fun newCardIsBlue() { card("猫", "ねこ"); assertEquals("b", state(word("猫"))) }
 
     @Test fun reviewedAndDueIsGreen() {
