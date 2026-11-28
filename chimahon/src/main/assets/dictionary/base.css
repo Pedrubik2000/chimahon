@@ -1064,7 +1064,7 @@ html[data-glass-popup="true"] .entry + .entry { border-top: 1px solid var(--bord
 html[data-glass-popup="true"] body { font-size: 16px; line-height: 24px; }
 html[data-glass-popup="true"] .glass-termtags { padding: 10px 0 2px; }
 /* An extra entry's own controls: one slim segmented strip (renderer.js renderGlassSubBar); its old icon buttons stay, unseen. */
-html[data-glass-popup="true"] .entry:not([data-index="0"]) .entry-icon-group { display: none; }
+html[data-glass-popup="true"] .entry.has-glass-subbar .entry-icon-group { display: none; }
 html[data-glass-popup="true"] .glass-subbar {
   display: flex; height: 44px; margin: 8px 0 10px; overflow: hidden;
   border: 1px solid rgba(255,255,255,0.18); border-radius: 22px;

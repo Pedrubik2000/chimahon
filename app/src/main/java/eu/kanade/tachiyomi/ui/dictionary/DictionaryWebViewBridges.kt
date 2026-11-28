@@ -132,7 +132,7 @@ internal class KumapieJsBridge(
         return when (body.optString("action")) {
             "rate" -> {
                 val token = eu.kanade.tachiyomi.ui.glass.popup.PopupRating.ratePopupCard(
-                    context, body.optString("word"), body.optString("reading"), body.optInt("ease"), body.optLong("ms"),
+                    context, body.optString("word"), body.optString("reading"), body.optInt("ease"), body.optLong("ms"), body.optString("text"),
                 ) ?: return "null"
                 val asked = org.json.JSONObject(bodyJson).put("action", "state").toString()
                 val state = runCatching { org.json.JSONObject(chimahon.ocr.KumapieColours.callOwn(context, asked)).optString("state") }.getOrDefault("")
@@ -145,7 +145,8 @@ internal class KumapieJsBridge(
             }
             // the answer intervals of the word's own card ("labels": only then the page's strip offers ratings)
             "state" -> own().let { raw ->
-                val labels = chimahon.srs.Cards.preview(context, body.optString("word"), body.optString("reading"))?.labels
+                // the same card "rate" will find ([text] along); a store error here must not take the answer away
+                val labels = runCatching { chimahon.srs.Cards.preview(context, body.optString("word"), body.optString("reading"), text = body.optString("text"))?.labels }.getOrNull()
                 if (raw == "null" || labels == null) raw else org.json.JSONObject(raw).put("labels", org.json.JSONArray(labels)).toString()
             }
             else -> own()

@@ -2762,8 +2762,11 @@
   async function renderGlassSubBar(article, expression, reading) {
     if (typeof KumapieBridge === 'undefined') return;
     const word = { word: expression, reading: reading || '', text: article.dataset.matched || '' };
+    const turn = (article._glassSubTurn = (article._glassSubTurn || 0) + 1);
     const reply = await kumapieRequest({ action: 'state', ...word });
+    if (turn !== article._glassSubTurn) return; // a newer render asked since (after mining): its answer draws, not this older one
     article.querySelector('.glass-subbar')?.remove();
+    article.classList.toggle('has-glass-subbar', !!reply); // no answer: the entry keeps its own icon buttons (base.css)
     if (!reply) return;
     const bar = document.createElement('div');
     bar.className = 'glass-subbar';
@@ -2792,7 +2795,8 @@
         noCard(answer && typeof answer.marked === 'boolean' ? answer.marked : marked);
       });
       const add = article.querySelector('.entry-icon-group .anki-add-btn');
-      if (add && add.style.display !== 'none') segment(GLASS_ICONS.plus + '<b>' + (add.classList.contains('anki-added') ? 'Mined' : 'Mine') + '</b>', '', () => add.click());
+      if (add && add.style.display !== 'none') segment(GLASS_ICONS.plus + '<b>' + (add.classList.contains('anki-added') ? 'Mined' : 'Mine') + '</b>', '', () => add.click())
+        .addEventListener('pointerdown', capturePopupSelectionForButton); // a selected piece of the definition goes on the card, as with the old button
       audio();
     };
     const ratings = () => {

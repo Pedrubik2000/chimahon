@@ -50,12 +50,22 @@ object Cards {
     class Preview(val card: Srs.Card, val labels: List<String>)
 
     /** [find]'s card with its four answer intervals from the real FSRS state; null when kumahon's own store has no card of the word. Blocking (SQLite). */
-    fun preview(context: Context, word: String, reading: String, now: Long = System.currentTimeMillis()): Preview? {
-        val card = shownCard(context, word, reading) ?: return null
+    fun preview(context: Context, word: String, reading: String, now: Long = System.currentTimeMillis(), text: String = ""): Preview? {
+        val card = shownCard(context, word, reading, text) ?: return null // [text] as the popup's state asks: the same card or none
         val fsrs = store(context).fsrs
         val before = card.stability?.let { Fsrs6.State(it, card.difficulty!!) }
         val days = card.lastReview?.let { Srs.elapsedDays(it, now) } ?: 0
         return Preview(card, (1..4).map { eu.kanade.tachiyomi.ui.glass.review.ReviewLogic.intervalLabel(fsrs.interval(fsrs.next(before, days, it).stability)) })
+    }
+
+    /**
+     * Another device has a card of exactly this word and reading (the hub's `carded` list: its key, or one of its other spellings with
+     * the same reading). Not a homograph: 上手/うわて is not carded because 上手/じょうず is. Blocking (SQLite).
+     */
+    fun cardedElsewhere(context: Context, word: String, reading: String): Boolean {
+        val want = WordKey.lookupKey(word, reading)?.removePrefix("ja|") ?: return false
+        val read = want.substringAfter('\t', "")
+        return store(context).carded().any { (k, forms) -> k == want || k == word || (word in forms && k.substringAfter('\t', "") == read) }
     }
 
     /** The four answer intervals a card made now would get: the labels for a word mined on another device, whose own card the first rating makes. */

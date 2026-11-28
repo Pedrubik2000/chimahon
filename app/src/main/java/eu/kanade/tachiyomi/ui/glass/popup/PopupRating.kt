@@ -12,14 +12,19 @@ import chimahon.srs.SyncTrigger
 object PopupRating {
     /**
      * Rates the word's card (1 Again .. 4 Easy); answers the undo token (`card:revlogId`), or null = not saved (no card of it). Blocking.
-     * [newCardMeaning] not null = the word is blue or green from a card on another device (Pedro, 2026-11-28: "Rate it here"): without
-     * a card of its own, the rating first makes one here with that meaning and this context, as mining it would.
+     * [text] = the word as the page has it: the card is the one the popup's state found ([Cards.shownCard]).
+     * [newCardMeaning] not null = the word is blue from a card on another device (Pedro, 2026-11-28: "Rate it here"): without a card of
+     * its own, and only when another device really has this word with this reading ([Cards.cardedElsewhere]), the rating first makes
+     * the card here with that meaning and this context, as mining it would. A rating that then fails leaves that card, unrated.
      */
-    fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long, newCardMeaning: String? = null): String? {
+    fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long, text: String = "", newCardMeaning: String? = null): String? {
         val sentence = chimahon.ocr.KumapieColours.sentence
         val place = chimahon.ocr.KumapieColours.place
-        val had = Cards.shownCard(context, word, reading)
-        val card = had ?: newCardMeaning?.takeIf { word.isNotBlank() }?.let { Cards.addMined(context, word, reading, sentence, it, place?.first, place?.second) } ?: return null
+        val had = Cards.shownCard(context, word, reading, text)
+        val card = had
+            ?: newCardMeaning?.takeIf { word.isNotBlank() && Cards.cardedElsewhere(context, word, reading) }
+                ?.let { Cards.addMined(context, word, reading, sentence, it, place?.first, place?.second) }
+            ?: return null
         val srs = Cards.store(context)
         val rev = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") } ?: return null
         // where it happened is a context of the card (local only, never synced), as the rating row has always saved
