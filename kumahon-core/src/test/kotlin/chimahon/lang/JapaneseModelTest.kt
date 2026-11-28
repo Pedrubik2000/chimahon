@@ -87,6 +87,23 @@ class JapaneseModelTest {
         assertEquals(false, m.splitterWanted())
     }
 
+    /** One text Jiten can't split leaves its two files alone (until 1.4.25 it deleted them for good); files that don't load are thrown away. */
+    @Test fun oneBadTextKeepsJitensFiles(@org.junit.jupiter.api.io.TempDir tmp: File) {
+        val m = JapaneseModel(tmp)
+        m.splitterFiles.forEach { it.writeBytes(ByteArray(10)) }
+        val version = File(tmp, "jiten-splitter.version").apply { writeText("2026-10-11\n0") }
+        fun fake(loads: Boolean) = object : JitenSplitter(m.splitterFiles[0], m.dic, m.splitterFiles[1]) {
+            override fun load() { if (!loads) throw java.io.IOException("bad file") }
+            override fun split(text: String): List<JapaneseModel.Token> = throw IllegalStateException("can't split $text")
+        }
+        assertEquals(null, m.jitenWords("困った文") { fake(loads = true) })
+        assertEquals(listOf(true, true), m.splitterFiles.map { it.exists() })
+        assertEquals("2026-10-11", version.readLines()[0])
+        assertEquals(null, m.jitenWords("困った文") { fake(loads = false) })
+        assertEquals(listOf(false, false), m.splitterFiles.map { it.exists() })
+        assertEquals("unloadable:2026-10-11", version.readLines()[0])
+    }
+
     /** A server answering with an error page or a cut file: nothing kept, no leftovers, the failure reported. */
     @Test fun badDownloadsAreRefused(@org.junit.jupiter.api.io.TempDir tmp: File) {
         File(tmp, "sudachi-core-${JapaneseModel.VERSION}.dic").writeBytes(ByteArray(10)) // "downloaded" already

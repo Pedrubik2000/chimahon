@@ -165,10 +165,18 @@ class JapaneseModel(
     /** [text]'s words as a learner sees them (kumapie `words`: Jiten's splitter when its files are here, else Sudachi + [join]); null while the dictionary isn't downloaded. */
     fun words(text: String): List<Token>? {
         if (!isReady) return null
-        val s = try { splitter()?.also { synchronized(SPLIT) { it.load() } } } catch (e: Exception) { dropSplitter(e); null }
+        return jitenWords(text) ?: join(parse(listOf(text)).first())
+    }
+
+    /**
+     * Jiten's split of [text]; null (Sudachi splits it) without Jiten's files, when they don't load (they are thrown away) or when
+     * this one text fails (they stay). [get] is [splitter]; a test passes a fake.
+     */
+    internal fun jitenWords(text: String, get: () -> JitenSplitter? = ::splitter): List<Token>? {
+        val s = try { get()?.also { synchronized(SPLIT) { it.load() } } } catch (e: Exception) { dropSplitter(e); null }
         // One text Jiten can't split says nothing about the files: Sudachi splits that text, the files stay.
         if (s != null) try { return synchronized(SPLIT) { s.split(text) } } catch (e: Exception) { e.printStackTrace() }
-        return join(parse(listOf(text)).first())
+        return null
     }
 
     /** Jiten's files don't load (a bad download): deleted, and Sudachi + [join] split alone, as without them. */

@@ -22,7 +22,7 @@ import java.io.File
  * the dictionary form as written (呼ばれちゃった → 呼ぶ, わかった → わかる, 黒板消し → 黒板消し, ガク → ガク), the same kind of key
  * Sudachi's dictionary form was, so known words, marks and mined cards keyed by dictionary form keep matching.
  */
-class JitenSplitter(private val lexicon: File, private val systemDic: File, private val userDic: File?) {
+open class JitenSplitter(private val lexicon: File, private val systemDic: File, private val userDic: File?) {
     private var parser: JitenParser? = null
     private var sudachi: Tokenizer? = null
 
@@ -32,7 +32,7 @@ class JitenSplitter(private val lexicon: File, private val systemDic: File, priv
 
     /** Reads the files now; throws when they don't load (the caller throws them away). */
     @Synchronized
-    fun load() { parser() }
+    open fun load() { parser() }
 
     /** Jiten's frequency rank of [word] (1 = most common; names don't count), null when it has none. */
     @Synchronized
@@ -59,7 +59,7 @@ class JitenSplitter(private val lexicon: File, private val systemDic: File, priv
     }
 
     @Synchronized
-    fun split(text: String): List<JapaneseModel.Token> {
+    open fun split(text: String): List<JapaneseModel.Token> {
         val p = parser()
         val words = runCatching { p.parseText(text) }.getOrElse { emptyList() }
         val out = ArrayList<JapaneseModel.Token>()
