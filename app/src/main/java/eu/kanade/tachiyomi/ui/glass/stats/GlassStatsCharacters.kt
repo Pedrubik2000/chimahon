@@ -146,7 +146,7 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                 // the Classic "by script" breakdown
                 if (summary.scripts.isNotEmpty()) {
                     block {
-                        Panel(stringResource(KMR.strings.stats_character_scripts), Modifier.fillMaxWidth()) {
+                        Panel(stringResource(MR.strings.glass_stats_c_by_script), Modifier.fillMaxWidth()) {
                             val counts = summary.scripts.map { it.distinctCharacters }
                             val bars = timeBarFractions(counts)
                             summary.scripts.forEachIndexed { i, sc ->
@@ -165,7 +165,7 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                 block {
                     Panel(stringResource(MR.strings.glass_stats_coverage_aim), Modifier.fillMaxWidth()) {
                         if (!coverage) {
-                            Text(stringResource(KMR.strings.stats_character_anki_unavailable), color = Glass.secondary, fontSize = Glass.caption)
+                            Text(stringResource(MR.strings.glass_stats_c_cards_unknown), color = Glass.secondary, fontSize = Glass.caption)
                         } else {
                             val percent = state.characterCoverageTargetPercent
                             val target = characterCoverageTarget(summary, percent)
@@ -174,9 +174,9 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                                 Text(stringResource(MR.strings.glass_stats_aim_row, percent), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold, color = Glass.ice)
                                 GlassRoundButton("plus", { model.setCharacterCoverageTargetPercent((percent + 5).coerceAtMost(100)) }, outlined = true, enabled = percent < 100, description = stringResource(MR.strings.glass_stats_aim_higher))
                             }
-                            Text(stringResource(KMR.strings.stats_character_coverage_target, percent, formatCount(target.targetCharacters)), fontSize = Glass.body)
+                            Text(stringResource(MR.strings.glass_stats_c_aim_target, percent, formatCount(target.targetCharacters)), fontSize = Glass.body)
                             Text(
-                                stringResource(KMR.strings.stats_character_daily_suggestion, formatCount(target.dailyPlanningSuggestion), formatCount(target.remainingCharacters)),
+                                stringResource(MR.strings.glass_stats_c_daily, formatCount(target.dailyPlanningSuggestion), formatCount(target.remainingCharacters)),
                                 color = Glass.secondary,
                                 fontSize = Glass.caption,
                             )
@@ -188,7 +188,7 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
             val introducing = state.titleOptions.filter { it.metrics.newCharacters.value > 0 }.sortedByDescending { it.metrics.newCharacters.value }.take(5)
             if (introducing.isNotEmpty()) {
                 block {
-                    Panel(stringResource(KMR.strings.stats_character_top_titles), Modifier.fillMaxWidth()) {
+                    Panel(stringResource(MR.strings.glass_stats_c_new_by_title), Modifier.fillMaxWidth()) {
                         val counts = introducing.map { it.metrics.newCharacters.value }
                         val bars = timeBarFractions(counts)
                         introducing.forEachIndexed { i, t -> BarRow(t.displayTitle, null, formatCount(counts[i]), bars[i], i == 0) }
@@ -202,7 +202,7 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text(stringResource(MR.strings.glass_stats_characters), fontSize = Glass.label, fontWeight = FontWeight.SemiBold)
                         GlassSearchBox(state.characterSearch, model::searchCharacters, stringResource(KMR.strings.stats_search_characters))
-                        Text(stringResource(KMR.strings.stats_search_characters_fields), color = Glass.secondary, fontSize = Glass.caption)
+                        Text(stringResource(MR.strings.glass_stats_c_search_hint), color = Glass.secondary, fontSize = Glass.caption)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             GlassChip(stringResource(KMR.strings.stats_all), selected = filter.scripts.isEmpty(), onClick = { model.updateCharacterFilter(filter.copy(scripts = emptySet())) })
                             AnalyticsCharacterScript.entries.forEach { script ->
@@ -257,9 +257,9 @@ internal fun GlassStatsCharacters(state: StatsScreenState.Success, model: StatsS
                                 onClick = { model.selectCharacterLayout(StatsCharacterLayout.LIST) },
                             )
                         }
-                        Text(stringResource(KMR.strings.stats_character_priority_formula), color = Glass.secondary, fontSize = Glass.caption)
+                        Text(stringResource(MR.strings.glass_stats_c_priority), color = Glass.secondary, fontSize = Glass.caption)
                         if (state.characterGridMode == StatsCharacterGridMode.FREQUENCY) {
-                            Text(stringResource(KMR.strings.stats_character_frequency_legend), color = Glass.secondary, fontSize = Glass.caption)
+                            Text(stringResource(MR.strings.glass_stats_c_freq_legend), color = Glass.secondary, fontSize = Glass.caption)
                         }
                         Text(stringResource(KMR.strings.stats_character_select_hint), color = Glass.secondary, fontSize = Glass.caption)
                         if (selected.isNotEmpty()) {

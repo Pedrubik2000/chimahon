@@ -148,12 +148,12 @@ internal fun GlassStatsAnki(state: StatsScreenState.Success, model: StatsScreenM
                                         stringResource(KMR.strings.stats_anki_week_cards, formatCount(week.cardsCreated), formatCount(week.cardsUpdated)),
                                     )
                                     Note(stringResource(KMR.strings.stats_anki_week_volume, formatCount(week.grossCharacters), formatDuration(week.activeDurationMillis)))
-                                    Line(stringResource(KMR.strings.stats_anki_linked_operations), formatCount(week.linkedOperations))
-                                    Line(stringResource(KMR.strings.stats_anki_unattributed_operations), formatCount(week.unattributedOperations))
-                                    Line(stringResource(KMR.strings.stats_anki_same_week_flow), formatCount(week.sameWeekReadingToCardOperations))
-                                    week.meanReadingToCardLagMillis?.let { Line(stringResource(KMR.strings.stats_anki_reading_to_card_lag), formatDuration(it)) }
-                                    if (week.maturedOperations > 0) Line(stringResource(KMR.strings.stats_anki_matured_links), formatCount(week.maturedOperations))
-                                    week.meanCardToMaturityLagMillis?.let { Line(stringResource(KMR.strings.stats_anki_card_to_maturity_lag), formatDuration(it)) }
+                                    Line(stringResource(MR.strings.glass_stats_c_linked), formatCount(week.linkedOperations))
+                                    Line(stringResource(MR.strings.glass_stats_c_unlinked), formatCount(week.unattributedOperations))
+                                    Line(stringResource(MR.strings.glass_stats_c_same_week), formatCount(week.sameWeekReadingToCardOperations))
+                                    week.meanReadingToCardLagMillis?.let { Line(stringResource(MR.strings.glass_stats_c_read_to_card), formatDuration(it)) }
+                                    if (week.maturedOperations > 0) Line(stringResource(MR.strings.glass_stats_c_learned), formatCount(week.maturedOperations))
+                                    week.meanCardToMaturityLagMillis?.let { Line(stringResource(MR.strings.glass_stats_c_card_to_learned), formatDuration(it)) }
                                 }
                             }
                         }
@@ -161,16 +161,16 @@ internal fun GlassStatsAnki(state: StatsScreenState.Success, model: StatsScreenM
                     // the Classic snapshot rows, totals, "available reports" and caveats
                     Panel(stringResource(MR.strings.glass_stats_anki_details), Modifier.fillMaxWidth()) {
                         if (snapshot != null) {
-                            Line(stringResource(KMR.strings.stats_anki_state), capabilityLabel(ankiPresentationCapabilityState(capabilityState = snapshot.capabilityState, isStale = snapshot.isStale)))
+                            Line(stringResource(MR.strings.glass_stats_c_card_list), capabilityLabel(ankiPresentationCapabilityState(capabilityState = snapshot.capabilityState, isStale = snapshot.isStale)))
                             Note(stringResource(KMR.strings.stats_anki_items, formatCount(snapshot.itemCount.toLong()), formatCount(snapshot.noteCount.toLong())))
-                            Line(stringResource(KMR.strings.stats_anki_maturity_threshold), stringResource(KMR.strings.stats_anki_mature_interval_days, snapshot.matureIntervalDays))
+                            Line(stringResource(MR.strings.glass_stats_c_learned_from), stringResource(KMR.strings.stats_anki_mature_interval_days, snapshot.matureIntervalDays))
                         }
                         a.generatedAtEpochMillis?.let { Note(stringResource(KMR.strings.stats_anki_report_generated, formatInstant(it))) }
                         Line(stringResource(KMR.strings.stats_cards_updated), formatCount(a.cardsUpdated))
-                        Line(stringResource(KMR.strings.stats_anki_linked_operations), formatCount(a.linkedOperationCount))
-                        Line(stringResource(KMR.strings.stats_anki_unattributed_operations), formatCount(a.unattributedOperationCount))
+                        Line(stringResource(MR.strings.glass_stats_c_linked), formatCount(a.linkedOperationCount))
+                        Line(stringResource(MR.strings.glass_stats_c_unlinked), formatCount(a.unattributedOperationCount))
                         if (a.capabilities.isNotEmpty()) {
-                            Text(stringResource(KMR.strings.stats_anki_capabilities), fontSize = Glass.body, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(MR.strings.glass_stats_c_can_tell), fontSize = Glass.body, fontWeight = FontWeight.SemiBold)
                             a.capabilities.forEach { capability ->
                                 Column {
                                     Line(ankiReportLabel(capability.report), capabilityLabel(capability.state))
@@ -178,9 +178,9 @@ internal fun GlassStatsAnki(state: StatsScreenState.Success, model: StatsScreenM
                                 }
                             }
                         }
-                        Note(stringResource(KMR.strings.stats_anki_sample_limit, a.minimumComparisonSampleSize))
-                        Note(stringResource(KMR.strings.stats_anki_observational))
-                        if (!a.reviewHistoryAvailable) Note(stringResource(KMR.strings.stats_review_history_unavailable))
+                        Note(stringResource(MR.strings.glass_stats_c_needs_n, a.minimumComparisonSampleSize))
+                        Note(stringResource(MR.strings.glass_stats_c_no_proof))
+                        if (!a.reviewHistoryAvailable) Note(stringResource(MR.strings.glass_stats_c_no_reviews))
                     }
                 }
             }

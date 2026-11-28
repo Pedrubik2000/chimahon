@@ -86,7 +86,7 @@ internal fun GlassStatsActivity(state: StatsScreenState.Success, model: StatsScr
                         },
                         { m -> Panel(stringResource(MR.strings.glass_stats_by_weekday), m) { WeekdayRows(activity, metric) } },
                     )
-                    Text(stringResource(KMR.strings.stats_time_patterns_explanation), color = Glass.secondary, fontSize = Glass.caption)
+                    Text(stringResource(MR.strings.glass_stats_c_local_time), color = Glass.secondary, fontSize = Glass.caption)
                 }
             }
         }
@@ -109,7 +109,6 @@ internal fun GlassStatsActivity(state: StatsScreenState.Success, model: StatsScr
                             val active = series.points.count { it.metrics.trendValue(state.trendMetric, metric) > 0L }
                             BarRow(series.displayTitle, stringResource(MR.strings.glass_stats_read_in, active, series.points.size), formatTrendValue(totals[i], state.trendMetric), bars[i], i == 0)
                         }
-                        Text(stringResource(KMR.strings.stats_title_series_limit, tt.series.size), color = Glass.secondary, fontSize = Glass.caption)
                     }
                 }
             }
@@ -120,17 +119,17 @@ internal fun GlassStatsActivity(state: StatsScreenState.Success, model: StatsScr
                 val cumulative = trends.points.lastOrNull()?.cumulativeMetrics
                 if (cumulative != null) {
                     Panel(stringResource(MR.strings.glass_stats_totals), Modifier.fillMaxWidth()) {
-                        Line(stringResource(KMR.strings.stats_source_units), formatCount(cumulative.sourceUnits.value))
+                        Line(stringResource(MR.strings.glass_stats_c_pages), formatCount(cumulative.sourceUnits.value))
                         Line(
                             stringResource(KMR.strings.stats_reading_speed),
                             cumulative.readingSpeedPerHour(metric)?.let { stringResource(KMR.strings.stats_per_hour, formatRate(it)) } ?: stringResource(KMR.strings.stats_unavailable),
                         )
                         Line(
-                            stringResource(KMR.strings.stats_mining_rate),
+                            stringResource(MR.strings.glass_stats_c_cards_10k),
                             cumulative.miningRatePerTenThousandGrossCharacters()?.let { formatDecimal(it) } ?: stringResource(KMR.strings.stats_unavailable),
                         )
                         if (trends.points.any { it.metrics.activeTime.value > 0L || it.metrics.sessions.value > 0L }) {
-                            Note(stringResource(KMR.strings.stats_minimum_threshold))
+                            Note(stringResource(MR.strings.glass_stats_c_speed_needs))
                         }
                     }
                 }

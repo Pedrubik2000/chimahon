@@ -152,7 +152,7 @@ internal fun GlassStatsTitles(state: StatsScreenState.Success, model: StatsScree
                         )
                     }
                     if (state.titleSort == AnalyticsTitleSort.READING_SPEED) {
-                        Text(stringResource(KMR.strings.stats_minimum_threshold), color = Glass.secondary, fontSize = Glass.caption)
+                        Text(stringResource(MR.strings.glass_stats_c_speed_needs), color = Glass.secondary, fontSize = Glass.caption)
                     }
                     when {
                         loadState.showContent -> Unit

@@ -24,8 +24,6 @@ import eu.kanade.presentation.glass.Glass
 import eu.kanade.presentation.glass.Meter
 import eu.kanade.presentation.glass.Pill
 import eu.kanade.presentation.glass.glassPanel
-import eu.kanade.presentation.more.stats.GoalCheckInDialog
-import eu.kanade.presentation.more.stats.GoalEditorDialog
 import eu.kanade.presentation.more.stats.StatsScreenState
 import eu.kanade.presentation.more.stats.StatsSection
 import eu.kanade.presentation.more.stats.collectionLoadState
@@ -45,7 +43,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 internal fun <T> soonestForecast(items: List<T>, isAvailable: (T) -> Boolean, epochDay: (T) -> Long?): T? =
     items.filter(isAvailable).mapNotNull { i -> epochDay(i)?.let { i to it } }.minByOrNull { it.second }?.first
 
-/** The Goals tab in Glass (mockup C, card 5): tiles, "New goal", one card per goal. Edit / Archive / Check in use the Classic dialogs and model calls. */
+/** The Goals tab in Glass (mockup C, card 5): tiles, "New goal", one card per goal. Edit / Archive / Check in use the Glass goal boxes and the model calls. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun GlassStatsGoals(state: StatsScreenState.Success, model: StatsScreenModel, narrow: Boolean, listState: LazyListState) {
@@ -113,7 +111,7 @@ internal fun GlassStatsGoals(state: StatsScreenState.Success, model: StatsScreen
         }
     }
     if (showEditor) {
-        GoalEditorDialog(
+        GlassGoalEditor(
             original = editing,
             hasTitleScope = editing?.titleId != null || state.filter.titleId != null,
             onDismiss = { showEditor = false },
@@ -128,7 +126,7 @@ internal fun GlassStatsGoals(state: StatsScreenState.Success, model: StatsScreen
         )
     }
     checkingIn?.let { goal ->
-        GoalCheckInDialog(
+        GlassGoalCheckIn(
             onDismiss = { checkingIn = null },
             onConfirm = { note ->
                 model.checkInGoal(goal.id, note)

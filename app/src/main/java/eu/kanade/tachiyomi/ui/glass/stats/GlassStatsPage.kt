@@ -69,7 +69,6 @@ import eu.kanade.presentation.more.stats.tabLabel
 import eu.kanade.tachiyomi.ui.stats.StatsExportEffect
 import eu.kanade.tachiyomi.ui.stats.StatsRawTextDisclosure
 import eu.kanade.tachiyomi.ui.stats.StatsRecentsPrivacy
-import eu.kanade.tachiyomi.ui.stats.StatsScreenHost
 import eu.kanade.tachiyomi.ui.stats.StatsScreenModel
 import tachiyomi.domain.immersion.model.AnalyticsResult
 import tachiyomi.domain.immersion.service.ImmersionStatsPreferences
@@ -102,8 +101,8 @@ private val TabIcons = mapOf(
 
 /**
  * Canvas `option-b` card 1: Stats on its own rail page. Left: the Classic tabs as a sidebar. Right: the tab. Overview is
- * drawn in Glass from the Classic [StatsScreenModel] sections; the other six tabs are the Classic tab bodies, hosted
- * (StatsScreenHost with showChrome = false) inside this page.
+ * drawn in Glass from the Classic [StatsScreenModel] sections, as are the other six tabs and the title / session / character
+ * detail pages (an open detail hides the sidebar and the period pills).
  */
 @Composable
 fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScreenModel) {
@@ -129,7 +128,7 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
     val success = state as? StatsScreenState.Success
     // one scroll position per tab, kept here so closing a Classic detail returns to the same place
     val listStates = StatsTab.entries.associateWith { rememberLazyListState() }
-    val detailOpen = success != null && showClassicHost(success.selectedTab, success.selection.title != null, success.selection.character != null, success.selection.session != null)
+    val detailOpen = success != null && isDetailOpen(success.selectedTab, success.selection.title != null, success.selection.character != null, success.selection.session != null)
     // Back closes an open title / character / session detail (the shell's handler would go Home)
     BackHandler(enabled = detailOpen) {
         when (success?.selectedTab) {
@@ -142,7 +141,8 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
 
     Row(Modifier.fillMaxSize()) {
         Spacer(Modifier.width(100.dp)) // the rail
-        Column(
+        // an open detail is a full page: no tab sidebar and no period pills (mockup A)
+        if (!detailOpen) Column(
             Modifier
                 .width(264.dp)
                 .fillMaxHeight()
@@ -182,13 +182,13 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                     }
                 }
         }
-        Box(Modifier.width(1.dp).fillMaxHeight().background(Glass.line))
+        if (!detailOpen) Box(Modifier.width(1.dp).fillMaxHeight().background(Glass.line))
         // a narrow page (the tablet upright, split screen): the periods go under the title, the tiles two a row, the panels one a row
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
         val narrow = maxWidth < NARROW
         Column(Modifier.fillMaxSize().padding(start = 32.dp, top = 28.dp, end = 32.dp)) {
             if (success == null) return@Column
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (!detailOpen) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text(tabLabel(success.selectedTab), fontSize = Glass.heading, fontWeight = FontWeight.SemiBold)
                     periodLine(success)?.let { Text(it, color = Glass.secondary, fontSize = Glass.body, maxLines = 1) }
@@ -199,7 +199,7 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                 eu.kanade.presentation.glass.GlassRoundButton("restore", model::refresh, description = stringResource(KMR.strings.stats_refresh), iconSize = 20.dp)
                 if (!narrow) FlowPills(success.filter.rangePreset, model::selectRange)
             }
-            if (narrow) {
+            if (narrow && !detailOpen) {
                 Spacer(Modifier.height(12.dp))
                 FlowPills(success.filter.rangePreset, model::selectRange)
             }
@@ -208,7 +208,7 @@ fun GlassStatsPage(navigator: Navigator, statsModel: @Composable () -> StatsScre
                 if (success.selectedTab == StatsTab.OVERVIEW) {
                     GlassStatsOverview(success, onTab = model::selectTab, onRetry = model::retrySection, narrow = narrow)
                 } else if (detailOpen) {
-                    StatsScreenHost(model, success, null, PaddingValues(0.dp), onNavigator = navigator, showChrome = false)
+                    GlassStatsDetail(success, model, navigator, narrow)
                 } else {
                     when (success.selectedTab) {
                         StatsTab.ACTIVITY -> GlassStatsActivity(success, model, narrow, listStates.getValue(StatsTab.ACTIVITY))
@@ -688,10 +688,21 @@ internal fun BarChart(values: List<Double>, average: List<Double>?, firstLabel: 
     }
 }
 
-/** True when the Classic body has to be shown instead of the Glass one: a title / character / session detail is open on that tab. */
-internal fun showClassicHost(tab: StatsTab, titleOpen: Boolean, characterOpen: Boolean, sessionOpen: Boolean): Boolean = when (tab) {
+/** True while a title / character / session detail page is open on its tab (it replaces the tab body, the sidebar and the period pills). */
+internal fun isDetailOpen(tab: StatsTab, titleOpen: Boolean, characterOpen: Boolean, sessionOpen: Boolean): Boolean = when (tab) {
     StatsTab.TITLES -> titleOpen
     StatsTab.CHARACTERS -> characterOpen
     StatsTab.SESSIONS -> sessionOpen
     else -> false
+}
+
+/** The detail page of the open selection on the current tab. */
+@Composable
+private fun GlassStatsDetail(state: StatsScreenState.Success, model: StatsScreenModel, navigator: Navigator, narrow: Boolean) {
+    when (state.selectedTab) {
+        StatsTab.TITLES -> state.selection.title?.let { GlassStatsTitleDetail(state, it, model, navigator, narrow) }
+        StatsTab.CHARACTERS -> state.selection.character?.let { GlassStatsCharacterDetail(state, it, model, narrow) }
+        StatsTab.SESSIONS -> state.selection.session?.let { GlassStatsSessionDetail(state, it, model, narrow) }
+        else -> Unit
+    }
 }

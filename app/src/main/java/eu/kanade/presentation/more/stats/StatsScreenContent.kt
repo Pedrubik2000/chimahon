@@ -3147,7 +3147,7 @@ private fun TitleCover(
 }
 
 @Composable
-private fun titleLinkStatus(state: StatsTitleLinkState?): String = when (state) {
+internal fun titleLinkStatus(state: StatsTitleLinkState?): String = when (state) {
     StatsTitleLinkState.AVAILABLE -> stringResource(KMR.strings.stats_title_link_available)
     StatsTitleLinkState.LEGACY_ONLY -> stringResource(KMR.strings.stats_title_link_legacy_only)
     StatsTitleLinkState.UNAVAILABLE, null ->
@@ -3159,7 +3159,7 @@ private fun titleLinkStatus(state: StatsTitleLinkState?): String = when (state) 
  * ordinary case and explaining it would be noise, so it returns null.
  */
 @Composable
-private fun titleLinkExplanation(state: StatsTitleLinkState?): String? = when (state) {
+internal fun titleLinkExplanation(state: StatsTitleLinkState?): String? = when (state) {
     StatsTitleLinkState.AVAILABLE -> null
     StatsTitleLinkState.LEGACY_ONLY -> stringResource(KMR.strings.stats_title_link_legacy_only_detail)
     StatsTitleLinkState.UNAVAILABLE, null ->
@@ -3167,7 +3167,7 @@ private fun titleLinkExplanation(state: StatsTitleLinkState?): String? = when (s
 }
 
 @Composable
-private fun estimateRemainingAmount(
+internal fun estimateRemainingAmount(
     mediaKind: MediaKind,
     estimate: AnalyticsTitleEstimate,
 ): String {
@@ -3183,14 +3183,14 @@ private fun estimateRemainingAmount(
 }
 
 @Composable
-private fun titleStateLabel(completed: Boolean?): String = when (completed) {
+internal fun titleStateLabel(completed: Boolean?): String = when (completed) {
     true -> stringResource(KMR.strings.stats_title_completed)
     false -> stringResource(KMR.strings.stats_title_in_progress)
     null -> stringResource(KMR.strings.stats_title_state_unknown)
 }
 
 @Composable
-private fun titleUnitCount(
+internal fun titleUnitCount(
     mediaKind: MediaKind,
     count: Long,
 ): String {
@@ -3204,7 +3204,7 @@ private fun titleUnitCount(
 }
 
 @Composable
-private fun estimateConfidenceLabel(confidence: AnalyticsEstimateConfidence): String =
+internal fun estimateConfidenceLabel(confidence: AnalyticsEstimateConfidence): String =
     when (confidence) {
         AnalyticsEstimateConfidence.LOW -> stringResource(KMR.strings.stats_confidence_low)
         AnalyticsEstimateConfidence.MEDIUM -> stringResource(KMR.strings.stats_confidence_medium)
@@ -3797,7 +3797,7 @@ private fun SessionDetail(
 }
 
 @Composable
-private fun SessionTitleCorrectionDialog(
+internal fun SessionTitleCorrectionDialog(
     session: ImmersionSession,
     titleOptions: List<AnalyticsTitleRow>,
     preview: StatsLoadable<ImmersionTitleMutationPreview>,
@@ -5002,7 +5002,7 @@ private fun rangeLabel(value: StatsRangePreset): String = when (value) {
 }
 
 @Composable
-private fun mediaLabel(value: MediaKind?): String = when (value) {
+internal fun mediaLabel(value: MediaKind?): String = when (value) {
     null -> stringResource(KMR.strings.stats_media_all)
     MediaKind.NOVEL -> stringResource(KMR.strings.stats_media_novel)
     MediaKind.MANGA -> stringResource(KMR.strings.stats_media_manga)
@@ -5065,7 +5065,7 @@ internal fun characterScriptLabel(value: AnalyticsCharacterScript): String = whe
  * else is title-cased rather than shown as a raw enum.
  */
 @Composable
-private fun unicodeScriptLabel(rawScript: String): String {
+internal fun unicodeScriptLabel(rawScript: String): String {
     val known = AnalyticsCharacterScript.entries.firstOrNull { it.name == rawScript }
     if (known != null && known != AnalyticsCharacterScript.OTHER) {
         return characterScriptLabel(known)
@@ -5209,7 +5209,7 @@ internal fun titleCoverageFilterLabel(value: AnalyticsTitleCoverageFilter): Stri
 }
 
 @Composable
-private fun goalMetricLabel(value: String): String = when (value) {
+internal fun goalMetricLabel(value: String): String = when (value) {
     "active_time_ms" -> stringResource(KMR.strings.stats_active_time)
     "gross_characters" -> stringResource(KMR.strings.stats_basis_gross)
     "unique_source_characters" -> stringResource(KMR.strings.stats_basis_unique)
@@ -5223,7 +5223,7 @@ private fun goalMetricLabel(value: String): String = when (value) {
 }
 
 @Composable
-private fun goalKindLabel(value: StatsGoalKind): String = when (value) {
+internal fun goalKindLabel(value: StatsGoalKind): String = when (value) {
     StatsGoalKind.DAILY -> stringResource(KMR.strings.stats_goal_type_daily)
     StatsGoalKind.DATE_BOUND_TOTAL -> stringResource(KMR.strings.stats_goal_type_date_bound)
     StatsGoalKind.FINISH_TITLE_BY_DATE ->
@@ -5232,7 +5232,7 @@ private fun goalKindLabel(value: StatsGoalKind): String = when (value) {
 }
 
 @Composable
-private fun goalEditModeLabel(value: StatsGoalEditMode): String = when (value) {
+internal fun goalEditModeLabel(value: StatsGoalEditMode): String = when (value) {
     StatsGoalEditMode.PROSPECTIVE ->
         stringResource(KMR.strings.stats_goal_edit_mode_prospective)
     StatsGoalEditMode.RESTART_HISTORY ->
@@ -5240,7 +5240,7 @@ private fun goalEditModeLabel(value: StatsGoalEditMode): String = when (value) {
 }
 
 @Composable
-private fun goalMultiplierLabel(value: Double): String =
+internal fun goalMultiplierLabel(value: Double): String =
     if (value == 0.0) {
         stringResource(KMR.strings.stats_goal_rest)
     } else {
@@ -5315,7 +5315,7 @@ internal fun ankiCapabilityReason(value: AnalyticsAnkiCapabilityReason): String?
 }
 
 @Composable
-private fun provenanceLabel(value: ProvenanceState): String = when (value) {
+internal fun provenanceLabel(value: ProvenanceState): String = when (value) {
     ProvenanceState.AVAILABLE -> stringResource(KMR.strings.stats_available)
     ProvenanceState.PARTIAL -> stringResource(KMR.strings.stats_partial)
     ProvenanceState.REMOVED -> stringResource(KMR.strings.stats_removed)
@@ -5335,7 +5335,7 @@ internal fun maturityLabel(value: MaturityTier): String = when (value) {
 }
 
 @Composable
-private fun sessionStatusLabel(value: SessionStatus): String = when (value) {
+internal fun sessionStatusLabel(value: SessionStatus): String = when (value) {
     SessionStatus.ACTIVE -> stringResource(KMR.strings.stats_session_active)
     SessionStatus.COMPLETED -> stringResource(KMR.strings.stats_session_completed)
     SessionStatus.ABANDONED -> stringResource(KMR.strings.stats_session_abandoned)
@@ -5343,7 +5343,7 @@ private fun sessionStatusLabel(value: SessionStatus): String = when (value) {
 }
 
 @Composable
-private fun sourceKindLabel(value: SourceKind): String = when (value) {
+internal fun sourceKindLabel(value: SourceKind): String = when (value) {
     SourceKind.NOVEL_RANGE -> stringResource(KMR.strings.stats_source_kind_novel)
     SourceKind.MANGA_PAGE -> stringResource(KMR.strings.stats_source_kind_manga_page)
     SourceKind.MANGA_OCR_BLOCK -> stringResource(KMR.strings.stats_source_kind_manga_ocr)
@@ -5523,8 +5523,8 @@ private fun String.optionalPositiveLong(): Long? {
         ?: throw IllegalArgumentException("Expected a positive integer")
 }
 
-private val GOAL_MULTIPLIER_OPTIONS = listOf(0.0, 0.5, 1.0)
-private const val DEFAULT_GOAL_WINDOW_DAYS = 30L
+internal val GOAL_MULTIPLIER_OPTIONS = listOf(0.0, 0.5, 1.0)
+internal const val DEFAULT_GOAL_WINDOW_DAYS = 30L
 private const val MAX_COMPACT_GOALS = 3
-private const val MAX_GOAL_CHECK_IN_NOTE_LENGTH = 500
+internal const val MAX_GOAL_CHECK_IN_NOTE_LENGTH = 500
 private const val SESSION_RELINK_TARGET_LIMIT = 20

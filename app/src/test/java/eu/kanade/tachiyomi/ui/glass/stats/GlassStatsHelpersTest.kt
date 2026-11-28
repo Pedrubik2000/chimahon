@@ -3,6 +3,9 @@ package eu.kanade.tachiyomi.ui.glass.stats
 import eu.kanade.presentation.more.stats.StatsTab
 import tachiyomi.domain.immersion.model.AnalyticsTitleCoverageFilter
 import tachiyomi.domain.immersion.model.AnalyticsTitleFilter
+import eu.kanade.tachiyomi.ui.stats.StatsGoalEditMode
+import eu.kanade.tachiyomi.ui.stats.StatsGoalKind
+import java.time.DayOfWeek
 import io.kotest.matchers.floats.plusOrMinus
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -60,13 +63,13 @@ class GlassStatsHelpersTest {
     }
 
     @Test
-    fun `the Classic body is shown only while a detail is open on that tab`() {
-        showClassicHost(StatsTab.TITLES, titleOpen = true, characterOpen = false, sessionOpen = false) shouldBe true
-        showClassicHost(StatsTab.TITLES, titleOpen = false, characterOpen = true, sessionOpen = true) shouldBe false
-        showClassicHost(StatsTab.CHARACTERS, titleOpen = false, characterOpen = true, sessionOpen = false) shouldBe true
-        showClassicHost(StatsTab.SESSIONS, titleOpen = false, characterOpen = false, sessionOpen = true) shouldBe true
-        showClassicHost(StatsTab.ACTIVITY, titleOpen = true, characterOpen = true, sessionOpen = true) shouldBe false
-        showClassicHost(StatsTab.GOALS, titleOpen = false, characterOpen = false, sessionOpen = false) shouldBe false
+    fun `the detail page is shown only while a detail is open on that tab`() {
+        isDetailOpen(StatsTab.TITLES, titleOpen = true, characterOpen = false, sessionOpen = false) shouldBe true
+        isDetailOpen(StatsTab.TITLES, titleOpen = false, characterOpen = true, sessionOpen = true) shouldBe false
+        isDetailOpen(StatsTab.CHARACTERS, titleOpen = false, characterOpen = true, sessionOpen = false) shouldBe true
+        isDetailOpen(StatsTab.SESSIONS, titleOpen = false, characterOpen = false, sessionOpen = true) shouldBe true
+        isDetailOpen(StatsTab.ACTIVITY, titleOpen = true, characterOpen = true, sessionOpen = true) shouldBe false
+        isDetailOpen(StatsTab.GOALS, titleOpen = false, characterOpen = false, sessionOpen = false) shouldBe false
     }
 
     @Test
@@ -133,5 +136,53 @@ class GlassStatsHelpersTest {
         nearestBlock(listOf(a, b), 0.09f, 0.02f)?.key shouldBe "a"
         nearestBlock(listOf(a, b), 0.50f, 0.02f) shouldBe null
         nearestBlock(emptyList(), 0.5f, 0.02f) shouldBe null
+    }
+
+    @Test
+    fun `an hourly rate needs some active time`() {
+        ratePerHour(1_800, 3_600_000L) shouldBe 1_800.0
+        ratePerHour(900, 1_800_000L) shouldBe 1_800.0
+        ratePerHour(900, 0L) shouldBe null
+    }
+
+    @Test
+    fun `show more appears while rows are hidden or another page exists`() {
+        moreAvailable(loaded = 10, shown = 3, hasNextPage = false) shouldBe true
+        moreAvailable(loaded = 3, shown = 3, hasNextPage = true) shouldBe true
+        moreAvailable(loaded = 3, shown = 3, hasNextPage = false) shouldBe false
+        moreAvailable(loaded = 2, shown = 3, hasNextPage = false) shouldBe false
+    }
+
+    @Test
+    fun `a weekday chip cycles 100 then 50 then rest`() {
+        nextMultiplier(1.0) shouldBe 0.5
+        nextMultiplier(0.5) shouldBe 0.0
+        nextMultiplier(0.0) shouldBe 1.0
+    }
+
+    private val allDays = DayOfWeek.entries.associateWith { 1.0 }
+
+    private fun goal(kind: StatsGoalKind, start: String = "2026-11-28", end: String = "2026-12-28", target: String = "30", scope: Boolean = true) =
+        goalEditorValues(kind, "active_time_ms", target, start, end, allDays, StatsGoalEditMode.PROSPECTIVE, scope)
+
+    @Test
+    fun `the goal box saves only a real start date`() {
+        goal(StatsGoalKind.DAILY)?.inputTarget shouldBe 30.0
+        goal(StatsGoalKind.DAILY, start = "28/11/2026") shouldBe null
+        goal(StatsGoalKind.DAILY, target = "abc")?.inputTarget?.isNaN() shouldBe true
+    }
+
+    @Test
+    fun `a habit counts one and a finish goal needs a title and counts units`() {
+        goal(StatsGoalKind.MANUAL, target = "")?.let { it.inputTarget shouldBe 1.0; it.metric shouldBe "manual" }
+        goal(StatsGoalKind.FINISH_TITLE_BY_DATE, scope = false) shouldBe null
+        goal(StatsGoalKind.FINISH_TITLE_BY_DATE)?.metric shouldBe "source_units"
+    }
+
+    @Test
+    fun `only date goals carry an end date, and a bad one is dropped`() {
+        goal(StatsGoalKind.DAILY)?.endDate shouldBe null
+        (goal(StatsGoalKind.DATE_BOUND_TOTAL)?.endDate != null) shouldBe true
+        goal(StatsGoalKind.DATE_BOUND_TOTAL, end = "soon")?.endDate shouldBe null
     }
 }
