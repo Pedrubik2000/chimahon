@@ -41,6 +41,26 @@ class PopupRateTest {
     }
 
     @Test
+    fun `a first rating makes the card and rates it, or leaves nothing`() {
+        val own = store("own")
+        var syncs = 0
+        // the rating is not written (not 1..4): the card made for it is gone again, no sync
+        PopupRate.rateNew(own, 5, 0, { syncs++ }) { mine(own, "北方", "ほっぽう").id } shouldBe null
+        own.cards().size shouldBe 0
+        // making the card fails: nothing either
+        PopupRate.rateNew(own, 3, 0, { syncs++ }) { error("no card") } shouldBe null
+        own.cards().size shouldBe 0
+        syncs shouldBe 0
+        val (card, rev) = PopupRate.rateNew(own, 3, 900, { syncs++ }) { mine(own, "北方", "ほっぽう").id }!!
+        own.cards().single().id shouldBe card
+        own.lastRevlogId(card) shouldBe rev
+        syncs shouldBe 1
+        // Undo takes the rating back and keeps the card
+        PopupRate.undo(own, card, rev) { syncs++ } shouldBe true
+        own.cards().single().lastReview shouldBe null
+    }
+
+    @Test
     fun `undo takes it back and syncs`() {
         val own = store("own")
         val card = mine(own, "済みません", "すみません")

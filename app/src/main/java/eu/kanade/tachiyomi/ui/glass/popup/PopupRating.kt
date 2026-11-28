@@ -15,22 +15,28 @@ object PopupRating {
      * [text] = the word as the page has it: the card is the one the popup's state found ([Cards.shownCard]).
      * [newCardMeaning] not null = the word is blue from a card on another device (Pedro, 2026-11-28: "Rate it here"): without a card of
      * its own, and only when another device really has this word with this reading ([Cards.cardedElsewhere]), the rating first makes
-     * the card here with that meaning and this context, as mining it would. A rating that then fails leaves that card, unrated.
+     * the card here with that meaning and this context, as mining it would. Card and rating are one transaction ([PopupRate.rateNew]):
+     * a rating that is not written leaves no card.
      */
     fun ratePopupCard(context: Context, word: String, reading: String, ease: Int, answerMs: Long, text: String = "", newCardMeaning: String? = null): String? {
         val sentence = chimahon.ocr.KumapieColours.sentence
         val place = chimahon.ocr.KumapieColours.place
         val had = Cards.shownCard(context, word, reading, text)
-        val card = had
-            ?: newCardMeaning?.takeIf { word.isNotBlank() && Cards.cardedElsewhere(context, word, reading) }
-                ?.let { Cards.addMined(context, word, reading, sentence, it, place?.first, place?.second) }
-            ?: return null
         val srs = Cards.store(context)
-        val rev = PopupRate.rate(srs, card.id, ease, answerMs) { SyncTrigger.request(context, "popup rating") } ?: return null
+        val synced = { SyncTrigger.request(context, "popup rating") }
+        if (had == null) {
+            if (newCardMeaning == null || word.isBlank() || !Cards.cardedElsewhere(context, word, reading)) return null
+            val (card, rev) = PopupRate.rateNew(srs, ease, answerMs, synced) {
+                Cards.addMined(context, word, reading, sentence, newCardMeaning, place?.first, place?.second).id
+            } ?: return null.also { chimahon.ocr.KumapieColours.clear() } // addMined recoloured the page for a card that is gone again
+            return "$card:$rev" // addMined saved this context and recoloured the page
+        }
+        val card = had
+        val rev = PopupRate.rate(srs, card.id, ease, answerMs, synced) ?: return null
         // where it happened is a context of the card (local only, never synced), as the rating row has always saved
         // the rating is committed: a failure from here on must not report "not saved" (a second tap would rate twice)
         runCatching {
-            if (place != null && had != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence) // a card made now has it
+            if (place != null) Cards.addContext(context, card.id, place.first, place.second, null, sentence)
             chimahon.ocr.KumapieColours.clear() // the page's colours follow the new state
         }.onFailure { android.util.Log.w("KumahonPopup", "rating saved, context/colours failed", it) }
         return "${card.id}:$rev"

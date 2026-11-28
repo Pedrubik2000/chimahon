@@ -20,6 +20,22 @@ object PopupRate {
         return id
     }
 
+    /**
+     * The first rating of a word that has no card here yet: [make] makes the card (answers its id) and the rating is written in the
+     * SAME transaction, so a rating that is not written leaves no card behind either. Answers card id to revlog id, or null = nothing
+     * was written (and nothing is left).
+     */
+    fun rateNew(srs: Srs, ease: Int, answerMs: Long, afterWrite: () -> Unit, make: () -> Long): Pair<Long, Long>? {
+        val made = runCatching {
+            srs.db.tx {
+                val card = make()
+                card to (rate(srs, card, ease, answerMs) {} ?: error("the rating was not written")) // the throw rolls the card back
+            }
+        }.getOrNull() ?: return null
+        afterWrite()
+        return made
+    }
+
     /** Takes back THIS popup's rating ([revlogId], [rate]'s answer); false = not undone (something newer is on the card, or it is gone). */
     fun undo(srs: Srs, cardId: Long, revlogId: Long, afterWrite: () -> Unit): Boolean {
         // the check and the undo in one transaction: a sync taking another device's rating cannot slip in between
