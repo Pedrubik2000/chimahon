@@ -171,6 +171,7 @@ class JapaneseModel(
 
     /** Jiten's files don't load (a bad download): deleted, and Sudachi + [join] split alone, as without them. */
     internal fun dropSplitter(e: Exception) {
+        e.printStackTrace() // the only trace of why: on Android it lands in logcat (System.err)
         synchronized(Companion) { jiten = null }
         for (f in splitterFiles) f.delete()
         state()?.let { writeState(it.first, true) } // this release doesn't load here: not fetched again until its version changes
