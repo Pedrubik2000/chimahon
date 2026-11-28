@@ -42,6 +42,8 @@ class JapaneseModel(
         // an old file holds only the version: check time 0 = the next daily check runs at once
         Triple(v.removePrefix("dropped:"), v.startsWith("dropped:"), l.getOrNull(1)?.trim()?.toLongOrNull() ?: 0L)
     }.getOrNull()
+    /** For the log: which of Jiten's files exist, the version file as written, the last failure. */
+    val splitterState: String get() = "files ${splitterFiles.map { it.exists() }}, version ${runCatching { versionFile.readText().lines().joinToString(" ") }.getOrDefault("none")}, failure $failure"
     private fun writeState(version: String, dropped: Boolean) = versionFile.writeText("${if (dropped) "dropped:" else ""}$version\n${System.currentTimeMillis()}")
     /** Jiten's files are missing (and not dropped from this release), or the release manifest wasn't read for a day: [download] has something to do. */
     fun splitterWanted(): Boolean {
