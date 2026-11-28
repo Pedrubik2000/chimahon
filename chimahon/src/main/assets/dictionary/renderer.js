@@ -2745,8 +2745,86 @@
     iconGroup.prepend(button);
   }
 
+  // Popup D, an extra entry (not the card's own word): ONE slim segmented strip under its headword instead of the old
+  // coloured row (mockup D "Segmented strip", Pedro 2026-11-28). No card of its own: Mark known | Mine | audio. A card:
+  // due or "rate early" | the four ratings with their intervals | audio; then Answered | Undo. The entry's own icon
+  // buttons stay in the DOM, hidden (base.css), and the strip presses them, so mining and audio work as ever.
+  const GLASS_SVG = (d) => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  const GLASS_ICONS = {
+    check: GLASS_SVG('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+    plus: GLASS_SVG('<path d="M12 5v14M5 12h14"/>'),
+    cards: GLASS_SVG('<rect x="4" y="8" width="12" height="12" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2"/>'),
+    clock: GLASS_SVG('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>'),
+    undo: GLASS_SVG('<path d="M9 7L5 11l4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/>'),
+    audio: GLASS_SVG('<path d="M4 10v4h3l4 4V6L7 10H4z"/><path d="M15 9.5a3.5 3.5 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10"/>'),
+  };
+
+  async function renderGlassSubBar(article, expression, reading) {
+    if (typeof KumapieBridge === 'undefined') return;
+    const word = { word: expression, reading: reading || '', text: article.dataset.matched || '' };
+    const reply = await kumapieRequest({ action: 'state', ...word });
+    article.querySelector('.glass-subbar')?.remove();
+    if (!reply) return;
+    const bar = document.createElement('div');
+    bar.className = 'glass-subbar';
+    const head = article.querySelector('.entry-headword-row');
+    if (head) head.after(bar); else article.prepend(bar);
+    const opened = Date.now();
+    const segment = (html, cls, onClick) => {
+      const el = document.createElement(onClick ? 'button' : 'span');
+      el.className = 'glass-seg' + (cls ? ' ' + cls : '');
+      el.innerHTML = html;
+      if (onClick) el.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); onClick(el); });
+      bar.appendChild(el);
+      return el;
+    };
+    const audio = () => {
+      const button = article.querySelector('.entry-icon-group .audio-btn, .entry-icon-group .word-audio-btn');
+      if (button) segment(GLASS_ICONS.audio, 'icon', () => button.click()).setAttribute('aria-label', 'Play audio');
+    };
+    const busy = (on) => bar.querySelectorAll('button').forEach((b) => { b.disabled = on; });
+    const labels = Array.isArray(reply.labels) ? reply.labels : null; // only a card of kumahon's own has them
+    const noCard = (marked) => {
+      bar.replaceChildren();
+      segment(GLASS_ICONS.check + '<b>' + (marked ? 'Known' : 'Mark known') + '</b>' + (marked ? '<i>tap to undo</i>' : ''), marked ? 'on' : '', async () => {
+        busy(true);
+        const answer = await kumapieRequest({ action: 'mark', ...word, known: !marked });
+        noCard(answer && typeof answer.marked === 'boolean' ? answer.marked : marked);
+      });
+      const add = article.querySelector('.entry-icon-group .anki-add-btn');
+      if (add && add.style.display !== 'none') segment(GLASS_ICONS.plus + '<b>' + (add.classList.contains('anki-added') ? 'Mined' : 'Mine') + '</b>', '', () => add.click());
+      audio();
+    };
+    const ratings = () => {
+      bar.replaceChildren();
+      const due = reply.state === 'd' || reply.state === 'b';
+      bar.classList.toggle('early', !due);
+      segment((due ? GLASS_ICONS.cards : GLASS_ICONS.clock) + '<b>' + (due ? 'due' : 'rate early') + '</b>', 'cap');
+      ['Again', 'Hard', 'Good', 'Easy'].forEach((label, i) => {
+        segment('<b>' + String(labels[i] || '').replace(/[&<>]/g, '') + '</b><i>' + label + '</i>', 'rate' + (i === 2 ? ' on' : '') + (i === 0 ? ' again' : ''), async () => {
+          busy(true);
+          const answer = await kumapieRequest({ action: 'rate', ...word, ease: i + 1, ms: Date.now() - opened });
+          if (answer?.rated) answered(label, answer.rated); else { ratings(); segment('<i>not saved</i>', 'cap'); }
+        });
+      });
+      audio();
+    };
+    const answered = (label, rated) => {
+      bar.replaceChildren();
+      bar.classList.remove('early');
+      segment(GLASS_ICONS.cards + '<b>Answered: ' + label + '</b>', 'wide');
+      segment(GLASS_ICONS.undo + '<b>Undo</b>', '', async (el) => {
+        el.disabled = true;
+        if ((await kumapieRequest({ action: 'undo', ...word, rated }))?.undone) ratings(); else el.replaceWith(Object.assign(document.createElement('span'), { className: 'glass-seg cap', innerHTML: '<i>not undone</i>' }));
+      });
+      audio();
+    };
+    if (labels && reply.state && reply.state !== 'u') ratings(); else noCard(reply.marked === true);
+  }
+
   async function appendKumapieRatings(article, expression, reading) {
     if (typeof KumapieBridge === 'undefined') return;
+    if (_glassPopup && article.dataset.index !== '0') return renderGlassSubBar(article, expression, reading);
     const word = { word: expression, reading: reading || '' };
     const state = (await kumapieRequest({ action: 'state', ...word }))?.state;
     article.querySelector('.kumapie-ratings')?.remove();
@@ -2891,7 +2969,9 @@
       }
     }
 
-    appendKumapieMark(iconGroup, expression, reading, result.matched);
+    article.dataset.matched = result.matched || '';
+    // popup D draws an extra entry's mark in its strip (renderGlassSubBar); its own word's in the card's bar
+    if (!(_glassPopup && result.index)) appendKumapieMark(iconGroup, expression, reading, result.matched);
     headSection.appendChild(iconGroup);
     body.appendChild(headSection);
     if (_glassPopup && !result.index) {

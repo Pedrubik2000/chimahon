@@ -143,6 +143,11 @@ internal class KumapieJsBridge(
                 val token = body.optJSONObject("rated")?.optString("undo") ?: return "null"
                 org.json.JSONObject().put("undone", eu.kanade.tachiyomi.ui.glass.popup.PopupRating.undoPopupCard(context, token)).toString()
             }
+            // the answer intervals of the word's own card ("labels": only then the page's strip offers ratings)
+            "state" -> own().let { raw ->
+                val labels = chimahon.srs.Cards.preview(context, body.optString("word"), body.optString("reading"))?.labels
+                if (raw == "null" || labels == null) raw else org.json.JSONObject(raw).put("labels", org.json.JSONArray(labels)).toString()
+            }
             else -> own()
         }
     }

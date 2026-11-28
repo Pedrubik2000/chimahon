@@ -1063,6 +1063,38 @@ html[data-glass-popup="true"] .entry { padding: 0; }
 html[data-glass-popup="true"] .entry + .entry { border-top: 1px solid var(--border); margin-top: 0; padding-top: 8px; }
 html[data-glass-popup="true"] body { font-size: 16px; line-height: 24px; }
 html[data-glass-popup="true"] .glass-termtags { padding: 10px 0 2px; }
+/* An extra entry's own controls: one slim segmented strip (renderer.js renderGlassSubBar); its old icon buttons stay, unseen. */
+html[data-glass-popup="true"] .entry:not([data-index="0"]) .entry-icon-group { display: none; }
+html[data-glass-popup="true"] .glass-subbar {
+  display: flex; height: 44px; margin: 8px 0 10px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.18); border-radius: 22px;
+}
+html[data-glass-popup="true"] .glass-seg {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 0; padding: 0 6px; border: 0; border-left: 1px solid rgba(255,255,255,0.18); border-radius: 0;
+  background: none; color: #fff; font: inherit; font-size: 15px; line-height: 18px; white-space: nowrap;
+}
+html[data-glass-popup="true"] .glass-seg:first-child { border-left: 0; }
+html[data-glass-popup="true"] .glass-seg b { font-weight: 600; }
+html[data-glass-popup="true"] .glass-seg i { font-style: normal; font-size: 12px; color: rgba(255,255,255,0.62); }
+html[data-glass-popup="true"] .glass-seg svg { flex: none; }
+html[data-glass-popup="true"] .glass-seg.icon { flex: 0 0 56px; }
+html[data-glass-popup="true"] .glass-seg.cap { flex: 0 0 auto; padding: 0 12px; font-size: 13px; color: #9CC9FF; }
+html[data-glass-popup="true"] .glass-seg.cap i { color: #9CC9FF; }
+html[data-glass-popup="true"] .glass-seg.wide { flex: 2 1 0; }
+html[data-glass-popup="true"] .glass-seg.on { background: #fff; color: #111; }
+html[data-glass-popup="true"] .glass-seg.on i { color: #555; }
+html[data-glass-popup="true"] .glass-seg.again i { color: #FF6B6B; }
+html[data-glass-popup="true"] .glass-seg:disabled { opacity: 0.5; }
+html[data-glass-popup="true"] .glass-subbar.early .glass-seg.rate { opacity: 0.55; }
+html[data-glass-popup="true"] .glass-subbar.early .glass-seg.rate.on { background: none; color: #fff; }
+html[data-glass-popup="true"] .glass-subbar.early .glass-seg.rate.on i { color: rgba(255,255,255,0.62); }
+@media (max-width: 520px) {
+  html[data-glass-popup="true"] .glass-seg.rate { flex-direction: column; gap: 0; line-height: 16px; }
+  html[data-glass-popup="true"] .glass-seg.cap { padding: 0 8px; }
+  html[data-glass-popup="true"] .glass-seg.cap b { display: none; }
+  html[data-glass-popup="true"] .glass-seg.icon { flex-basis: 44px; }
+}
 html[data-glass-popup="true"] .dictionary-group {
   margin: 0 -20px; padding: 0 20px; border-top: 1px solid var(--border);
 }
